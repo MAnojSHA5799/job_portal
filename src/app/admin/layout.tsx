@@ -15,7 +15,8 @@ import {
   Menu, 
   X,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: Globe, label: 'Scraper Status', href: '/admin/scraper' },
   { icon: Copy, label: 'Duplicate Jobs', href: '/admin/duplicates' },
   { icon: Building2, label: 'Companies', href: '/admin/companies' },
+  { icon: ImageIcon, label: 'Banners', href: '/admin/banners' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 

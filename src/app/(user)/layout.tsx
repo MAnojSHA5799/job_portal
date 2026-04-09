@@ -20,6 +20,8 @@ import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
+import { Banner } from '@/components/Banner';
+
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -36,6 +38,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="sticky top-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
+        {/* ... existing nav content ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-20 items-center">
             <div className="flex items-center gap-10">
@@ -105,6 +108,9 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           </div>
         )}
       </nav>
+
+      {/* Banner Section */}
+      <Banner />
 
       {/* Main Content */}
       <main>
