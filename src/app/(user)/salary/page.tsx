@@ -84,7 +84,7 @@ export default function SalaryIntelligence() {
                     <ResponsiveContainer width="100%" height="100%">
                         <ReBarChart data={salaryData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
-                            <XAxis dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeights: 'bold', fill: '#9CA3AF' }} />
+                            <XAxis dataKey="role" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#9CA3AF' }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} tickFormatter={(val) => `$${val/1000}k`} />
                             <Tooltip 
                                 cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
