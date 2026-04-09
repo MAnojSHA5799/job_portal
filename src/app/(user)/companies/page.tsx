@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Building2, 
@@ -11,20 +11,60 @@ import {
   Star, 
   Users, 
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
-const companies = [
-  { id: 1, name: 'Google', industry: 'Technology', jobs: 124, location: 'Mountain View, CA', logo: 'G', rating: 4.8 },
-  { id: 2, name: 'Meta', industry: 'Social Media', jobs: 86, location: 'Menlo Park, CA', logo: 'M', rating: 4.6 },
-  { id: 3, name: 'Stripe', industry: 'Fintech', jobs: 42, location: 'Dublin, Ireland', logo: 'S', rating: 4.9 },
-  { id: 4, name: 'Shopify', industry: 'E-commerce', jobs: 33, location: 'Ottawa, Canada', logo: 'Sh', rating: 4.5 },
-  { id: 5, name: 'Netflix', industry: 'Entertainment', jobs: 19, location: 'Los Gatos, CA', logo: 'N', rating: 4.7 },
-  { id: 6, name: 'Apple', industry: 'Tech Hardware', jobs: 94, location: 'Cupertino, CA', logo: 'A', rating: 4.8 },
-];
+interface Company {
+  id: string;
+  name: string;
+  industry: string;
+  location: string;
+  logo_url: string;
+  rating?: number;
+  jobs: { count: number }[];
+}
 
 export default function CompaniesDirectory() {
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchCompanies = async () => {
+    setLoading(true);
+    try {
+      let query = supabase
+        .from('companies')
+        .select(`
+          *,
+          jobs:jobs(count)
+        `);
+
+      if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setCompanies(data || []);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchCompanies();
+  };
+
   return (
     <div className="bg-white min-h-screen pb-24">
       {/* Header */}
@@ -45,62 +85,85 @@ export default function CompaniesDirectory() {
                     Discover world-class companies and their culture. Explore high-growth opportunities at industry leaders.
                 </p>
 
-                <div className="max-w-xl bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex items-center gap-2">
+                <form onSubmit={handleSearch} className="max-w-xl bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex items-center gap-2">
                     <Search className="ml-4 h-5 w-5 text-gray-400" />
-                    <Input placeholder="Search companies by name or industry" className="border-0 shadow-none h-11 focus-visible:ring-0" />
-                    <Button size="sm" className="h-11 font-bold px-8 rounded-xl shadow-lg shadow-primary/20">Search</Button>
-                </div>
+                    <Input 
+                        placeholder="Search companies by name or industry" 
+                        className="border-0 shadow-none h-11 focus-visible:ring-0" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button type="submit" size="sm" className="h-11 font-bold px-8 rounded-xl shadow-lg shadow-primary/20">Search</Button>
+                </form>
             </motion.div>
         </div>
         <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[500px] bg-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 z-20 relative">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {companies.map((company, i) => (
-                <motion.div
-                    key={company.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                >
-                    <Card className="p-8 hover:shadow-2xl hover:shadow-primary/5 border-0 shadow-sm transition-all group group overflow-hidden bg-white">
-                        <div className="flex justify-between items-start mb-8">
-                            <div className="w-16 h-16 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-primary p-2 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6">
-                                {company.logo}
-                            </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-accent/5 text-accent border border-accent/10">
-                                <Star className="h-3.5 w-3.5 fill-accent" /> <span className="font-bold text-xs">{company.rating}</span>
-                            </div>
-                        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-40">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          </div>
+        ) : companies.length === 0 ? (
+          <div className="text-center py-40 bg-white rounded-[40px] border border-dashed border-gray-200 shadow-sm">
+            <Building2 className="w-16 h-16 text-gray-200 mx-auto mb-6" />
+            <h3 className="text-2xl font-black text-gray-900">No companies found</h3>
+            <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium">We couldn't find any companies matching your search. Try a different keyword.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {companies.map((company, i) => (
+                  <motion.div
+                      key={company.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                  >
+                      <Card className="p-8 hover:shadow-2xl hover:shadow-primary/5 border-0 shadow-sm transition-all group group overflow-hidden bg-white">
+                          <div className="flex justify-between items-start mb-8">
+                              <div className="w-16 h-16 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-primary p-2 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6 overflow-hidden">
+                                  {company.logo_url ? (
+                                    <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    company.name[0]
+                                  )}
+                              </div>
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-accent/5 text-accent border border-accent/10">
+                                  <Star className="h-3.5 w-3.5 fill-accent" /> <span className="font-bold text-xs">{company.rating || '4.5'}</span>
+                              </div>
+                          </div>
 
-                        <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer">
-                            {company.name}
-                        </h3>
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-8">{company.industry}</p>
-                        
-                        <div className="space-y-4 mb-10 pb-10 border-b border-gray-50 font-medium">
-                            <div className="flex items-center text-gray-500 gap-3 text-sm">
-                                <MapPin className="h-4 w-4" /> {company.location}
-                            </div>
-                            <div className="flex items-center text-gray-500 gap-3 text-sm">
-                                <Briefcase className="h-4 w-4" /> {company.jobs} Active Jobs
-                            </div>
-                        </div>
+                          <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer">
+                              {company.name}
+                          </h3>
+                          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-8">{company.industry}</p>
+                          
+                          <div className="space-y-4 mb-10 pb-10 border-b border-gray-50 font-medium">
+                              <div className="flex items-center text-gray-500 gap-3 text-sm">
+                                  <MapPin className="h-4 w-4" /> {company.location || 'Remote'}
+                              </div>
+                              <div className="flex items-center text-gray-500 gap-3 text-sm">
+                                  <Briefcase className="h-4 w-4" /> {company.jobs?.[0]?.count || 0} Active Jobs
+                              </div>
+                          </div>
 
-                        <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl group-hover:shadow-lg transition-all group-hover:shadow-primary/20">
-                            View Careers <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
-                    </Card>
-                </motion.div>
-            ))}
-        </div>
+                          <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl group-hover:shadow-lg transition-all group-hover:shadow-primary/20">
+                              View Careers <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                      </Card>
+                  </motion.div>
+              ))}
+          </div>
+        )}
 
-        <div className="mt-20 text-center">
-            <Button variant="outline" size="lg" className="px-16 h-14 font-black border-2 rounded-2xl hover:border-primary hover:text-primary transition-all shadow-sm">
-                Explore 500+ More Companies
-            </Button>
-        </div>
+        {!loading && companies.length > 0 && (
+          <div className="mt-20 text-center">
+              <Button variant="outline" size="lg" className="px-16 h-14 font-black border-2 rounded-2xl hover:border-primary hover:text-primary transition-all shadow-sm">
+                  Explore 500+ More Companies
+              </Button>
+          </div>
+        )}
       </div>
 
       {/* Stats section */}
@@ -128,3 +191,4 @@ export default function CompaniesDirectory() {
     </div>
   );
 }
+
