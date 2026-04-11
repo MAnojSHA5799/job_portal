@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button, Input, Card, Badge } from '@/components/ui';
 import { 
   Search, 
@@ -19,19 +19,24 @@ import {
   SlidersHorizontal,
   Coins,
   MessageCircle,
-  Hammer
+  Hammer,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilterDropdown } from '@/components/FilterDropdown';
+import { cn } from '@/lib/utils';
 
 const categories = [
-  { icon: Code, name: 'Engineering', count: '1,284 jobs' },
-  { icon: Palette, name: 'Design', count: '450 jobs' },
-  { icon: BarChart, name: 'Marketing', count: '320 jobs' },
-  { icon: Laptop, name: 'Product', count: '180 jobs' },
-  { icon: Users, name: 'Sales', count: '210 jobs' },
-  { icon: Globe, name: 'Remote', count: '2,400 jobs' },
+  { icon: Code, name: 'Engineering', count: '1,284 jobs', color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+  { icon: Palette, name: 'Design', count: '450 jobs', color: 'bg-pink-500/10 text-pink-500 border-pink-500/20' },
+  { icon: BarChart, name: 'Marketing', count: '320 jobs', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+  { icon: Laptop, name: 'Product', count: '180 jobs', color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
+  { icon: Users, name: 'Sales', count: '210 jobs', color: 'bg-green-500/10 text-green-500 border-green-500/20' },
+  { icon: Globe, name: 'Remote', count: '2,400 jobs', color: 'bg-teal-500/10 text-teal-500 border-teal-500/20' },
 ];
+
+const BRANDS = ['Google', 'Infosys', 'Meta', 'Apple', 'Stripe', 'Microsoft', 'Amazon', 'Netflix', 'Tesla', 'IBM'];
 
 const FILTER_OPTIONS = {
   category: ['Engineering', 'Design', 'Marketing', 'Product', 'Sales', 'Customer Support'],
@@ -43,14 +48,7 @@ const FILTER_OPTIONS = {
   skills: ['React', 'Next.js', 'Python', 'Node.js', 'Figma', 'UI/UX', 'SEO'],
 };
 
-const allJobs = [
-  { id: 1, title: 'Senior Frontend Engineer', company: 'Google', location: 'USA', salary: '$160k - $220k', logo: 'G', type: 'Full-time', category: 'Engineering', experience: 'Senior', language: 'English', skills: ['React', 'Next.js'] },
-  { id: 2, title: 'Lead Product Designer', company: 'Meta', location: 'Remote', salary: '$180k - $250k', logo: 'M', type: 'Contract', category: 'Design', experience: 'Lead', language: 'English', skills: ['Figma', 'UI/UX'] },
-  { id: 3, title: 'Backend Developer', company: 'Stripe', location: 'Ireland', salary: '$120k - $160k', logo: 'S', type: 'Full-time', category: 'Engineering', experience: 'Intermediate', language: 'English', skills: ['Node.js', 'Python'] },
-  { id: 4, title: 'Marketing Manager', company: 'Shopify', location: 'Canada', salary: '$90k - $130k', logo: 'Sh', type: 'Full-time', category: 'Marketing', experience: 'Senior', language: 'English', skills: ['SEO', 'Marketing'] },
-  { id: 5, title: 'Customer Success', company: 'Zendesk', location: 'India', salary: '$50k - $70k', logo: 'Z', type: 'Full-time', category: 'Customer Support', experience: 'Entry Level', language: 'Hindi', skills: ['Communication'] },
-  { id: 6, title: 'Sales Executive', company: 'Salesforce', location: 'USA', salary: '$150k - $200k', logo: 'Sf', type: 'Full-time', category: 'Sales', experience: 'Expert', language: 'English', skills: ['Sales', 'Negotiation'] },
-];
+// Mock data removed in favor of Supabase fetching
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,28 +62,76 @@ export default function HomePage() {
     skills: 'Skills',
   });
 
+  const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error("Failed to parse user", e);
+      }
+    }
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          companies (
+            name
+          )
+        `)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleApply = (jobTitle: string) => {
+    if (!user) {
+      alert("First login then apply");
+      return;
+    }
+    alert(`Applied for ${jobTitle} successfully!`);
+  };
+
   const filteredJobs = useMemo(() => {
-    return allJobs.filter(job => {
+    return jobs.filter(job => {
+      const companyName = job.companies?.name || '';
       const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           job.company.toLowerCase().includes(searchQuery.toLowerCase());
+                           companyName.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesCategory = filters.category === 'Job Category' || job.category === filters.category;
       const matchesLocation = filters.location === 'Your Location' || job.location === filters.location || (filters.location === 'Remote' && job.location === 'Remote');
       const matchesExperience = filters.experience === 'Experience' || job.experience === filters.experience;
       const matchesType = filters.type === 'Employment Type' || job.type === filters.type;
       const matchesLanguage = filters.language === 'Language' || job.language === filters.language;
-      const matchesSkills = filters.skills === 'Skills' || job.skills.includes(filters.skills);
+      const matchesSkills = filters.skills === 'Skills' || (job.skills && job.skills.includes(filters.skills));
 
       // Simple salary matching (needs more robust parsing for real apps)
       const matchesSalary = filters.salary === 'Minimum Salary' || true; 
 
       return matchesSearch && matchesCategory && matchesLocation && matchesExperience && matchesType && matchesLanguage && matchesSkills && matchesSalary;
     });
-  }, [searchQuery, filters]);
+  }, [searchQuery, filters, jobs]);
 
   return (
     <div className="space-y-24 pb-24">
@@ -106,18 +152,18 @@ export default function HomePage() {
                 </h1>
                 
                 {/* Advanced Search & Filters */}
-                <div className="max-w-4xl mx-auto space-y-6">
+                <div className="max-w-4xl mx-auto space-y-8">
                     {/* Main Search Bar */}
-                    <div className="bg-white p-2.5 rounded-[32px] shadow-2xl shadow-primary/10 border border-gray-100 flex items-center gap-2 pr-4 pl-6 h-20">
-                        <Search className="h-6 w-6 text-gray-400 shrink-0" />
+                    <div className="bg-white p-3 rounded-[40px] shadow-2xl shadow-primary/30 border-4 border-primary/20 flex items-center gap-3 pr-4 pl-8 h-24 transform transition-all hover:scale-[1.02]">
+                        <Search className="h-8 w-8 text-primary shrink-0" />
                         <Input 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Search Job Title or Company name..." 
-                            className="border-0 shadow-none h-full text-xl font-medium focus-visible:ring-0 placeholder:text-gray-300" 
+                            placeholder="Type job title, skills, or company name..." 
+                            className="border-0 shadow-none h-full text-2xl font-bold focus-visible:ring-0 placeholder:text-gray-300 bg-transparent" 
                         />
-                        <button className="w-14 h-14 rounded-2xl bg-primary/5 hover:bg-primary/10 flex items-center justify-center text-primary transition-colors group">
-                            <SlidersHorizontal className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        <button className="w-16 h-16 rounded-3xl bg-primary hover:bg-primary/90 flex items-center justify-center text-white shadow-lg shadow-primary/40 transition-colors group">
+                            <SlidersHorizontal className="w-7 h-7 group-hover:scale-110 transition-transform" />
                         </button>
                     </div>
 
@@ -175,12 +221,26 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                <div className="mt-12 flex flex-wrap justify-center items-center gap-6 text-sm text-gray-400 font-bold uppercase tracking-widest">
-                    <span>Trusted by:</span>
-                    <span className="text-gray-900">Google</span>
-                    <span className="text-gray-900">Meta</span>
-                    <span className="text-gray-900">Stripe</span>
-                    <span className="text-gray-900">Apple</span>
+                <div className="mt-16 w-full overflow-hidden flex flex-col items-center">
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Trusted by world-class teams</p>
+                    <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
+                        <div className="flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll">
+                            <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8">
+                                {BRANDS.map((brand, i) => (
+                                    <li key={i} className="text-2xl md:text-3xl font-black text-gray-300 hover:text-gray-400 transition-colors cursor-default whitespace-nowrap">
+                                        {brand}
+                                    </li>
+                                ))}
+                            </ul>
+                            <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8" aria-hidden="true">
+                                {BRANDS.map((brand, i) => (
+                                    <li key={i + 'dup'} className="text-2xl md:text-3xl font-black text-gray-300 hover:text-gray-400 transition-colors cursor-default whitespace-nowrap">
+                                        {brand}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
                 </div>
             </motion.div>
         </div>
@@ -205,14 +265,14 @@ export default function HomePage() {
             {categories.map((cat, i) => (
                 <motion.div
                     key={i}
-                    whileHover={{ y: -5 }}
-                    className="p-6 rounded-2xl bg-white border border-gray-100 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer group"
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    className={cn("p-6 rounded-[32px] border transition-all cursor-pointer group hover:shadow-2xl flex flex-col items-center text-center", cat.color, "hover:bg-white")}
                 >
-                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-500 group-hover:bg-primary group-hover:text-white transition-colors mb-4 shadow-sm">
-                        <cat.icon className="w-6 h-6" />
+                    <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all shadow-sm bg-white current-color")}>
+                        <cat.icon className="w-8 h-8" />
                     </div>
-                    <h4 className="font-bold text-gray-900 mb-1">{cat.name}</h4>
-                    <p className="text-xs text-gray-400 font-bold uppercase">{cat.count}</p>
+                    <h4 className="font-black text-gray-900 mb-1">{cat.name}</h4>
+                    <p className="text-xs font-bold uppercase opacity-80">{cat.count}</p>
                 </motion.div>
             ))}
         </div>
@@ -233,7 +293,12 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <AnimatePresence mode='popLayout'>
-                  {filteredJobs.length > 0 ? (
+                  {loading ? (
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center space-y-4">
+                      <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                      <p className="text-gray-500 font-bold animate-pulse">Loading amazing opportunities...</p>
+                    </div>
+                  ) : filteredJobs.length > 0 ? (
                     filteredJobs.map((job) => (
                       <motion.div
                         layout
@@ -245,15 +310,15 @@ export default function HomePage() {
                         <Card className="p-8 hover:shadow-2xl transition-all border-0 shadow-sm relative overflow-hidden group h-full flex flex-col">
                             <div className="flex justify-between items-start mb-6">
                                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
-                                    {job.logo}
+                                    {(job.companies?.name || job.company || 'J').charAt(0).toUpperCase()}
                                 </div>
-                                <Badge variant="info">{job.type}</Badge>
+                                <Badge variant="info">{job.type || 'Full-time'}</Badge>
                             </div>
                             <h3 className="text-xl font-black text-gray-900 mb-2 leading-tight group-hover:text-primary transition-colors cursor-pointer">
                                 {job.title}
                             </h3>
                             <p className="text-gray-500 font-bold text-sm mb-6 flex items-center">
-                                <Briefcase className="w-4 h-4 mr-2" /> {job.company}
+                                <Briefcase className="w-4 h-4 mr-2" /> {job.companies?.name || job.company || 'Featured Company'}
                             </p>
                             
                             <div className="space-y-3 mb-8 flex-grow">
@@ -261,11 +326,14 @@ export default function HomePage() {
                                     <MapPin className="w-4 h-4 mr-2" /> {job.location}
                                 </div>
                                 <div className="flex items-center text-sm text-primary font-bold bg-primary/5 px-3 py-1 rounded-lg w-fit">
-                                    <Star className="w-4 h-4 mr-2 fill-primary" /> {job.salary}
+                                    <Star className="w-4 h-4 mr-2 fill-primary" /> {job.salary || 'Competitive Salary'}
                                 </div>
                             </div>
 
-                            <Button className="w-full font-bold group-hover:shadow-primary/30 transition-all">
+                            <Button 
+                                onClick={() => handleApply(job.title)}
+                                className="w-full font-bold group-hover:shadow-primary/30 transition-all"
+                            >
                                 Apply Now
                             </Button>
                         </Card>

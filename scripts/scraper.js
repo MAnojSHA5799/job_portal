@@ -48,93 +48,128 @@ async function getOrCreateCompany(name) {
 
 async function scrapeJobs() {
   console.log("🚀 Starting Simplified Multi-Site Scraper...");
-  
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
-  let totalJobsProcessed = 0;
-  let allScrapedJobs = [];
+  let logId = null;
 
-  for (const url of jobUrls) {
-    try {
-      console.log(`🌐 Visiting: ${url}`);
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-      await page.waitForTimeout(5000);
+  try {
+    // Initial log entry
+    const { data: logData } = await supabase
+      .from('scraper_logs')
+      .insert([{ status: 'running', jobs_found: 0 }])
+      .select('id')
+      .single();
+    logId = logData?.id;
 
-      const jobs = await page.evaluate(() => {
-        const results = [];
-        const jobCards = document.querySelectorAll('a, div, li');
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
 
-        jobCards.forEach((el) => {
-          const text = el.innerText || "";
-          if (
-            text.toLowerCase().includes("engineer") ||
-            text.toLowerCase().includes("developer") ||
-            text.toLowerCase().includes("manager")
-          ) {
-            results.push({
-              title: text.split("\n")[0]?.trim().slice(0, 100),
-              company: document.title,
-              location: text.includes("India") ? "India" : "Remote",
-              applyLink: el.href || window.location.href,
-              description: text.slice(0, 500)
-            });
-          }
-        });
-        return results.slice(0, 20); 
-      });
+    let totalJobsFound = 0;
+    let totalJobsSaved = 0;
+    let allScrapedJobs = [];
 
-      console.log(`✅ Found ${jobs.length} potential jobs from ${url}`);
+    for (const url of jobUrls) {
+      try {
+        console.log(`🌐 Visiting: ${url}`);
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+        await page.waitForTimeout(5000);
 
-      for (const job of jobs) {
-        const companyId = await getOrCreateCompany(job.company);
-        if (companyId) {
-          // Manual check for existing job to avoid 'ON CONFLICT' error
-          const { data: existingJob } = await supabase
-            .from('jobs')
-            .select('id')
-            .eq('title', job.title)
-            .eq('company_id', companyId)
-            .maybeSingle();
+        const jobs = await page.evaluate(() => {
+          const results = [];
+          const jobCards = document.querySelectorAll('a, div, li, span');
 
-          if (!existingJob) {
-            const { error: insertError } = await supabase
-              .from('jobs')
-              .insert([{
-                company_id: companyId,
-                title: job.title,
-                description: job.description || 'No description provided.',
-                location: job.location,
-                apply_link: job.applyLink,
-                source_url: url,
-                is_approved: false,
-                category: 'Engineering',
-                job_type: 'Full-time'
-              }]);
-
-            if (!insertError) {
-              totalJobsProcessed++;
-              allScrapedJobs.push(job);
-            } else {
-              console.error(`❌ DB Insert Error: ${insertError.message}`);
+          jobCards.forEach((el) => {
+            const text = el.innerText || "";
+            const lowerText = text.toLowerCase();
+            if (
+              lowerText.includes("engineer") ||
+              lowerText.includes("developer") ||
+              lowerText.includes("manager") ||
+              lowerText.includes("analyst") ||
+              lowerText.includes("architect") ||
+              lowerText.includes("lead") ||
+              lowerText.includes("consultant")
+            ) {
+              const title = text.split("\n")[0]?.trim();
+              if (title && title.length > 5) {
+                results.push({
+                  title: title.slice(0, 100),
+                  company: document.title.split('|')[0].trim(),
+                  location: text.includes("India") ? "India" : "Remote",
+                  applyLink: el.href || window.location.href,
+                  description: text.slice(0, 500)
+                });
+              }
             }
-          } else {
-            // console.log(`⏩ Skipping duplicate: ${job.title}`);
+          });
+          return results.slice(0, 15); 
+        });
+
+        console.log(`✅ Found ${jobs.length} potential jobs from ${url}`);
+        totalJobsFound += jobs.length;
+
+        for (const job of jobs) {
+          const companyId = await getOrCreateCompany(job.company);
+          if (companyId) {
+            const { data: existingJob } = await supabase
+              .from('jobs')
+              .select('id')
+              .eq('title', job.title)
+              .eq('company_id', companyId)
+              .maybeSingle();
+
+            if (!existingJob) {
+              const { error: insertError } = await supabase
+                .from('jobs')
+                .insert([{
+                  company_id: companyId,
+                  title: job.title,
+                  description: job.description || 'No description provided.',
+                  location: job.location,
+                  apply_link: job.applyLink,
+                  source_url: url,
+                  is_approved: false,
+                  category: 'Engineering',
+                  job_type: 'Full-time'
+                }]);
+
+              if (!insertError) {
+                totalJobsSaved++;
+                allScrapedJobs.push(job);
+              }
+            }
           }
         }
+      } catch (err) {
+        console.log(`❌ Failed: ${url}`, err.message);
       }
-    } catch (err) {
-      console.log(`❌ Failed: ${url}`, err.message);
+    }
+
+    // Save to JSON for verification
+    const outputPath = path.join(__dirname, 'scraped_jobs.json');
+    fs.writeFileSync(outputPath, JSON.stringify(allScrapedJobs, null, 2));
+
+    console.log(`📦 Scrape Summary: Found ${totalJobsFound}, Saved ${totalJobsSaved} new jobs.`);
+    
+    // Update log to completed
+    if (logId) {
+      await supabase
+        .from('scraper_logs')
+        .update({ 
+          status: 'completed', 
+          jobs_found: totalJobsFound 
+        })
+        .eq('id', logId);
+    }
+
+    await browser.close();
+  } catch (err) {
+    console.error("❌ Fatal Error:", err);
+    if (logId) {
+      await supabase
+        .from('scraper_logs')
+        .update({ status: 'failed', error_message: err.message })
+        .eq('id', logId);
     }
   }
-
-  // Save to JSON for verification
-  const outputPath = path.join(__dirname, 'scraped_jobs.json');
-  fs.writeFileSync(outputPath, JSON.stringify(allScrapedJobs, null, 2));
-
-  console.log(`📦 Total Jobs Processed & Saved to DB: ${totalJobsProcessed}`);
-  console.log(`📄 JSON Preview Saved to: ${outputPath}`);
-
-  await browser.close();
 }
 
-scrapeJobs().catch(err => console.error("❌ Fatal Error:", err));
+scrapeJobs();

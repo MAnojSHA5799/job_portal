@@ -47,7 +47,7 @@ export default function ScraperManager() {
 
   useEffect(() => {
     fetchLogs();
-    const interval = setInterval(fetchLogs, 10000); // Auto refresh every 10s
+    const interval = setInterval(fetchLogs, 3000); // Auto refresh every 3s for better real-time sync
     return () => clearInterval(interval);
   }, []);
 
@@ -116,7 +116,7 @@ export default function ScraperManager() {
                     </td>
                     <td className="px-8 py-5">
                       {log.status === 'completed' && <Badge variant="success" className="gap-1.5"><CheckCircle2 className="w-3 h-3" /> Completed</Badge>}
-                      {log.status === 'running' && <Badge variant="warning" className="gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Processing</Badge>}
+                      {log.status === 'running' && <Badge variant="warning" className="gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Pending / Processing</Badge>}
                       {log.status === 'failed' && <Badge variant="danger" className="gap-1.5"><XCircle className="w-3 h-3" /> Failed</Badge>}
                     </td>
                     <td className="px-8 py-5 text-sm font-black text-gray-900">

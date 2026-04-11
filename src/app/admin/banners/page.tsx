@@ -158,12 +158,21 @@ export default function BannersManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Page Path</label>
-                <Input 
-                  placeholder="e.g. /jobs or /ats-score" 
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Target Page</label>
+                <select 
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                   value={currentBanner.page_path}
                   onChange={e => setCurrentBanner({...currentBanner, page_path: e.target.value})}
-                />
+                >
+                  <option value="" disabled>Select a page...</option>
+                  <option value="/">Home Page (/)</option>
+                  <option value="/jobs">Find Jobs (/jobs)</option>
+                  <option value="/companies">Companies (/companies)</option>
+                  <option value="/salary">Salary Intel (/salary)</option>
+                  <option value="/ats-score">ATS Score (/ats-score)</option>
+                  <option value="/blog">Blog (/blog)</option>
+                  <option value="/contact">Contact (/contact)</option>
+                </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Title (Optional)</label>
