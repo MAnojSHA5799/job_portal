@@ -154,16 +154,16 @@ export default function HomePage() {
                 {/* Advanced Search & Filters */}
                 <div className="max-w-4xl mx-auto space-y-8">
                     {/* Main Search Bar */}
-                    <div className="bg-white p-3 rounded-[40px] shadow-2xl shadow-primary/30 border-4 border-primary/20 flex items-center gap-3 pr-4 pl-8 h-24 transform transition-all hover:scale-[1.02]">
-                        <Search className="h-8 w-8 text-primary shrink-0" />
+                    <div className="bg-white p-2 rounded-full shadow-2xl shadow-primary/30 border-4 border-primary/20 flex items-center gap-3 pr-3 pl-6 h-14 transform transition-all hover:scale-[1.02]">
+                        <Search className="h-6 w-6 text-primary shrink-0" />
                         <Input 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Type job title, skills, or company name..." 
-                            className="border-0 shadow-none h-full text-2xl font-bold focus-visible:ring-0 placeholder:text-gray-300 bg-transparent" 
+                            className="border-0 shadow-none h-full text-lg font-bold focus-visible:ring-0 placeholder:text-gray-300 bg-transparent" 
                         />
-                        <button className="w-16 h-16 rounded-3xl bg-primary hover:bg-primary/90 flex items-center justify-center text-white shadow-lg shadow-primary/40 transition-colors group">
-                            <SlidersHorizontal className="w-7 h-7 group-hover:scale-110 transition-transform" />
+                        <button className="w-12 h-8 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center text-white shadow-lg shadow-primary/40 transition-colors group">
+                            <SlidersHorizontal className="w-5 h-5 group-hover:scale-110 transition-transform" />
                         </button>
                     </div>
 
