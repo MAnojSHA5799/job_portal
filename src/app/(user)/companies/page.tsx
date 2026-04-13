@@ -31,6 +31,8 @@ export default function CompaniesDirectory() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [industryQuery, setIndustryQuery] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -44,6 +46,14 @@ export default function CompaniesDirectory() {
 
       if (searchQuery) {
         query = query.ilike('name', `%${searchQuery}%`);
+      }
+
+      if (industryQuery) {
+        query = query.ilike('industry', `%${industryQuery}%`);
+      }
+
+      if (locationQuery) {
+        query = query.ilike('location', `%${locationQuery}%`);
       }
 
       const { data, error } = await query;
@@ -85,15 +95,37 @@ export default function CompaniesDirectory() {
                     Discover world-class companies and their culture. Explore high-growth opportunities at industry leaders.
                 </p>
 
-                <form onSubmit={handleSearch} className="max-w-xl bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex items-center gap-2">
-                    <Search className="ml-4 h-5 w-5 text-gray-400" />
-                    <Input 
-                        placeholder="Search companies by name or industry" 
-                        className="border-0 shadow-none h-11 focus-visible:ring-0" 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                    <Button type="submit" size="sm" className="h-11 font-bold px-8 rounded-xl shadow-lg shadow-primary/20">Search</Button>
+                <form onSubmit={handleSearch} className="max-w-5xl bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col md:flex-row items-center gap-2">
+                    <div className="relative flex-1 w-full">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
+                        <Input 
+                            placeholder="Company Name" 
+                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="hidden md:block w-px h-8 bg-gray-100"></div>
+                    <div className="relative flex-1 w-full">
+                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
+                        <Input 
+                            placeholder="Industry" 
+                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                            value={industryQuery}
+                            onChange={(e) => setIndustryQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="hidden md:block w-px h-8 bg-gray-100"></div>
+                    <div className="relative flex-1 w-full">
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
+                        <Input 
+                            placeholder="Location" 
+                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                            value={locationQuery}
+                            onChange={(e) => setLocationQuery(e.target.value)}
+                        />
+                    </div>
+                    <Button type="submit" size="lg" className="h-11 w-full md:w-auto font-black px-10 rounded-xl shadow-lg shadow-primary/20 uppercase tracking-widest text-xs">Search</Button>
                 </form>
             </motion.div>
         </div>
@@ -109,7 +141,7 @@ export default function CompaniesDirectory() {
           <div className="text-center py-40 bg-white rounded-[40px] border border-dashed border-gray-200 shadow-sm">
             <Building2 className="w-16 h-16 text-gray-200 mx-auto mb-6" />
             <h3 className="text-2xl font-black text-gray-900">No companies found</h3>
-            <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium">We couldn't find any companies matching your search. Try a different keyword.</p>
+            <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium">We couldn't find any companies matching your search filters. Try adjusting your keywords.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

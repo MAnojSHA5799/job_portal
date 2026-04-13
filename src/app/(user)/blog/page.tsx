@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Search, 
@@ -8,46 +8,65 @@ import {
   User, 
   ArrowRight, 
   ChevronRight, 
-  Tag, 
   TrendingUp, 
   Bookmark,
-  Sparkles
+  Sparkles,
+  Loader2,
+  Newspaper
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
-const posts = [
-  { 
-    id: 1, 
-    title: 'How to Negotiate Your Tech Salary in 2026', 
-    excerpt: 'Master the art of negotiation with our comprehensive guide to market trends and negotiation tactics.',
-    author: 'Sarah Chen',
-    date: 'Oct 12, 2026',
-    category: 'Career Advice',
-    image: 'Negotiation'
-  },
-  { 
-    id: 2, 
-    title: 'Top 10 High-Growth Skills for Frontend Engineers', 
-    excerpt: 'From WebAssembly to AI-integrated UI, these are the skills that will dominate the market this year.',
-    author: 'Alex Rivera',
-    date: 'Oct 10, 2026',
-    category: 'Skills',
-    image: 'Engineering'
-  },
-  { 
-    id: 3, 
-    title: 'The Rise of AI-First Startups: A Hiring Guide', 
-    excerpt: 'What these new companies are looking for and how you can position yourself as a top candidate.',
-    author: 'James Wilson',
-    date: 'Oct 08, 2026',
-    category: 'Industry',
-    image: 'Trends'
-  }
-];
-
-const categories = ['All', 'Career Advice', 'Engineering', 'Product', 'Industry', 'Design', 'News'];
+interface Blog {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  category: string;
+  image_url: string;
+  is_published: boolean;
+  created_at: string;
+}
 
 export default function BlogListing() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  useEffect(() => {
+    fetchBlogs();
+  }, []);
+
+  const fetchBlogs = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBlogs(data || []);
+    } catch (error) {
+      console.error('Error fetching blogs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const categories = ['All', ...Array.from(new Set(blogs.map(b => b.category)))];
+
+  const filteredBlogs = blogs.filter(blog => {
+    const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || blog.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="bg-white min-h-screen pb-24">
       {/* Featured Header */}
@@ -70,7 +89,12 @@ export default function BlogListing() {
 
                 <div className="max-w-xl mx-auto bg-white p-2 rounded-2xl shadow-xl shadow-gray-200 border border-gray-100 flex items-center gap-2">
                     <Search className="ml-4 h-5 w-5 text-gray-400" />
-                    <Input placeholder="Search articles..." className="border-0 shadow-none h-11 focus-visible:ring-0" />
+                    <Input 
+                      placeholder="Search articles..." 
+                      className="border-0 shadow-none h-11 focus-visible:ring-0" 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
                     <Button size="sm" className="h-11 font-bold px-8 rounded-xl shadow-lg shadow-primary/20">Search</Button>
                 </div>
             </motion.div>
@@ -85,7 +109,13 @@ export default function BlogListing() {
                     <h3 className="text-xs font-black text-gray-900 border-b border-gray-50 pb-4 mb-4 uppercase tracking-widest">Categories</h3>
                     <div className="space-y-4">
                         {categories.map((cat, i) => (
-                            <button key={i} className={`block text-sm font-bold w-full text-left transition-colors ${i === 0 ? 'text-primary' : 'text-gray-400 hover:text-gray-900'}`}>{cat}</button>
+                            <button 
+                              key={i} 
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`block text-sm font-bold w-full text-left transition-colors ${selectedCategory === cat ? 'text-primary' : 'text-gray-400 hover:text-gray-900'}`}
+                            >
+                              {cat}
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -112,53 +142,75 @@ export default function BlogListing() {
 
             {/* Post Feed */}
             <div className="flex-1 space-y-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {posts.map((post, i) => (
-                        <motion.div
-                            key={post.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                        >
-                            <Card className="flex flex-col h-full border-0 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all group group overflow-hidden bg-white">
-                                <div className="h-56 bg-gray-100 relative group-hover:scale-105 transition-transform duration-700">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-gray-200"></div>
-                                    <div className="absolute inset-0 flex items-center justify-center font-black text-gray-300 text-6xl select-none">{post.image}</div>
-                                    <div className="absolute top-4 left-4 z-10">
-                                        <Badge variant="info" className="bg-white/80 backdrop-blur-md font-black text-[10px] text-primary">{post.category}</Badge>
-                                    </div>
-                                </div>
-                                <div className="p-8 flex flex-col flex-1">
-                                    <div className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
-                                        <span className="flex items-center gap-1.5"><User className="h-3 w-3" /> {post.author}</span>
-                                        <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {post.date}</span>
-                                    </div>
-                                    <h3 className="text-2xl font-black text-gray-900 mb-4 group-hover:text-primary transition-colors cursor-pointer leading-tight tracking-tight">
-                                        {post.title}
-                                    </h3>
-                                    <p className="text-gray-500 font-medium text-sm leading-relaxed mb-8">
-                                        {post.excerpt}
-                                    </p>
-                                    <div className="mt-auto flex items-center justify-between">
-                                        <Button variant="ghost" className="text-primary font-black text-xs uppercase tracking-widest px-0 hover:bg-transparent">
-                                            Read Article <ArrowRight className="h-4 w-4 ml-2" />
-                                        </Button>
-                                        <button className="text-gray-400 hover:text-primary transition-colors"><Bookmark className="h-5 w-5" /></button>
-                                    </div>
-                                </div>
-                            </Card>
-                        </motion.div>
-                    ))}
-                </div>
+                {loading ? (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-12 h-12 animate-spin text-primary/20" />
+                  </div>
+                ) : filteredBlogs.length === 0 ? (
+                  <div className="text-center py-20 bg-gray-50 rounded-[32px] border border-dashed border-gray-200">
+                    <Newspaper className="h-16 w-16 text-gray-200 mx-auto mb-6" />
+                    <h3 className="text-2xl font-black text-gray-900">No articles found</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium">We couldn't find any articles matching your criteria. Try adjusting your filters.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {filteredBlogs.map((post, i) => (
+                          <motion.div
+                              key={post.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.1 }}
+                          >
+                              <Card className="flex flex-col h-full border-0 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all group group overflow-hidden bg-white">
+                                  <div className="h-56 bg-gray-100 relative group-hover:scale-105 transition-transform duration-700">
+                                      {post.image_url ? (
+                                        <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <>
+                                          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-gray-200"></div>
+                                          <div className="absolute inset-0 flex items-center justify-center font-black text-gray-300 text-6xl select-none">
+                                            {post.category[0] || 'B'}
+                                          </div>
+                                        </>
+                                      )}
+                                      <div className="absolute top-4 left-4 z-10">
+                                          <Badge variant="info" className="bg-white/80 backdrop-blur-md font-black text-[10px] text-primary">{post.category}</Badge>
+                                      </div>
+                                  </div>
+                                  <div className="p-8 flex flex-col flex-1">
+                                      <div className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                                          <span className="flex items-center gap-1.5"><User className="h-3 w-3" /> {post.author}</span>
+                                          <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {new Date(post.created_at).toLocaleDateString()}</span>
+                                      </div>
+                                      <h3 className="text-2xl font-black text-gray-900 mb-4 group-hover:text-primary transition-colors cursor-pointer leading-tight tracking-tight">
+                                          {post.title}
+                                      </h3>
+                                      <p className="text-gray-500 font-medium text-sm leading-relaxed mb-8">
+                                          {post.excerpt}
+                                      </p>
+                                      <div className="mt-auto flex items-center justify-between">
+                                          <Link href={`/blog/${post.id}`}>
+                                            <Button variant="ghost" className="text-primary font-black text-xs uppercase tracking-widest px-0 hover:bg-transparent">
+                                                Read Article <ArrowRight className="h-4 w-4 ml-2" />
+                                            </Button>
+                                          </Link>
+                                          <button className="text-gray-400 hover:text-primary transition-colors"><Bookmark className="h-5 w-5" /></button>
+                                      </div>
+                                  </div>
+                              </Card>
+                          </motion.div>
+                      ))}
+                  </div>
+                )}
 
-                {/* Pagination */}
-                <div className="pt-20 text-center flex items-center justify-center gap-2">
-                    <Button variant="outline" className="font-bold border-2 rounded-xl text-gray-400">Previous</Button>
-                    {[1, 2, 3].map(n => (
-                        <button key={n} className={`w-10 h-10 rounded-xl text-xs font-black ${n === 1 ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-50'}`}>{n}</button>
-                    ))}
-                    <Button variant="outline" className="font-bold border-2 rounded-xl text-primary">Next</Button>
-                </div>
+                {/* Pagination (kept for UI consistency, though currently based on limited data) */}
+                {!loading && filteredBlogs.length > 0 && (
+                  <div className="pt-20 text-center flex items-center justify-center gap-2">
+                      <Button variant="outline" className="font-bold border-2 rounded-xl text-gray-400">Previous</Button>
+                      <button className="w-10 h-10 rounded-xl text-xs font-black bg-primary text-white">1</button>
+                      <Button variant="outline" className="font-bold border-2 rounded-xl text-primary">Next</Button>
+                  </div>
+                )}
             </div>
         </div>
       </div>
