@@ -17,7 +17,8 @@ import {
   LogOut,
   ChevronRight,
   Image as ImageIcon,
-  Newspaper
+  Newspaper,
+  Target
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
   { icon: Briefcase, label: 'Jobs Queue', href: '/admin/jobs' },
   { icon: Globe, label: 'Scraper Status', href: '/admin/scraper' },
+  { icon: Target, label: 'Scraper Targets', href: '/admin/scraper-targets' },
   { icon: Copy, label: 'Duplicate Jobs', href: '/admin/duplicates' },
   { icon: Building2, label: 'Companies', href: '/admin/companies' },
   { icon: Newspaper, label: 'Blogs', href: '/admin/blogs' },
@@ -86,7 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <Link href="/admin" className="flex items-center gap-2">
-            <img src="/logo.png" alt="JobPortal" className={cn("h-8 w-auto object-contain", !sidebarOpen && "mx-auto")} />
+            <img src="/lo.jpeg" alt="JobPortal" className={cn("h-8 w-auto object-contain", !sidebarOpen && "mx-auto")} />
             {sidebarOpen && <span className="font-bold text-xl text-gray-900 tracking-tight">JobPortal</span>}
           </Link>
         </div>

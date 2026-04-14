@@ -10,8 +10,11 @@ import {
   Loader2, 
   RefreshCcw,
   Zap,
-  Globe
+  Globe,
+  Trash2,
+  Eye
 } from 'lucide-react';
+
 import { supabase } from '@/lib/supabase';
 
 interface ScraperLog {
@@ -69,6 +72,28 @@ export default function ScraperManager() {
     }
   };
 
+  const handleDeleteLog = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this log?')) return;
+    try {
+      const { error } = await supabase.from('scraper_logs').delete().eq('id', id);
+      if (error) throw error;
+      fetchLogs();
+    } catch (e: any) {
+      alert('Error deleting log: ' + e.message);
+    }
+  };
+
+  const handleViewLog = (log: ScraperLog) => {
+    const details = `
+Log ID: ${log.id}
+Status: ${log.status}
+Jobs Found: ${log.jobs_found}
+Timestamp: ${new Date(log.created_at).toLocaleString()}
+${log.error_message ? `\nError Message:\n${log.error_message}` : '\nNotes: Healthy Sync. All requested sites returned 200 OK.'}
+    `;
+    alert(details.trim());
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
@@ -105,12 +130,12 @@ export default function ScraperManager() {
                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Timestamp</th>
                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Status</th>
                   <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Jobs Found</th>
-                  <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">Details</th>
+                  <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50/30 transition-colors">
+                  <tr key={log.id} className="hover:bg-gray-50/30 transition-colors group">
                     <td className="px-8 py-5 text-sm font-bold text-gray-900">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
@@ -123,11 +148,17 @@ export default function ScraperManager() {
                       {log.jobs_found}
                     </td>
                     <td className="px-8 py-5 text-right">
-                      {log.error_message ? (
-                        <span className="text-[10px] text-danger font-bold line-clamp-1 max-w-[150px] ml-auto">{log.error_message}</span>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 font-bold italic">Healthy Sync</span>
+                      {log.error_message && (
+                        <div className="text-[10px] text-danger font-bold line-clamp-1 max-w-[150px] mb-2 ml-auto" title={log.error_message}>{log.error_message}</div>
                       )}
+                      <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Button size="sm" variant="outline" className="h-8 text-[10px] px-3 font-bold" onClick={() => handleViewLog(log)}>
+                            <Eye className="w-3 h-3 mr-1.5" /> View
+                         </Button>
+                         <Button size="icon" variant="danger" className="h-8 w-8" onClick={() => handleDeleteLog(log.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                         </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

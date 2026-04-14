@@ -16,6 +16,7 @@ import {
   Upload
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { uploadMedia } from './actions';
 
 interface Banner {
   id: string;
@@ -106,27 +107,41 @@ export default function BannersManagement() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `banner-media/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('banners')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        throw uploadError;
+      // Auto-detect media type from file MIME type
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+      
+      if (!isVideo && !isImage) {
+        alert('Please select a valid image or video file.');
+        return;
       }
 
-      const { data } = supabase.storage
-        .from('banners')
-        .getPublicUrl(filePath);
+      const mediaType = isVideo ? 'video' : 'image';
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'banners');
+      formData.append('folder', 'banner-media');
 
-      setCurrentBanner({ ...currentBanner, media_url: data.publicUrl });
+      // Call Server Action for secure upload
+      const result = await uploadMedia(formData);
+
+      if (result.success && result.url) {
+        setCurrentBanner(prev => ({ 
+          ...prev, 
+          media_url: result.url,
+          media_type: mediaType 
+        }));
+      } else {
+        throw new Error(result.error);
+      }
     } catch (error: any) {
+      console.error('Upload error:', error);
       alert('Error uploading file: ' + error.message);
     } finally {
       setUploading(false);
+      // Reset input value to allow selecting same file again
+      event.target.value = '';
     }
   };
 
@@ -214,7 +229,7 @@ export default function BannersManagement() {
                   </Button>
                 </div>
               </div>
-              <div>
+              <div className="space-y-4">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Media URL or Upload</label>
                 <div className="flex gap-2">
                   <Input 
@@ -225,25 +240,60 @@ export default function BannersManagement() {
                   <div className="relative">
                     <input 
                       type="file" 
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
                       onChange={handleFileUpload}
-                      accept={currentBanner.media_type === 'image' ? "image/*" : "video/*"}
+                      accept="image/*,video/*"
                       disabled={uploading}
                     />
-                    <Button variant="outline" size="icon" disabled={uploading}>
+                    <Button variant="outline" size="icon" disabled={uploading} className="relative">
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 pt-4">
-                <input 
-                  type="checkbox" 
-                  id="is_active" 
-                  checked={currentBanner.is_active}
-                  onChange={e => setCurrentBanner({...currentBanner, is_active: e.target.checked})}
-                />
-                <label htmlFor="is_active" className="text-sm font-bold text-gray-700">Active</label>
+
+                {currentBanner.media_url && (
+                  <div className="mt-4 p-2 border border-gray-100 rounded-lg bg-white relative group">
+                    <div className="aspect-video w-full rounded-md overflow-hidden bg-gray-50">
+                      {currentBanner.media_type === 'image' ? (
+                        <img 
+                          src={currentBanner.media_url} 
+                          alt="Preview" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <video 
+                          src={currentBanner.media_url} 
+                          className="w-full h-full object-contain"
+                          controls
+                        />
+                      )}
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="danger" 
+                      className="absolute top-4 right-4 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      onClick={() => setCurrentBanner({...currentBanner, media_url: ''})}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <div className="absolute bottom-4 left-4">
+                      <Badge variant="info" className="bg-white/80 backdrop-blur-sm">
+                        {currentBanner.media_type === 'image' ? 'Image Preview' : 'Video Preview'}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 pt-2">
+                  <input 
+                    type="checkbox" 
+                    id="is_active" 
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    checked={currentBanner.is_active}
+                    onChange={e => setCurrentBanner({...currentBanner, is_active: e.target.checked})}
+                  />
+                  <label htmlFor="is_active" className="text-sm font-bold text-gray-700 select-none">Mark as Active</label>
+                </div>
               </div>
             </div>
           </div>

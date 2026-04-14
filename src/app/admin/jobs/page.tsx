@@ -14,8 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
-  Loader2
+  Loader2,
+  Trash2,
+  Eye
 } from 'lucide-react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
 interface Job {
@@ -77,6 +80,17 @@ export default function JobsQueue() {
       fetchJobs(); // Refresh list
     } catch (error) {
       alert('Error updating job status');
+    }
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this job?')) return;
+    try {
+      const { error } = await supabase.from('jobs').delete().eq('id', id);
+      if (error) throw error;
+      fetchJobs();
+    } catch (e: any) {
+      alert('Error deleting job: ' + e.message);
     }
   };
 
@@ -172,11 +186,21 @@ export default function JobsQueue() {
                                 <X className="h-4 w-4" />
                             </Button>
                           )}
+                         
                           <a href={job.source_url} target="_blank" rel="noopener noreferrer">
-                            <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-gray-900" title="View Original Post">
                                 <ExternalLink className="h-4 w-4" />
                             </Button>
                           </a>
+                          <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-8 w-8 text-danger hover:bg-danger/10 hover:text-danger" 
+                              title="Delete"
+                              onClick={() => handleDeleteJob(job.id)}
+                          >
+                              <Trash2 className="h-4 w-4" />
+                          </Button>
                       </div>
                     </td>
                   </tr>

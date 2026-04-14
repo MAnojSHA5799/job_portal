@@ -36,7 +36,18 @@ const categories = [
   { icon: Globe, name: 'Remote', count: '2,400 jobs', color: 'bg-teal-500/10 text-teal-500 border-teal-500/20' },
 ];
 
-const BRANDS = ['Google', 'Infosys', 'Meta', 'Apple', 'Stripe', 'Microsoft', 'Amazon', 'Netflix', 'Tesla', 'IBM'];
+const BRANDS = [
+  { name: 'Google', color: 'hover:text-[#4285F4]' },
+  { name: 'Infosys', color: 'hover:text-[#007CC3]' },
+  { name: 'Meta', color: 'hover:text-[#0668E1]' },
+  { name: 'Apple', color: 'hover:text-[#555555]' },
+  { name: 'Stripe', color: 'hover:text-[#635BFF]' },
+  { name: 'Microsoft', color: 'hover:text-[#F25022]' },
+  { name: 'Amazon', color: 'hover:text-[#FF9900]' },
+  { name: 'Netflix', color: 'hover:text-[#E50914]' },
+  { name: 'Tesla', color: 'hover:text-[#E82127]' },
+  { name: 'IBM', color: 'hover:text-[#052D84]' }
+];
 
 const FILTER_OPTIONS = {
   category: ['Engineering', 'Design', 'Marketing', 'Product', 'Sales', 'Customer Support'],
@@ -227,15 +238,15 @@ export default function HomePage() {
                         <div className="flex items-center justify-center md:justify-start [&_li]:mx-8 [&_img]:max-w-none animate-infinite-scroll">
                             <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8">
                                 {BRANDS.map((brand, i) => (
-                                    <li key={i} className="text-2xl md:text-3xl font-black text-gray-300 hover:text-gray-400 transition-colors cursor-default whitespace-nowrap">
-                                        {brand}
+                                    <li key={i} className={cn("text-2xl md:text-3xl font-black text-gray-300 transition-all duration-300 cursor-default whitespace-nowrap", brand.color)}>
+                                        {brand.name}
                                     </li>
                                 ))}
                             </ul>
                             <ul className="flex items-center justify-center md:justify-start [&_li]:mx-8" aria-hidden="true">
                                 {BRANDS.map((brand, i) => (
-                                    <li key={i + 'dup'} className="text-2xl md:text-3xl font-black text-gray-300 hover:text-gray-400 transition-colors cursor-default whitespace-nowrap">
-                                        {brand}
+                                    <li key={i + 'dup'} className={cn("text-2xl md:text-3xl font-black text-gray-300 transition-all duration-300 cursor-default whitespace-nowrap", brand.color)}>
+                                        {brand.name}
                                     </li>
                                 ))}
                             </ul>

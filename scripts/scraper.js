@@ -9,17 +9,22 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publi
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const jobUrls = [
-  "https://careers.ril.com/rilcareers/frmJobSearch.aspx",
-  "https://careers.smartrecruiters.com/",
-  "https://jobs.mercedes-benz.com/en",
-  "https://careers.unilever.com/en/search-jobs/India",
-  "https://www.hitachienergy.com/careers/open-jobs",
-  "https://jobs.tenneco.com/search/?q=engineer&locationsearch=India",
-  "https://jobs.heromotocorp.com/search/",
-  "https://careers.caterpillar.com/en/jobs/",
-  "https://jobs.siemens.com/careers",
-];
+async function fetchJobUrls() {
+  console.log("📥 Fetching target URLs from Supabase...");
+  const { data, error } = await supabase
+    .from('scraper_urls')
+    .select('url')
+    .eq('is_active', true);
+
+  if (error) {
+    console.error('❌ Failed to fetch database URLs:', error.message);
+    return [];
+  }
+  
+  const urls = data.map(d => d.url);
+  console.log(`✅ Loaded ${urls.length} active target URLs.`);
+  return urls;
+}
 
 async function getOrCreateCompany(name) {
   if (!name) return null;
@@ -65,8 +70,17 @@ async function scrapeJobs() {
     let totalJobsFound = 0;
     let totalJobsSaved = 0;
     let allScrapedJobs = [];
+    
+    // Fetch URLs dynamically from DB
+    const targetUrls = await fetchJobUrls();
+    
+    if (targetUrls.length === 0) {
+      console.log("⚠️ No active target URLs found in database. Exiting scraper.");
+      await browser.close();
+      return;
+    }
 
-    for (const url of jobUrls) {
+    for (const url of targetUrls) {
       try {
         console.log(`🌐 Visiting: ${url}`);
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });

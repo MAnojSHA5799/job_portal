@@ -61,7 +61,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-10">
               <Link href="/" className="flex items-center gap-3 group">
                 <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 group-hover:shadow-md transition-all">
-                  <img src="/logo.png" alt="JobPortal" className="h-8 w-auto object-contain" />
+                  <img src="/lo.jpeg" alt="JobPortal" className="h-8 w-auto object-contain" />
                 </div>
               </Link>
               
@@ -174,7 +174,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <div className="lg:col-span-2 space-y-6">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="bg-white p-2 rounded-xl">
-                          <img src="/logo.png" alt="JobPortal" className="h-8 w-auto object-contain" />
+                          <img src="/lo.jpeg" alt="JobPortal" className="h-8 w-auto object-contain" />
                         </div>
                         <span className="text-xl font-black text-white tracking-tighter">JobPortal</span>
                     </Link>

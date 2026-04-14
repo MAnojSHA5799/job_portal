@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, Badge, Button, Input, Textarea } from '@/components/ui';
 import { 
   Plus, 
@@ -14,9 +15,15 @@ import {
   Calendar,
   User,
   Eye,
-  Newspaper
+  Newspaper,
+  CheckCircle2,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { calculateSeoScore, SeoReport } from '@/lib/seo';
+import { cn } from '@/lib/utils';
+import { uploadMedia } from '../banners/actions';
 
 interface Blog {
   id: string;
@@ -27,6 +34,7 @@ interface Blog {
   category: string;
   image_url: string;
   is_published: boolean;
+  focus_keyword?: string;
   created_at: string;
 }
 
@@ -41,7 +49,8 @@ export default function BlogsManagement() {
     author: '',
     category: '',
     image_url: '',
-    is_published: true
+    is_published: true,
+    focus_keyword: ''
   });
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,31 +82,62 @@ export default function BlogsManagement() {
 
     setLoading(true);
     try {
+      const blogData: any = {
+        title: currentBlog.title,
+        excerpt: currentBlog.excerpt,
+        content: currentBlog.content,
+        author: currentBlog.author,
+        category: currentBlog.category,
+        image_url: currentBlog.image_url,
+        is_published: currentBlog.is_published,
+        focus_keyword: currentBlog.focus_keyword
+      };
+
+      let saveError;
+
       if (currentBlog.id) {
         const { error } = await supabase
           .from('blogs')
-          .update({
-            title: currentBlog.title,
-            excerpt: currentBlog.excerpt,
-            content: currentBlog.content,
-            author: currentBlog.author,
-            category: currentBlog.category,
-            image_url: currentBlog.image_url,
-            is_published: currentBlog.is_published
-          })
+          .update(blogData)
           .eq('id', currentBlog.id);
-        if (error) throw error;
+        saveError = error;
       } else {
         const { error } = await supabase
           .from('blogs')
-          .insert([currentBlog]);
-        if (error) throw error;
+          .insert([blogData]);
+        saveError = error;
+      }
+
+      // Handle missing column error gracefully
+      if (saveError) {
+        const isMissingColumn = saveError.message?.includes('focus_keyword') || saveError.code === '42703';
+        
+        if (isMissingColumn) {
+          console.warn('focus_keyword column missing, retrying without it...');
+          const { focus_keyword, ...safeData } = blogData;
+          
+          let retryError;
+          if (currentBlog.id) {
+            const { error } = await supabase.from('blogs').update(safeData).eq('id', currentBlog.id);
+            retryError = error;
+          } else {
+            const { error } = await supabase.from('blogs').insert([safeData]);
+            retryError = error;
+          }
+
+          if (retryError) throw retryError;
+          
+          alert('Blog saved successfully! Note: Focus Keyword was not saved because the database column is missing. Run the SQL fix to enable keyword persistence.');
+        } else {
+          throw saveError;
+        }
       }
       
       setIsEditing(false);
       resetForm();
       fetchBlogs();
     } catch (error: any) {
+      console.error('Save error:', error);
       alert(error.message);
     } finally {
       setLoading(false);
@@ -124,7 +164,8 @@ export default function BlogsManagement() {
       author: '',
       category: '',
       image_url: '',
-      is_published: true
+      is_published: true,
+      focus_keyword: ''
     });
   };
 
@@ -134,25 +175,25 @@ export default function BlogsManagement() {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `blog-images/${fileName}`;
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'blogs');
+      formData.append('folder', 'blog-images');
 
-      const { error: uploadError } = await supabase.storage
-        .from('blogs')
-        .upload(filePath, file);
+      // Use the generic secure server action
+      const result = await uploadMedia(formData);
 
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('blogs')
-        .getPublicUrl(filePath);
-
-      setCurrentBlog({ ...currentBlog, image_url: data.publicUrl });
+      if (result.success && result.url) {
+        setCurrentBlog({ ...currentBlog, image_url: result.url });
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
     } catch (error: any) {
       alert('Error uploading file: ' + error.message);
     } finally {
       setUploading(false);
+      // Reset input value to allow selecting same file again
+      if (event.target) event.target.value = '';
     }
   };
 
@@ -233,6 +274,55 @@ export default function BlogsManagement() {
             </div>
 
             <div className="space-y-6">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block font-black">SEO Focus Keyword</label>
+                <div className="relative">
+                  <Input 
+                    placeholder="e.g. Job Search Tips" 
+                    value={currentBlog.focus_keyword}
+                    onChange={e => setCurrentBlog({...currentBlog, focus_keyword: e.target.value})}
+                    className="pr-10"
+                  />
+                  <Info className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1 font-medium">The main keyword you want this post to rank for.</p>
+              </div>
+
+              {/* SEO Analysis Panel */}
+              <div className="p-6 bg-white rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
+                    SEO Analysis
+                  </h3>
+                  {(() => {
+                    const report = calculateSeoScore(currentBlog);
+                    return (
+                      <Badge variant={report.score > 70 ? 'success' : report.score > 40 ? 'warning' : 'danger'}>
+                        Score: {report.score}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+                
+                <div className="space-y-3">
+                  {calculateSeoScore(currentBlog).checks.map((check, i) => (
+                    <div key={i} className="flex gap-2">
+                      {check.passed ? (
+                        <CheckCircle2 className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
+                      )}
+                      <div>
+                        <p className={cn("text-xs font-bold leading-none mb-1", check.passed ? "text-gray-900" : "text-gray-400")}>
+                          {check.label}
+                        </p>
+                        {!check.passed && <p className="text-[10px] text-gray-500 font-medium">{check.suggestion}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block font-black">Featured Image</label>
                 <div className="space-y-4">
@@ -336,28 +426,47 @@ export default function BlogsManagement() {
                   {blog.is_published ? 'Published' : 'Draft'}
                 </Badge>
               </div>
-              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  className="h-8 w-8 bg-white/90 backdrop-blur-md border-0"
-                  onClick={() => {
-                    setCurrentBlog(blog);
-                    setIsEditing(true);
-                  }}
-                >
-                  <Edit2 className="h-4 w-4 text-primary" />
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="danger" 
-                  className="h-8 w-8 bg-danger/90 backdrop-blur-md border-0"
-                  onClick={() => handleDelete(blog.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-white" />
-                </Button>
+                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Link 
+                    href={`/admin/blogs/seo/${blog.id}`}
+                    className="h-8 w-8 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center border-0 shadow-sm hover:bg-white transition-all overflow-hidden"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    {(() => {
+                      const score = calculateSeoScore(blog).score;
+                      return (
+                        <div className={cn(
+                          "w-full h-full flex items-center justify-center text-[8px] font-black border-2 rounded-xl",
+                          score > 70 ? "border-success text-success" : score > 40 ? "border-warning text-warning" : "border-danger text-danger"
+                        )}>
+                          {score}
+                        </div>
+                      );
+                    })()}
+                  </Link>
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="h-8 w-8 bg-white/90 backdrop-blur-md border-0"
+                    onClick={() => {
+                      setCurrentBlog(blog);
+                      setIsEditing(true);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4 text-primary" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="danger" 
+                    className="h-8 w-8 bg-danger/90 backdrop-blur-md border-0"
+                    onClick={() => handleDelete(blog.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-white" />
+                  </Button>
+                </div>
               </div>
-            </div>
             
             <div className="p-6 flex-1 flex flex-col">
               <div className="flex items-center gap-2 mb-3">
