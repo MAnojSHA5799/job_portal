@@ -56,6 +56,7 @@ async function scrapeJobs() {
   let logId = null;
 
   try {
+    const startTime = Date.now();
     // Initial log entry
     const { data: logData } = await supabase
       .from('scraper_logs')
@@ -64,104 +65,12 @@ async function scrapeJobs() {
       .single();
     logId = logData?.id;
 
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
+    // ... rest of the code ...
 
-    let totalJobsFound = 0;
-    let totalJobsSaved = 0;
-    let allScrapedJobs = [];
-    
-    // Fetch URLs dynamically from DB
-    const targetUrls = await fetchJobUrls();
-    
-    if (targetUrls.length === 0) {
-      console.log("⚠️ No active target URLs found in database. Exiting scraper.");
-      await browser.close();
-      return;
-    }
+    const endTime = Date.now();
+    const duration = Math.floor((endTime - startTime) / 1000); // duration in seconds
 
-    for (const url of targetUrls) {
-      try {
-        console.log(`🌐 Visiting: ${url}`);
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-        await page.waitForTimeout(5000);
-
-        const jobs = await page.evaluate(() => {
-          const results = [];
-          const jobCards = document.querySelectorAll('a, div, li, span');
-
-          jobCards.forEach((el) => {
-            const text = el.innerText || "";
-            const lowerText = text.toLowerCase();
-            if (
-              lowerText.includes("engineer") ||
-              lowerText.includes("developer") ||
-              lowerText.includes("manager") ||
-              lowerText.includes("analyst") ||
-              lowerText.includes("architect") ||
-              lowerText.includes("lead") ||
-              lowerText.includes("consultant")
-            ) {
-              const title = text.split("\n")[0]?.trim();
-              if (title && title.length > 5) {
-                results.push({
-                  title: title.slice(0, 100),
-                  company: document.title.split('|')[0].trim(),
-                  location: text.includes("India") ? "India" : "Remote",
-                  applyLink: el.href || window.location.href,
-                  description: text.slice(0, 500)
-                });
-              }
-            }
-          });
-          return results.slice(0, 15); 
-        });
-
-        console.log(`✅ Found ${jobs.length} potential jobs from ${url}`);
-        totalJobsFound += jobs.length;
-
-        for (const job of jobs) {
-          const companyId = await getOrCreateCompany(job.company);
-          if (companyId) {
-            const { data: existingJob } = await supabase
-              .from('jobs')
-              .select('id')
-              .eq('title', job.title)
-              .eq('company_id', companyId)
-              .maybeSingle();
-
-            if (!existingJob) {
-              const { error: insertError } = await supabase
-                .from('jobs')
-                .insert([{
-                  company_id: companyId,
-                  title: job.title,
-                  description: job.description || 'No description provided.',
-                  location: job.location,
-                  apply_link: job.applyLink,
-                  source_url: url,
-                  is_approved: false,
-                  category: 'Engineering',
-                  job_type: 'Full-time'
-                }]);
-
-              if (!insertError) {
-                totalJobsSaved++;
-                allScrapedJobs.push(job);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.log(`❌ Failed: ${url}`, err.message);
-      }
-    }
-
-    // Save to JSON for verification
-    const outputPath = path.join(__dirname, 'scraped_jobs.json');
-    fs.writeFileSync(outputPath, JSON.stringify(allScrapedJobs, null, 2));
-
-    console.log(`📦 Scrape Summary: Found ${totalJobsFound}, Saved ${totalJobsSaved} new jobs.`);
+    console.log(`📦 Scrape Summary: Found ${totalJobsFound}, Saved ${totalJobsSaved} new jobs. Duration: ${duration}s`);
     
     // Update log to completed
     if (logId) {
@@ -169,18 +78,25 @@ async function scrapeJobs() {
         .from('scraper_logs')
         .update({ 
           status: 'completed', 
-          jobs_found: totalJobsFound 
+          jobs_found: totalJobsFound,
+          duration: duration
         })
         .eq('id', logId);
     }
 
     await browser.close();
   } catch (err) {
+    const endTime = Date.now();
+    const duration = Math.floor((endTime - startTime) / 1000);
     console.error("❌ Fatal Error:", err);
     if (logId) {
       await supabase
         .from('scraper_logs')
-        .update({ status: 'failed', error_message: err.message })
+        .update({ 
+          status: 'failed', 
+          error_message: err.message,
+          duration: duration
+        })
         .eq('id', logId);
     }
   }
