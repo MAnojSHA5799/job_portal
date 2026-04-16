@@ -557,10 +557,10 @@ export default function JobsQueue() {
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Job Title</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Description</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Experience</th>
-                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Salary</th>
+                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Salary</th> */}
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Location</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Added On</th>
+                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Added On</th> */}
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
@@ -588,9 +588,9 @@ export default function JobsQueue() {
                       <td className="px-6 py-5">
                          <span className="text-[12px] font-bold text-gray-700">{job.experience_level || '2 - 4 Years'}</span>
                       </td>
-                      <td className="px-6 py-5">
+                      {/* <td className="px-6 py-5">
                          <span className="text-[12px] font-extrabold text-gray-900">₹ {job.salary_range || '8 - 12 LPA'}</span>
-                      </td>
+                      </td> */}
                       <td className="px-6 py-5">
                          <div className="flex items-center gap-1.5 text-gray-500">
                            <MapPin className="h-3 w-3" />
@@ -607,11 +607,11 @@ export default function JobsQueue() {
                            {job.is_approved ? 'Approved' : 'Pending'}
                          </Badge>
                       </td>
-                      <td className="px-6 py-5">
+                      {/* <td className="px-6 py-5">
                          <span className="text-[12px] font-semibold text-gray-400">
                            {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                          </span>
-                      </td>
+                      </td> */}
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-1.5 transition-opacity">
                             {job.is_approved ? (

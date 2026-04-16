@@ -147,9 +147,9 @@ export default function HomePage() {
   }, [searchQuery, filters, jobs]);
 
   return (
-    <div className="space-y-24 pb-24 bg-white">
+    <div className="pb-12 bg-white">
       {/* Hero Section */}
-      <section className="relative pt-12 pb-24 overflow-hidden">
+      <section className="relative pt-12 pb-8 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <motion.div
@@ -187,11 +187,55 @@ export default function HomePage() {
                     </div>
 
                     <div className="flex flex-wrap gap-3 mb-8">
-                        {['Job Category', 'Location', 'Experience', 'Employment Type', 'Salary Range'].map((filter) => (
-                            <button key={filter} className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center gap-2">
-                                {filter} <SlidersHorizontal className="w-3.5 h-3.5" />
-                            </button>
-                        ))}
+                        <FilterDropdown 
+                            icon={Folder} 
+                            label="Job Category" 
+                            value={filters.category} 
+                            options={FILTER_OPTIONS.category}
+                            onChange={(v) => handleFilterChange('category', v)}
+                        />
+                        <FilterDropdown 
+                            icon={Globe} 
+                            label="Your Location" 
+                            value={filters.location} 
+                            options={FILTER_OPTIONS.location}
+                            onChange={(v) => handleFilterChange('location', v)}
+                        />
+                        <FilterDropdown 
+                            icon={Star} 
+                            label="Experience" 
+                            value={filters.experience} 
+                            options={FILTER_OPTIONS.experience}
+                            onChange={(v) => handleFilterChange('experience', v)}
+                        />
+                        <FilterDropdown 
+                            icon={Briefcase} 
+                            label="Employment Type" 
+                            value={filters.type} 
+                            options={FILTER_OPTIONS.type}
+                            onChange={(v) => handleFilterChange('type', v)}
+                        />
+                        <FilterDropdown 
+                            icon={Hammer} 
+                            label="Skills" 
+                            value={filters.skills} 
+                            options={FILTER_OPTIONS.skills}
+                            onChange={(v) => handleFilterChange('skills', v)}
+                        />
+                         <FilterDropdown 
+                            icon={Coins} 
+                            label="Minimum Salary" 
+                            value={filters.salary} 
+                            options={FILTER_OPTIONS.salary}
+                            onChange={(v) => handleFilterChange('salary', v)}
+                        />
+                        <FilterDropdown 
+                            icon={MessageCircle} 
+                            label="Language" 
+                            value={filters.language} 
+                            options={FILTER_OPTIONS.language}
+                            onChange={(v) => handleFilterChange('language', v)}
+                        />
                     </div>
 
                     <div className="flex items-center gap-3 text-sm font-bold">
@@ -276,8 +320,8 @@ export default function HomePage() {
       </section>
 
       {/* Categories */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-between mb-12">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between mb-5">
             <div>
                 <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">Popular Categories</h2>
                 <p className="text-gray-500 font-medium">Explore jobs by industry and expertise</p>
@@ -292,15 +336,15 @@ export default function HomePage() {
                 <motion.div
                     key={i}
                     whileHover={{ y: -5, scale: 1.02 }}
-                    className={cn("p-8 rounded-[40px] border transition-all cursor-pointer group flex flex-col items-center text-center", cat.color)}
+                    className={cn("p-5 flex flex-col items-center text-center rounded-[32px] border transition-all cursor-pointer group", cat.color)}
                 >
-                    <div className="w-16 h-16 rounded-3xl bg-white shadow-sm flex items-center justify-center mb-6 transition-all group-hover:shadow-lg">
-                        <cat.icon className="w-8 h-8" />
+                    <div className="w-12 h-12 rounded-[20px] bg-white shadow-sm flex items-center justify-center mb-3 transition-all group-hover:shadow-lg">
+                        <cat.icon className="w-6 h-6" />
                     </div>
-                    <h4 className="font-black text-gray-900 mb-1">{cat.name}</h4>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">{cat.count}</p>
-                    <div className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                        <ArrowRight className="w-4 h-4" />
+                    <h4 className="font-black text-sm text-gray-900 mb-0.5">{cat.name}</h4>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">{cat.count}</p>
+                    <div className="w-7 h-7 rounded-full border border-gray-100 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                        <ArrowRight className="w-3.5 h-3.5" />
                     </div>
                 </motion.div>
             ))}
@@ -308,7 +352,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Jobs */}
-      <section className="py-24">
+      <section className="py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-12">
                 <div>
@@ -324,7 +368,7 @@ export default function HomePage() {
                 <AnimatePresence mode='popLayout'>
                   {loading ? (
                     Array(4).fill(0).map((_, i) => (
-                        <div key={i} className="h-[380px] rounded-[40px] bg-gray-50 animate-pulse border border-gray-100"></div>
+                        <div key={i} className="h-[280px] rounded-[32px] bg-gray-50 animate-pulse border border-gray-100"></div>
                     ))
                   ) : filteredJobs.length > 0 ? (
                     filteredJobs.map((job) => (
@@ -333,51 +377,61 @@ export default function HomePage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9 }}
+                        whileHover={{ y: -6 }}
+                        transition={{ duration: 0.2 }}
                         key={job.id}
+                        className="h-full"
                       >
-                        <Card className="p-8 rounded-[40px] hover:shadow-2xl transition-all border border-gray-100 shadow-sm relative overflow-hidden group h-full flex flex-col">
-                            <div className="flex justify-between items-start mb-8">
-                                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl font-black text-gray-900 border border-gray-50 shadow-inner group-hover:bg-primary group-hover:text-white transition-all overflow-hidden">
+                        <Card className="p-6 rounded-[32px] hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 border border-transparent hover:border-primary/20 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group h-full flex flex-col">
+                            {/* Animated top gradient line */}
+                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-indigo-400 to-purple-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
+                            
+                            <div className="flex justify-between items-start mb-5 relative z-10">
+                                <div className="w-12 h-12 bg-gray-50/80 rounded-xl flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 shadow-inner group-hover:scale-110 group-hover:-rotate-6 group-hover:text-primary transition-all duration-300 overflow-hidden shrink-0">
                                     {job.companies?.logo_url ? (
-                                        <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover" />
+                                        <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                     ) : (
                                         (job.companies?.name || 'J').charAt(0).toUpperCase()
                                     )}
                                 </div>
-                                <div className="flex flex-col gap-2 scale-90 origin-top-right">
-                                    <Badge variant="info" className="bg-primary/5 text-primary border-primary/10 rounded-lg px-3 py-1 text-[10px] font-black">{job.type || 'Full-time'}</Badge>
-                                    <button className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary/30 transition-all ml-auto bg-white shadow-sm">
-                                        <Star className="w-4 h-4" />
+                                <div className="flex flex-col items-end gap-1.5 origin-top-right">
+                                    <button className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all bg-white shadow-sm hover:shadow-md hover:shadow-rose-100 mb-1 group/star">
+                                        <Star className="w-4 h-4 group-hover/star:fill-rose-500 transition-colors" />
                                     </button>
+                                    <Badge variant="info" className="bg-primary/5 text-primary border-primary/10 rounded-lg px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider group-hover:bg-primary group-hover:text-white transition-colors duration-300">{job.type || 'Full-time'}</Badge>
                                 </div>
                             </div>
 
-                            <div className="mb-2">
-                                <h3 className="text-lg font-black text-gray-900 leading-[1.3] group-hover:text-primary transition-colors cursor-pointer line-clamp-2 min-h-[48px]">
+                            <div className="mb-4 relative z-10">
+                                <h3 className="text-base font-black text-gray-900 leading-[1.3] group-hover:text-primary transition-colors cursor-pointer line-clamp-2 min-h-[42px]">
                                     {job.title}
                                 </h3>
-                                <p className="text-gray-400 font-bold text-xs mt-1">
+                                <p className="text-gray-400 font-bold text-[11px] mt-1.5 group-hover:text-gray-500 transition-colors">
                                     {job.companies?.name || 'Top Company'}
                                 </p>
                             </div>
                             
-                            <div className="space-y-3 mb-8 flex-grow">
-                                <div className="flex items-center text-xs text-gray-400 font-bold bg-gray-50/50 p-2 rounded-xl">
-                                    <MapPin className="w-3.5 h-3.5 mr-2 text-primary" /> {job.location || 'Remote'}
+                            <div className="mb-5 flex-grow relative z-10">
+                                <div className="flex flex-wrap items-center gap-y-1.5 text-[11px] text-gray-500 font-bold bg-gray-50/80 p-2.5 rounded-xl group-hover:bg-primary/[0.03] transition-colors duration-300">
+                                    <div className="flex items-center group-hover:text-primary transition-colors duration-300">
+                                      <MapPin className="w-3.5 h-3.5 mr-1.5 text-primary" /> {job.location || 'Remote'}
+                                    </div>
                                     <span className="mx-2 text-gray-200">|</span>
-                                    <Briefcase className="w-3.5 h-3.5 mr-2 text-primary" /> {job.experience || '3-5 Years'}
+                                    <div className="flex items-center group-hover:text-primary transition-colors duration-300">
+                                      <Briefcase className="w-3.5 h-3.5 mr-1.5 text-primary" /> {job.experience || '3-5 Years'}
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between gap-4 mt-auto pt-6 border-t border-gray-50">
-                                <div className="text-sm font-black text-gray-900">
+                            <div className="flex items-center justify-between gap-3 mt-auto pt-5 border-t border-gray-50 group-hover:border-primary/10 transition-colors duration-300 relative z-10">
+                                <div className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors duration-300">
                                     {job.salary || '$95k - $130k'}
                                 </div>
                                 <Button 
                                     onClick={() => handleApply(job.title)}
-                                    className="rounded-2xl px-6 h-12 font-black shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                                    className="rounded-xl px-4 h-10 text-sm font-black shadow-md shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 flex items-center gap-1.5 group/btn bg-primary hover:bg-primary/90 text-white"
                                 >
-                                    Apply Now
+                                    Apply Now <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                                 </Button>
                             </div>
                         </Card>
@@ -416,69 +470,69 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
-          <div className="relative bg-primary rounded-[60px] p-12 md:p-20 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12 shadow-[0_40px_100px_-20px_rgba(37,99,235,0.4)]">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+          <div className="relative bg-primary rounded-[40px] p-8 md:p-12 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-8 shadow-[0_30px_80px_-20px_rgba(37,99,235,0.4)]">
               <div className="relative z-10 max-w-xl text-center lg:text-left">
-                  <p className="text-white/70 uppercase tracking-[0.2em] font-black text-[10px] mb-4">Ready to get started?</p>
-                  <h2 className="text-4xl md:text-6xl font-black text-white mb-8 tracking-tighter leading-[1.1]">Post a Job and <br />Start hiring Today!</h2>
-                  <p className="text-white/60 text-lg font-medium mb-12 leading-relaxed">
+                  <p className="text-white/70 uppercase tracking-[0.2em] font-black text-[10px] mb-2">Ready to get started?</p>
+                  <h2 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tighter leading-[1.1]">Post a Job and <br />Start hiring Today!</h2>
+                  <p className="text-white/60 text-base font-medium mb-8 leading-relaxed">
                       Join thousands of companies finding top talent on JobPortal.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
-                      <Button size="lg" className="bg-white text-primary hover:bg-gray-100 rounded-2xl h-16 px-10 font-black shadow-xl">
-                          <Plus className="w-5 h-5 mr-3" /> Post Your First Job
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                      <Button size="lg" className="bg-white text-primary hover:bg-gray-100 rounded-xl h-12 px-8 text-sm font-black shadow-xl hover:-translate-y-0.5 transition-transform">
+                          <Plus className="w-4 h-4 mr-2" /> Post Your First Job
                       </Button>
-                      <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 rounded-2xl h-16 px-10 font-black flex items-center gap-3">
-                          Learn More <ArrowRight className="w-5 h-5" />
+                      <Button size="lg" variant="ghost" className="text-white hover:bg-white/10 rounded-xl h-12 px-8 text-sm font-black flex items-center gap-2">
+                          Learn More <ArrowRight className="w-4 h-4" />
                       </Button>
                   </div>
               </div>
 
-              <div className="relative z-10 w-full max-w-lg hidden xl:block">
-                  <div className="bg-white rounded-3xl p-8 shadow-2xl border border-white/20">
-                      <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
-                          <h4 className="font-black text-gray-900">Create New Job</h4>
-                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                            <Plus className="w-4 h-4" />
+              <div className="relative z-10 w-full max-w-md hidden xl:block">
+                  <div className="bg-white rounded-[24px] p-6 shadow-2xl border border-white/20">
+                      <div className="flex items-center justify-between mb-5 pb-4 border-b border-gray-50">
+                          <h4 className="font-black text-gray-900 text-sm">Create New Job</h4>
+                          <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                            <Plus className="w-3.5 h-3.5" />
                           </div>
                       </div>
-                      <div className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Title</label>
-                            <Input placeholder="UI/UX Designer" className="bg-gray-50 border-0 h-12 rounded-xl" disabled />
+                      <div className="space-y-5">
+                          <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Job Title</label>
+                            <Input placeholder="UI/UX Designer" className="bg-gray-50 border-0 h-10 rounded-xl text-xs" disabled />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Location</label>
-                                <Input placeholder="New York, NY" className="bg-gray-50 border-0 h-12 rounded-xl" disabled />
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Location</label>
+                                <Input placeholder="New York, NY" className="bg-gray-50 border-0 h-10 rounded-xl text-xs" disabled />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Employment Type</label>
-                                <div className="h-12 bg-primary/10 flex items-center px-4 rounded-xl text-primary font-black text-sm">Full-time</div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Type</label>
+                                <div className="h-10 bg-primary/10 flex items-center px-4 rounded-xl text-primary font-black text-xs">Full-time</div>
                             </div>
                           </div>
-                          <Button className="w-full h-14 rounded-xl font-black shadow-lg shadow-primary/20" disabled>Publish Job</Button>
+                          <Button className="w-full h-12 rounded-xl font-black text-sm shadow-lg shadow-primary/20" disabled>Publish Job</Button>
                       </div>
                   </div>
                   {/* Floating elements */}
                   <motion.div 
-                    animate={{ y: [0, -20, 0] }}
+                    animate={{ y: [0, -15, 0] }}
                     transition={{ duration: 4, repeat: Infinity }}
-                    className="absolute -top-12 -right-12 w-24 h-24 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl flex items-center justify-center rotate-12"
+                    className="absolute -top-8 -right-8 w-16 h-16 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center rotate-12"
                   >
-                    <Briefcase className="w-10 h-10 text-white" />
+                    <Briefcase className="w-6 h-6 text-white" />
                   </motion.div>
                    <motion.div 
-                    animate={{ x: [0, 20, 0] }}
+                    animate={{ x: [0, 15, 0] }}
                     transition={{ duration: 5, repeat: Infinity }}
-                    className="absolute top-1/2 -left-12 w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center -rotate-12"
+                    className="absolute top-1/2 -left-8 w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center -rotate-12"
                   >
-                    <Star className="w-6 h-6 text-white" />
+                    <Star className="w-5 h-5 text-white" />
                   </motion.div>
               </div>
 
               {/* Decorative circle */}
-              <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[800px] bg-white/10 blur-[150px] rounded-full pointer-events-none"></div>
+              <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[600px] h-[600px] bg-white/10 blur-[100px] rounded-full pointer-events-none"></div>
           </div>
       </section>
     </div>
