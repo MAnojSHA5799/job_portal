@@ -29,7 +29,8 @@ import {
   MapPin,
   Calendar,
   Pencil,
-  FileDown
+  FileDown,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -66,6 +67,8 @@ export default function JobsQueue() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [viewingJob, setViewingJob] = useState<Job | null>(null);
   const [currentJob, setCurrentJob] = useState<Partial<Job>>({
     title: '',
     company_id: '',
@@ -284,6 +287,74 @@ export default function JobsQueue() {
     }
   };
 
+  const handleEnhanceDescription = async () => {
+    if (!currentJob.description) {
+      alert('Please provide some initial description to enhance.');
+      return;
+    }
+    
+    setIsEnhancing(true);
+    console.log('--- AI Enhancement Started ---');
+    console.log('Original Description:', currentJob.description);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert HR and Technical Recruitment specialist. Your task is to transform raw, unstructured job data into a highly professional, engaging, and perfectly formatted job description. 
+
+Format the output strictly as clear plain text using standard spacing and characters (like '-' for bullets) so it looks great in a standard text field. Follow this exact structure:
+
+Company Introduction & Role Overview:
+(A brief, engaging 2-3 sentence introduction about the opportunity and what the candidate will do)
+
+Key Responsibilities:
+- (Action-oriented bullet points)
+- (Detailing exactly what the day-to-day looks like)
+
+Requirements & Qualifications:
+- (Required skills, experience, and education)
+- (Clear, non-negotiable must-haves)
+
+Why Join Us:
+- (Any benefits, perks, or growth opportunities mentioned)
+
+Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (like **, ##, or \`\`\`). Respond ONLY with the final formatted job description.`
+            },
+            {
+              role: 'user',
+              content: currentJob.title ? `Job Title: ${currentJob.title}\nDescription:\n${currentJob.description}` : currentJob.description
+            }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      console.log('OpenAI API Response:', data);
+
+      if (data.error) throw new Error(data.error.message);
+      
+      const enhancedText = data.choices[0].message.content;
+      console.log('Enhanced Description:', enhancedText);
+      console.log('--- AI Enhancement Completed ---');
+
+      setCurrentJob({...currentJob, description: enhancedText});
+    } catch (error: any) {
+      console.error('AI Enhancement Error:', error);
+      alert('Error enhancing description: ' + error.message);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   return (
     <div className="space-y-8 p-6 bg-gray-50/30 min-h-screen">
       {/* Header Section */}
@@ -488,9 +559,22 @@ export default function JobsQueue() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Job Description *</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Job Description *</label>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        type="button"
+                        onClick={handleEnhanceDescription}
+                        disabled={isEnhancing}
+                        className="h-6 px-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 uppercase tracking-wider rounded flex items-center shadow-sm"
+                      >
+                        {isEnhancing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                        {isEnhancing ? 'Enhancing...' : 'AI Enhance'}
+                      </Button>
+                    </div>
                     <textarea 
-                      className="flex min-h-[120px] w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-500"
+                      className="flex min-h-[300px] w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-500"
                       placeholder="Detailed job responsibilities and requirements..."
                       value={currentJob.description}
                       onChange={e => setCurrentJob({...currentJob, description: e.target.value})}
@@ -581,9 +665,11 @@ export default function JobsQueue() {
                         </div>
                       </td>
                       <td className="px-6 py-5">
-                         <p className="text-[12px] text-gray-500 leading-relaxed max-w-[180px] line-clamp-2">
-                           {job.description}
-                         </p>
+                        <div className="max-w-[200px]">
+                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3 whitespace-pre-wrap font-medium">
+                            {job.description}
+                          </p>
+                        </div>
                       </td>
                       <td className="px-6 py-5">
                          <span className="text-[12px] font-bold text-gray-700">{job.experience_level || '2 - 4 Years'}</span>
@@ -639,10 +725,19 @@ export default function JobsQueue() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50"
-                              onClick={() => window.open(job.source_url, '_blank')}
-                              title="View Original"
+                              onClick={() => setViewingJob(job)}
+                              title="View Details"
                             >
                                 <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                              onClick={() => window.open(job.source_url, '_blank')}
+                              title="View Original Link"
+                            >
+                                <ExternalLink className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -709,6 +804,93 @@ export default function JobsQueue() {
           </div>
         </Card>
       </div>
+
+      {/* Viewing Modal */}
+      <AnimatePresence>
+        {viewingJob && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+                    <Briefcase className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{viewingJob.title}</h3>
+                    <p className="text-sm font-semibold text-indigo-600">{viewingJob.companies?.name}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setViewingJob(null)} className="rounded-full hover:bg-white">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="p-8 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-2 gap-6 mb-8">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Location</span>
+                    <div className="flex items-center gap-2 text-gray-700 font-bold">
+                      <MapPin className="h-4 w-4 text-indigo-500" />
+                      {viewingJob.location}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Job Type</span>
+                    <div className="flex items-center gap-2 text-gray-700 font-bold">
+                      <Clock className="h-4 w-4 text-indigo-500" />
+                      {viewingJob.job_type || 'Full Time'}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Experience</span>
+                    <div className="flex items-center gap-2 text-gray-700 font-bold">
+                      <Zap className="h-4 w-4 text-indigo-500" />
+                      {viewingJob.experience_level || 'Not Specified'}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Salary Range</span>
+                    <div className="flex items-center gap-2 text-gray-900 font-extrabold">
+                      {viewingJob.salary_range || 'Competitive'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Enhanced Description</span>
+                  <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-100">
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap font-medium">
+                      {viewingJob.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
+                <div className="text-[11px] text-gray-400 font-medium">
+                  Added on {new Date(viewingJob.created_at).toLocaleDateString()}
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" size="sm" onClick={() => window.open(viewingJob.source_url, '_blank')}>
+                    <ExternalLink className="mr-2 h-4 w-4" /> View Source
+                  </Button>
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => {
+                    handleEdit(viewingJob);
+                    setViewingJob(null);
+                  }}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit Post
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
