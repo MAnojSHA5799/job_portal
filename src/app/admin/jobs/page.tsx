@@ -69,6 +69,11 @@ export default function JobsQueue() {
   const [viewingJob, setViewingJob] = useState<Job | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -79,6 +84,9 @@ export default function JobsQueue() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
       let query = supabase
         .from('jobs')
         .select(`
@@ -86,16 +94,19 @@ export default function JobsQueue() {
           companies (
             name
           )
-        `)
-        .order('created_at', { ascending: false });
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (searchQuery) {
         query = query.ilike('title', `%${searchQuery}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
       if (error) throw error;
+      
       setJobs(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -148,9 +159,18 @@ export default function JobsQueue() {
   useEffect(() => {
     fetchJobs();
     fetchStats();
-  }, []);
+  }, [currentPage, itemsPerPage]); // Re-fetch when page or limit changes
 
+  // Reset to first page when searching
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    } else {
+      fetchJobs();
+    }
+  }, [searchQuery]);
 
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   const handleStatusUpdate = async (id: string, approved: boolean) => {
     try {
@@ -289,16 +309,22 @@ export default function JobsQueue() {
             <div className="flex items-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
                     <span className="text-gray-500 font-medium">Showing</span>
-                    <span className="text-gray-900 font-bold">{Math.min(jobs.length, 10)}</span>
+                    <span className="text-gray-900 font-bold">{jobs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span>
+                    <span className="text-gray-500 font-medium">-</span>
+                    <span className="text-gray-900 font-bold">{Math.min(currentPage * itemsPerPage, totalCount)}</span>
                     <span className="text-gray-500 font-medium">of</span>
-                    <span className="text-gray-900 font-bold">{stats.total}</span>
+                    <span className="text-gray-900 font-bold">{totalCount}</span>
                     <span className="text-gray-500 font-medium">Jobs</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <select className="h-9 px-2 rounded-lg border-gray-200 bg-white text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100">
-                      <option>10</option>
-                      <option>20</option>
-                      <option>50</option>
+                    <select 
+                      className="h-9 px-2 rounded-lg border-gray-200 bg-white text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100"
+                      value={itemsPerPage}
+                      onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
                     </select>
                 </div>
             </div>
@@ -374,8 +400,8 @@ export default function JobsQueue() {
                          <Badge className={cn(
                            "font-bold text-[9px] px-2 py-0.5 shadow-none ring-1",
                            job.is_approved 
-                            ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
-                            : "bg-orange-50 text-orange-600 ring-orange-100"
+                             ? "bg-emerald-50 text-emerald-600 ring-emerald-100" 
+                             : "bg-orange-50 text-orange-600 ring-orange-100"
                          )}>
                            {job.is_approved ? 'Approved' : 'Pending'}
                          </Badge>
@@ -384,8 +410,8 @@ export default function JobsQueue() {
                          <Badge className={cn(
                            "font-bold text-[9px] px-2 py-0.5 shadow-none ring-1",
                            isExpired
-                            ? "bg-rose-50 text-rose-600 ring-rose-100" 
-                            : "bg-emerald-50 text-emerald-600 ring-emerald-100"
+                             ? "bg-rose-50 text-rose-600 ring-rose-100" 
+                             : "bg-emerald-50 text-emerald-600 ring-emerald-100"
                          )}>
                            {isExpired ? 'Expired' : 'Valid'}
                          </Badge>
@@ -474,27 +500,65 @@ export default function JobsQueue() {
 
           {/* Pagination Footer */}
           <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between bg-white">
-              <Button variant="outline" size="sm" className="h-9 px-4 border-gray-100 text-gray-500 font-bold hover:bg-gray-50">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-4 border-gray-100 text-gray-500 font-bold hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading}
+              >
                   <ChevronLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
               <div className="flex items-center gap-1.5">
-                  {[1, 2, 3].map((page) => (
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Simple pagination logic to show current page and around it
+                    let pageNum = i + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      pageNum = currentPage - 2 + i;
+                      if (pageNum + 2 > totalPages) pageNum = totalPages - 4 + i;
+                    }
+
+                    if (pageNum <= 0 || pageNum > totalPages) return null;
+
+                    return (
                       <button 
-                          key={page} 
+                          key={pageNum} 
+                          onClick={() => setCurrentPage(pageNum)}
+                          disabled={loading}
                           className={cn(
                             "w-9 h-9 rounded-lg text-xs font-bold transition-all",
-                            page === 1 
+                            pageNum === currentPage 
                               ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" 
                               : "text-gray-400 hover:bg-gray-50 hover:text-gray-900"
                           )}
                       >
-                          {page}
+                          {pageNum}
                       </button>
-                  ))}
-                  <span className="text-gray-300 px-1 text-xs font-bold">...</span>
-                  <button className="w-9 h-9 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">128</button>
+                    );
+                  })}
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="text-gray-300 px-1 text-xs font-bold">...</span>
+                      <button 
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={loading}
+                        className={cn(
+                          "w-9 h-9 rounded-lg text-xs font-bold text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all",
+                          currentPage === totalPages && "bg-indigo-600 text-white"
+                        )}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
               </div>
-              <Button variant="outline" size="sm" className="h-9 px-4 border-gray-100 text-indigo-600 font-bold hover:bg-indigo-50">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-4 border-gray-100 text-indigo-600 font-bold hover:bg-indigo-50 disabled:opacity-50"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || totalPages === 0 || loading}
+              >
                   Next <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
           </div>
