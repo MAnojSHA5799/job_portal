@@ -5,13 +5,22 @@ import path from 'path';
 export async function POST() {
   try {
     // Use exec with a shell command string to bypass Turbopack's static analyzer entirely
-    const cmd = `node ./scripts/scraper.js`;
+    // Use absolute path to modern node version (v18+) because system default (v16) is incompatible with Playwright
+    const nodePath = '/opt/homebrew/bin/node';
+    const cmd = `${nodePath} ./scripts/scraper.js`;
+    // Use spawn instead of exec to avoid maxBuffer errors leading to incomplete runs
+    console.log(`📡 Triggering scraper hub with: ${nodePath} ./scripts/scraper.js`);
     
-    // Trigger the scraper in the background
-    const { exec } = require('child_process');
-    exec(cmd, { cwd: process.cwd() }, (error: any) => {
-      if (error) console.error(`Scraper start error: ${error.message}`);
+    const scraperProcess = spawn(nodePath, ['./scripts/scraper.js'], { 
+      cwd: process.cwd(),
+      detached: true,
+      stdio: 'ignore' // We ignore output to let it run fully in the background without tying up streams
     });
+
+    // Unref so the Next.js process doesn't wait for the child
+    scraperProcess.unref();
+
+    console.log(`✅ Scraper Process Launched.`);
 
     return NextResponse.json({ 
       success: true, 

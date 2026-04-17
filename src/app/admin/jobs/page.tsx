@@ -29,10 +29,10 @@ import {
   MapPin,
   Calendar,
   Pencil,
-  FileDown,
-  Sparkles
+  FileDown
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -54,6 +54,7 @@ interface Job {
   source_url: string;
   company_id: string;
   is_approved: boolean;
+  date_posted: string | null;
   created_at: string;
   companies: {
     name: string;
@@ -61,27 +62,12 @@ interface Job {
 }
 
 export default function JobsQueue() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [viewingJob, setViewingJob] = useState<Job | null>(null);
-  const [currentJob, setCurrentJob] = useState<Partial<Job>>({
-    title: '',
-    company_id: '',
-    description: '',
-    location: '',
-    salary_range: '',
-    job_type: 'Full-time',
-    experience_level: '',
-    category: '',
-    apply_link: '',
-    source_url: '',
-    is_approved: true
-  });
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -117,18 +103,7 @@ export default function JobsQueue() {
     }
   };
 
-  const fetchCompanies = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name')
-        .order('name');
-      if (error) throw error;
-      setCompanies(data || []);
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    }
-  };
+
 
   const fetchStats = async () => {
     try {
@@ -172,95 +147,10 @@ export default function JobsQueue() {
 
   useEffect(() => {
     fetchJobs();
-    fetchCompanies();
     fetchStats();
   }, []);
 
-  const handleSaveJob = async () => {
-    try {
-      setLoading(true);
-      if (!currentJob.title || !currentJob.company_id || !currentJob.description || !currentJob.location) {
-        alert('Please fill in required fields (Title, Company, Description, Location)');
-        return;
-      }
 
-      // Cleanup job data (remove joined companies object before save)
-      const { companies, ...jobData } = currentJob as any;
-
-      let result;
-      if (editingId) {
-        result = await supabase
-          .from('jobs')
-          .update(jobData)
-          .eq('id', editingId);
-      } else {
-        result = await supabase
-          .from('jobs')
-          .insert([jobData]);
-      }
-
-      if (result.error) throw result.error;
-
-      setIsAdding(false);
-      setEditingId(null);
-      setCurrentJob({
-        title: '',
-        company_id: '',
-        description: '',
-        location: '',
-        salary_range: '',
-        job_type: 'Full-time',
-        experience_level: '',
-        category: '',
-        apply_link: '',
-        source_url: '',
-        is_approved: true
-      });
-      fetchJobs();
-      fetchStats();
-    } catch (error: any) {
-      alert('Error saving job: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (job: Job) => {
-    setCurrentJob({
-      title: job.title,
-      company_id: job.company_id,
-      description: job.description,
-      location: job.location,
-      salary_range: job.salary_range,
-      job_type: job.job_type,
-      experience_level: job.experience_level,
-      category: job.category,
-      apply_link: job.apply_link,
-      source_url: job.source_url,
-      is_approved: job.is_approved
-    });
-    setEditingId(job.id);
-    setIsAdding(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleCancel = () => {
-    setIsAdding(false);
-    setEditingId(null);
-    setCurrentJob({
-      title: '',
-      company_id: '',
-      description: '',
-      location: '',
-      salary_range: '',
-      job_type: 'Full-time',
-      experience_level: '',
-      category: '',
-      apply_link: '',
-      source_url: '',
-      is_approved: true
-    });
-  };
 
   const handleStatusUpdate = async (id: string, approved: boolean) => {
     try {
@@ -287,73 +177,7 @@ export default function JobsQueue() {
     }
   };
 
-  const handleEnhanceDescription = async () => {
-    if (!currentJob.description) {
-      alert('Please provide some initial description to enhance.');
-      return;
-    }
-    
-    setIsEnhancing(true);
-    console.log('--- AI Enhancement Started ---');
-    console.log('Original Description:', currentJob.description);
 
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert HR and Technical Recruitment specialist. Your task is to transform raw, unstructured job data into a highly professional, engaging, and perfectly formatted job description. 
-
-Format the output strictly as clear plain text using standard spacing and characters (like '-' for bullets) so it looks great in a standard text field. Follow this exact structure:
-
-Company Introduction & Role Overview:
-(A brief, engaging 2-3 sentence introduction about the opportunity and what the candidate will do)
-
-Key Responsibilities:
-- (Action-oriented bullet points)
-- (Detailing exactly what the day-to-day looks like)
-
-Requirements & Qualifications:
-- (Required skills, experience, and education)
-- (Clear, non-negotiable must-haves)
-
-Why Join Us:
-- (Any benefits, perks, or growth opportunities mentioned)
-
-Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (like **, ##, or \`\`\`). Respond ONLY with the final formatted job description.`
-            },
-            {
-              role: 'user',
-              content: currentJob.title ? `Job Title: ${currentJob.title}\nDescription:\n${currentJob.description}` : currentJob.description
-            }
-          ]
-        })
-      });
-
-      const data = await response.json();
-      console.log('OpenAI API Response:', data);
-
-      if (data.error) throw new Error(data.error.message);
-      
-      const enhancedText = data.choices[0].message.content;
-      console.log('Enhanced Description:', enhancedText);
-      console.log('--- AI Enhancement Completed ---');
-
-      setCurrentJob({...currentJob, description: enhancedText});
-    } catch (error: any) {
-      console.error('AI Enhancement Error:', error);
-      alert('Error enhancing description: ' + error.message);
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
 
   return (
     <div className="space-y-8 p-6 bg-gray-50/30 min-h-screen">
@@ -370,11 +194,11 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
           <Button variant="outline" className="h-10 px-4 border-gray-200 hover:bg-white hover:text-primary transition-all shadow-sm">
             <FileDown className="mr-2 h-4 w-4" /> Export CSV
           </Button>
-          {!isAdding && (
-            <Button onClick={() => setIsAdding(true)} className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all font-semibold">
+          <Link href="/admin/jobs/new">
+            <Button className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200 transition-all font-semibold">
               <Plus className="mr-2 h-4 w-4" /> Add Job
             </Button>
-          )}
+          </Link>
         </div>
       </div>
 
@@ -446,153 +270,7 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
         ))}
       </div>
 
-      <AnimatePresence>
-        {isAdding && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Card className="p-8 border-indigo-100 bg-white shadow-xl shadow-indigo-100/30 ring-1 ring-indigo-50">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{editingId ? 'Edit Job Posting' : 'Post New Job Manually'}</h2>
-                  <p className="text-sm text-gray-500">{editingId ? 'Modify the details of this job posting.' : 'Fill in the details below to add a job to the queue.'}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={handleCancel} className="hover:bg-rose-50 hover:text-rose-500">
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="space-y-5">
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Job Title *</label>
-                    <Input 
-                      className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                      placeholder="e.g. Senior Frontend Developer" 
-                      value={currentJob.title}
-                      onChange={e => setCurrentJob({...currentJob, title: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Company *</label>
-                    <select 
-                      className="flex h-11 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-500"
-                      value={currentJob.company_id}
-                      onChange={e => setCurrentJob({...currentJob, company_id: e.target.value})}
-                    >
-                      <option value="">Select Company</option>
-                      {companies.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Location *</label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-                      <Input 
-                        className="h-11 pl-10 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                        placeholder="e.g. Remote, New York, NY" 
-                        value={currentJob.location}
-                        onChange={e => setCurrentJob({...currentJob, location: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Salary Range</label>
-                    <Input 
-                      className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                      placeholder="e.g. $120k - $150k" 
-                      value={currentJob.salary_range}
-                      onChange={e => setCurrentJob({...currentJob, salary_range: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Job Type</label>
-                        <select 
-                          className="flex h-11 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-500"
-                          value={currentJob.job_type}
-                          onChange={e => setCurrentJob({...currentJob, job_type: e.target.value})}
-                        >
-                          <option value="Full-time">Full-time</option>
-                          <option value="Part-time">Part-time</option>
-                          <option value="Contract">Contract</option>
-                          <option value="Remote">Remote</option>
-                          <option value="Freelance">Freelance</option>
-                        </select>
-                     </div>
-                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Experience</label>
-                        <Input 
-                          className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                          placeholder="e.g. 3+ Years" 
-                          value={currentJob.experience_level}
-                          onChange={e => setCurrentJob({...currentJob, experience_level: e.target.value})}
-                        />
-                     </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Category</label>
-                    <Input 
-                      className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                      placeholder="e.g. Engineering, Design" 
-                      value={currentJob.category}
-                      onChange={e => setCurrentJob({...currentJob, category: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">Apply Link (External)</label>
-                    <Input 
-                      className="h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-100"
-                      placeholder="https://company.com/apply" 
-                      value={currentJob.apply_link}
-                      onChange={e => setCurrentJob({...currentJob, apply_link: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest block">Job Description *</label>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        type="button"
-                        onClick={handleEnhanceDescription}
-                        disabled={isEnhancing}
-                        className="h-6 px-2 text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 uppercase tracking-wider rounded flex items-center shadow-sm"
-                      >
-                        {isEnhancing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                        {isEnhancing ? 'Enhancing...' : 'AI Enhance'}
-                      </Button>
-                    </div>
-                    <textarea 
-                      className="flex min-h-[300px] w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus-visible:outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-500"
-                      placeholder="Detailed job responsibilities and requirements..."
-                      value={currentJob.description}
-                      onChange={e => setCurrentJob({...currentJob, description: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100">
-                <Button variant="ghost" onClick={handleCancel} className="h-11 px-6 font-semibold">Cancel</Button>
-                <Button onClick={handleSaveJob} disabled={loading} className="h-11 px-8 bg-indigo-600 hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-100">
-                  <Save className="mr-2 h-4 w-4" /> {editingId ? 'Save Changes' : 'Save Job Post'}
-                </Button>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main Content Area */}
       <div className="space-y-4">
@@ -639,17 +317,23 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
                 <thead>
                   <tr className="bg-indigo-50/40 border-b border-indigo-50">
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Job Title</th>
-                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Description</th>
-                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Experience</th>
-                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Salary</th> */}
+                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Description</th> */}
+                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Experience</th> */}
+                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Posted</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Location</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Status</th>
-                    {/* <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Added On</th> */}
+                    <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Validity</th>
                     <th className="px-6 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 bg-white">
-                  {jobs.map((job) => (
+                  {jobs.map((job) => {
+                    const refDate = new Date(job.date_posted || job.created_at || new Date());
+                    const diffTime = Math.abs(new Date().getTime() - refDate.getTime());
+                    const daysOld = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                    const isExpired = daysOld >= 15;
+
+                    return (
                     <tr key={job.id} className="hover:bg-indigo-50/20 transition-all group">
                       <td className="px-6 py-5">
                         <div className="flex flex-col space-y-1">
@@ -664,15 +348,18 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
                             </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5">
+                      {/* <td className="px-6 py-5">
                         <div className="max-w-[200px]">
                           <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3 whitespace-pre-wrap font-medium">
                             {job.description}
                           </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-5">
+                      </td> */}
+                      {/* <td className="px-6 py-5">
                          <span className="text-[12px] font-bold text-gray-700">{job.experience_level || '2 - 4 Years'}</span>
+                      </td> */}
+                      <td className="px-6 py-5">
+                         <span className="text-[11px] font-semibold text-gray-500">{job.date_posted || 'Recently'}</span>
                       </td>
                       {/* <td className="px-6 py-5">
                          <span className="text-[12px] font-extrabold text-gray-900">₹ {job.salary_range || '8 - 12 LPA'}</span>
@@ -693,74 +380,83 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
                            {job.is_approved ? 'Approved' : 'Pending'}
                          </Badge>
                       </td>
-                      {/* <td className="px-6 py-5">
-                         <span className="text-[12px] font-semibold text-gray-400">
-                           {new Date(job.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                         </span>
-                      </td> */}
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5 transition-opacity">
-                            {job.is_approved ? (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50"
-                                onClick={() => handleStatusUpdate(job.id, false)}
-                                title="Mark as Pending"
+                      <td className="px-6 py-5">
+                         <Badge className={cn(
+                           "font-bold text-[9px] px-2 py-0.5 shadow-none ring-1",
+                           isExpired
+                            ? "bg-rose-50 text-rose-600 ring-rose-100" 
+                            : "bg-emerald-50 text-emerald-600 ring-emerald-100"
+                         )}>
+                           {isExpired ? 'Expired' : 'Valid'}
+                         </Badge>
+                      </td>
+                      <td className="px-6 py-5 text-right relative">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                          onClick={() => setOpenDropdownId(openDropdownId === job.id ? null : job.id)}
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                        
+                        <AnimatePresence>
+                          {openDropdownId === job.id && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                className="absolute right-12 top-10 z-50 w-48 bg-white rounded-xl shadow-xl shadow-indigo-100/50 border border-gray-100 p-2 flex flex-col gap-1"
                               >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50"
-                                onClick={() => handleStatusUpdate(job.id, true)}
-                                title="Approve Job"
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-lg text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50"
-                              onClick={() => setViewingJob(job)}
-                              title="View Details"
-                            >
-                                <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                              onClick={() => window.open(job.source_url, '_blank')}
-                              title="View Original Link"
-                            >
-                                <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-lg text-amber-400 hover:text-amber-600 hover:bg-amber-50"
-                              onClick={() => handleEdit(job)}
-                              title="Edit Job"
-                            >
-                                <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50"
-                                onClick={() => handleDeleteJob(job.id)}
-                                title="Delete Job"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
+                                {job.is_approved ? (
+                                  <button 
+                                    className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                    onClick={() => { handleStatusUpdate(job.id, false); setOpenDropdownId(null); }}
+                                  >
+                                    <X className="h-4 w-4 mr-2" /> Mark as Pending
+                                  </button>
+                                ) : (
+                                  <button 
+                                    className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                    onClick={() => { handleStatusUpdate(job.id, true); setOpenDropdownId(null); }}
+                                  >
+                                    <Check className="h-4 w-4 mr-2" /> Approve Job
+                                  </button>
+                                )}
+                                <button 
+                                  className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  onClick={() => { setViewingJob(job); setOpenDropdownId(null); }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" /> View Details
+                                </button>
+                                <button 
+                                  className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                                  onClick={() => { window.open(job.source_url, '_blank'); setOpenDropdownId(null); }}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" /> View Original Link
+                                </button>
+                                <Link href={`/admin/jobs/${job.id}/edit`} onClick={() => setOpenDropdownId(null)}>
+                                  <button className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                                    <Pencil className="h-4 w-4 mr-2" /> Edit Job
+                                  </button>
+                                </Link>
+                                <div className="h-px bg-gray-100 my-1" />
+                                <button 
+                                  className="flex items-center w-full text-left px-3 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                  onClick={() => { handleDeleteJob(job.id); setOpenDropdownId(null); }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" /> Delete Job
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -880,7 +576,7 @@ Keep the tone professional, inviting, and clear. Do NOT use markdown syntax (lik
                     <ExternalLink className="mr-2 h-4 w-4" /> View Source
                   </Button>
                   <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => {
-                    handleEdit(viewingJob);
+                    router.push(`/admin/jobs/${viewingJob.id}/edit`);
                     setViewingJob(null);
                   }}>
                     <Pencil className="mr-2 h-4 w-4" /> Edit Post

@@ -38,6 +38,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ScraperLog {
   id: string;
@@ -215,6 +216,32 @@ export default function ScraperManager() {
     return `${m}m ${s}s`;
   };
 
+  const handleCleanupStaleLogs = async () => {
+    if (!confirm('Are you sure you want to clear stuck runs? All "In Progress" logs older than 1 hour will be marked as Failed.')) return;
+    
+    try {
+      setTriggering(true);
+      const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+      
+      const { error } = await supabase
+        .from('scraper_logs')
+        .update({ 
+          status: 'failed', 
+          error_message: 'Terminated: System detected this run was stuck or orphaned.' 
+        })
+        .eq('status', 'running')
+        .lt('created_at', oneHourAgo);
+
+      if (error) throw error;
+      fetchData();
+      alert('Stuck runs have been cleared.');
+    } catch (error: any) {
+      alert('Error clearing logs: ' + error.message);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
   return (
     <div className="space-y-8 pb-12 bg-gray-50/30 min-h-screen p-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -229,10 +256,15 @@ export default function ScraperManager() {
           <Button 
             size="lg" 
             onClick={() => setShowFilters(!showFilters)}
-            className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 transition-all font-bold gap-2"
+            disabled={loading || triggering}
+            className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 transition-all font-bold gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Play className="w-5 h-5 fill-white" />
-            Run Scraper
+            {loading || triggering ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Play className="w-5 h-5 fill-white" />
+            )}
+            {triggering ? 'Starting...' : 'Run Scraper'}
             <ChevronDown className={cn("w-4 h-4 transition-transform", showFilters && "rotate-180")} />
           </Button>
 
@@ -294,6 +326,33 @@ export default function ScraperManager() {
           )}
         </div>
       </div>
+
+      {stats.inProgress > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between shadow-sm shadow-orange-100/20"
+        >
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-100 p-2 rounded-lg">
+              <Clock className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-orange-900">Active Scraper Run Detected</p>
+              <p className="text-xs text-orange-600 font-medium">There are currently {stats.inProgress} runs marked as in progress. If this seems stuck, you can clear them.</p>
+            </div>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleCleanupStaleLogs}
+            disabled={triggering}
+            className="border-orange-200 text-orange-700 hover:bg-orange-100 font-bold"
+          >
+            Clear Stuck Runs
+          </Button>
+        </motion.div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-4 border-b border-gray-200">
@@ -362,10 +421,12 @@ export default function ScraperManager() {
                           </div>
                         </td>
                         <td className="px-8 py-5">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-[13px] font-black tracking-tight">
-                            <Briefcase className="w-4 h-4 text-emerald-500/70" />
-                            {company.total_jobs} Jobs
-                          </div>
+                          <Link href={`/admin/companies/${company.id}`} target="_blank" rel="noopener noreferrer">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[13px] font-black tracking-tight cursor-pointer transition-colors">
+                              <Briefcase className="w-4 h-4 text-emerald-500/70" />
+                              {company.total_jobs} Jobs
+                            </div>
+                          </Link>
                         </td>
                         <td className="px-8 py-5">
                            <div className="flex flex-col">
