@@ -364,6 +364,7 @@ export default function ScraperManager() {
                                <span className="text-[10px] font-bold text-gray-400">
                                  {new Date(company.last_scraped).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                </span>
+                               
                              )}
                            </div>
                         </td>
