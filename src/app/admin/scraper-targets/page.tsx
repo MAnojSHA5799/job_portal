@@ -10,8 +10,12 @@ import {
   RefreshCw,
   Globe,
   Upload,
-  AlignLeft
+  AlignLeft,
+  Play,
+  ChevronDown,
+  Filter
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
 interface ScraperUrl {
@@ -29,6 +33,15 @@ export default function ScraperTargetsManagement() {
   
   const [singleUrl, setSingleUrl] = useState('');
   const [bulkUrls, setBulkUrls] = useState('');
+
+  // Scraper Trigger States
+  const [triggering, setTriggering] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [scrapeFilters, setScrapeFilters] = useState({
+    jobType: 'All',
+    jobAge: 'Any',
+    target: 'All Data'
+  });
 
   useEffect(() => {
     fetchUrls();
@@ -135,6 +148,29 @@ export default function ScraperTargetsManagement() {
     }
   };
 
+  const handleTriggerScraper = async () => {
+    setTriggering(true);
+    setShowFilters(false);
+    try {
+      const response = await fetch('/api/scraper', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filters: scrapeFilters })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Scraper initiated with selected filters!');
+        fetchUrls();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      alert('Error triggering scraper: ' + error.message);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -142,9 +178,84 @@ export default function ScraperTargetsManagement() {
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Scraper Targets</h1>
           <p className="text-gray-500">Manage the URLs that the automated job scraper will visit.</p>
         </div>
-        <Button onClick={fetchUrls} variant="outline" className="shadow-sm">
-          <RefreshCw className="mr-2 h-4 w-4" /> Refresh List
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={fetchUrls} variant="outline" className="shadow-sm">
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh List
+          </Button>
+          
+          <div className="relative">
+            <Button 
+              size="lg" 
+              onClick={() => setShowFilters(!showFilters)}
+              disabled={loading || triggering}
+              className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 transition-all font-bold gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading || triggering ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Play className="w-5 h-5 fill-white" />
+              )}
+              {triggering ? 'Starting...' : 'Run Scraper'}
+              <ChevronDown className={cn("w-4 h-4 transition-transform", showFilters && "rotate-180")} />
+            </Button>
+
+            {showFilters && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl shadow-gray-200/50 border border-gray-100 p-5 z-50">
+                <h4 className="font-bold text-gray-900 mb-4 text-sm flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-indigo-500" /> Scraper Settings
+                </h4>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Type</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['All', 'Full-time', 'Contract'].map(type => (
+                        <button
+                          key={type}
+                          onClick={() => setScrapeFilters({...scrapeFilters, jobType: type})}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            scrapeFilters.jobType === type ? "bg-indigo-600 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          )}
+                        >
+                          {type}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Max Job Age</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Any', '24h', '7d', '30d'].map(age => (
+                        <button
+                          key={age}
+                          onClick={() => setScrapeFilters({...scrapeFilters, jobAge: age})}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            scrapeFilters.jobAge === age ? "bg-indigo-600 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          )}
+                        >
+                          {age}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-50">
+                    <Button 
+                      className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                      onClick={handleTriggerScraper}
+                      loading={triggering}
+                    >
+                      Start Discovery Now
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
