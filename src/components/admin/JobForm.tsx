@@ -93,7 +93,7 @@ export function JobForm({
 
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showSeoDetails, setShowSeoDetails] = useState(true);
-  const [fixingCheckId, setFixingCheckId] = useState<string | null>(null);
+  const [fixingCheckId, setFixingCheckId] = useState<number | null>(null);
 
   // Real-time SEO Scoring
   const seoReport = calculateSEOScore({

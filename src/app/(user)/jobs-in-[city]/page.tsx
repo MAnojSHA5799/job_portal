@@ -17,7 +17,10 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const city = (await params).city.charAt(0).toUpperCase() + (await params).city.slice(1);
+  const cityParam = (await params).city;
+  if (!cityParam) return { title: 'Jobs' };
+  
+  const city = cityParam.charAt(0).toUpperCase() + cityParam.slice(1);
   const title = `Manufacturing Jobs in ${city} - ${new Date().getFullYear()} Openings | Gethyrd.in`;
   const description = `Discover top manufacturing and industrial jobs in ${city}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and apply today!`;
 
@@ -29,6 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LocationPage({ params }: Props) {
   const citySlug = (await params).city;
+  if (!citySlug) return null;
+  
   const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
 
   const { data: jobs, error } = await supabase

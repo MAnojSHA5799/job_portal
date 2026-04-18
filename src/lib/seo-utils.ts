@@ -48,7 +48,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: false
   });
 
-  const keywordInTitleStart = hasKeyword && title.toLowerCase().split(/\s+/).slice(0, 3).some(w => focusKeyword.toLowerCase().includes(w));
+  const keywordInTitleStart = hasKeyword && title.toLowerCase().split(/\s+/).slice(0, 3).some((w: string) => focusKeyword.toLowerCase().includes(w));
   checks.push({
     id: 2,
     name: 'Keyword in SEO Title (first 3 words)',
@@ -290,7 +290,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: false
   });
 
-  const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).filter(l => !l.includes('gethyrd.in')).length >= 1;
+  const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).filter((l: string) => !l.includes('gethyrd.in')).length >= 1;
   checks.push({
     id: 26,
     name: 'External DoFollow link present',
