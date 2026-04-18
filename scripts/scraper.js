@@ -158,6 +158,9 @@ async function scrapeJobs() {
 
           if (existingJob) continue;
 
+          const focusKeyword = `${job.title} ${job.location.split(',')[0]}`.trim();
+          const urlSlug = focusKeyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
           const { error: insertError } = await supabase
             .from('jobs')
             .insert([{
@@ -172,6 +175,8 @@ async function scrapeJobs() {
               apply_link: job.apply_link,
               source_url: job.source_url,
               date_posted: job.date_posted,
+              focus_keyword: focusKeyword,
+              url_slug: urlSlug,
               is_approved: true // Set to true to make it visible
             }]);
 

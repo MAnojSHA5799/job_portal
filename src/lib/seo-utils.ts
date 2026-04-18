@@ -168,7 +168,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasSalarySignal = !!salary && (meta.includes(salary) || /salary|pay|earn|₹|\$/i.test(meta));
+  const hasSalarySignal = /salary|pay|earn|₹|\$|CTC|LPA/i.test(meta) || (!!salary && meta.includes(salary));
   checks.push({
     id: 15,
     name: 'Meta contains salary signal',

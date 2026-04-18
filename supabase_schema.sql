@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   company_id UUID REFERENCES companies(id),
   title TEXT NOT NULL,
   description TEXT NOT NULL,
+  content_html TEXT,
   location TEXT NOT NULL,
   salary_range TEXT,
   job_type TEXT DEFAULT 'Full-time',
@@ -23,7 +24,14 @@ CREATE TABLE IF NOT EXISTS jobs (
   category TEXT,
   apply_link TEXT,
   source_url TEXT,
+  date_posted DATE DEFAULT CURRENT_DATE,
+  valid_through DATE DEFAULT (CURRENT_DATE + INTERVAL '60 days'),
   is_approved BOOLEAN DEFAULT FALSE,
+  seo_title TEXT,
+  meta_description TEXT,
+  focus_keyword TEXT,
+  url_slug TEXT,
+  seo_score INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
