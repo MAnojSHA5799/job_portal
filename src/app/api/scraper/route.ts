@@ -4,8 +4,8 @@ export async function POST() {
   try {
     // IMPORTANT: Replace this with your actual Render service URL after deployment
     // Example: 'https://job-scraper-service.onrender.com/scrape'
-    // const RENDER_SCRAPER_URL = 'https://YOUR_RENDER_SERVICE_URL.onrender.com/scrape';
-    const RENDER_SCRAPER_URL = 'http://localhost:4000/scrape';
+    const RENDER_SCRAPER_URL = 'https://job-portal-ve23.onrender.com/scrape';
+    // const RENDER_SCRAPER_URL = 'http://localhost:4000/scrape';
 
     console.log(`📡 Triggering remote scraper on Render: ${RENDER_SCRAPER_URL}`);
 
