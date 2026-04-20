@@ -125,11 +125,16 @@ export function JobForm({
             messages: [
               {
                 role: 'system',
-                content: 'You are an SEO expert. Create a high-ranking SEO title (50-60 characters) for a job posting. Format: [Job Title] in [Location] | [Company Name]. Include power words like Hiring, Apply, Salary.'
+                content: `Rewrite this SEO title so that:
+1. Focus keyword appears in first 3 words
+2. Total length is exactly 50-60 characters
+3. Includes at least one power word from this list: Urgent, Immediate, Certified, Top, Genuine, Verified, Direct
+4. Includes a positive sentiment word (Best, Rewarding, Exciting) OR a number (salary, openings count, experience years)
+Return ONLY the new title. No explanation.`
               },
               {
                 role: 'user',
-                content: `Job Title: ${currentJob.title}, Location: ${currentJob.location}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}`
+                content: `Current title: ${currentJob.seo_title || currentJob.title}, Focus Keyword: ${currentJob.focus_keyword}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}, City: ${currentJob.location}, Salary: ${currentJob.salary_range || 'Competitive'}`
               }
             ]
           })
@@ -148,11 +153,16 @@ export function JobForm({
             messages: [
               {
                 role: 'system',
-                content: 'Create a compelling Meta Description (130-160 chars) for a job posting. Must include the focus keyword naturally.'
+                content: `Rewrite this meta description so that:
+1. Total length is 130-160 characters (count carefully)
+2. Focus keyword appears naturally once
+3. Mentions salary if available
+4. Ends with one of these CTAs: 'Apply now on Gethyrd.in.' OR 'View details and apply now.' OR 'Check salary and apply.'
+Return ONLY the new meta description. No explanation.`
               },
               {
                 role: 'user',
-                content: `Job Title: ${currentJob.title}, Focus Keyword: ${currentJob.focus_keyword}, Location: ${currentJob.location}`
+                content: `Current meta: ${currentJob.meta_description}, Focus Keyword: ${currentJob.focus_keyword}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}, Salary: ${currentJob.salary_range || 'Competitive'}`
               }
             ]
           })
@@ -182,22 +192,58 @@ export function JobForm({
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
+          response_format: { type: 'json_object' },
           messages: [
             {
               role: 'system',
-              content: 'Enhance this job description to be more professional, using bullet points for responsibilities and requirements.'
+              content: `You are an expert SEO copywriter for Gethyrd.in. Return a JSON object with the following fields. 
+STRICT RULES:
+1. Return ONLY valid JSON.
+2. Total word count in content_html: 900-1,200 words.
+3. Use Focus Keyword: [KEYWORD] in H1, first 100 words, and subheadings.
+4. Heading structure: H1, H2, H3 (exactly as requested).
+5. Output JSON schema: { 
+    "seo_title": "string", 
+    "meta_description": "string", 
+    "url_slug": "string", 
+    "h1": "string", 
+    "content_html": "string (HTML format)", 
+    "focus_keyword": "string", 
+    "image_alt_text": "string", 
+    "faq_questions": ["string"] 
+}`
             },
             {
               role: 'user',
-              content: currentJob.description
+              content: `Job Title: ${currentJob.title}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}, Location: ${currentJob.location}, Salary: ${currentJob.salary_range || 'Competitive'}, Experience: ${currentJob.experience_level}, Raw Description: ${currentJob.description}, Focus Keyword: ${currentJob.focus_keyword}`
             }
           ]
         })
       });
       const data = await response.json();
-      setCurrentJob({ ...currentJob, description: data.choices[0].message.content });
+      
+      if (data.error) {
+        throw new Error(data.error.message || 'OpenAI API Error');
+      }
+
+      if (!data.choices || !data.choices[0]) {
+        throw new Error('No response from AI. Please check your API key and quota.');
+      }
+
+      const aiResponse = JSON.parse(data.choices[0].message.content);
+      
+      // Update the job with all AI generated SEO data
+      setCurrentJob({ 
+        ...currentJob, 
+        seo_title: aiResponse.seo_title,
+        meta_description: aiResponse.meta_description,
+        url_slug: aiResponse.url_slug?.replace('/jobs/', ''),
+        description: aiResponse.content_html || aiResponse.content,
+        content_html: aiResponse.content_html
+      });
     } catch (error) {
       console.error('Enhance Error:', error);
+      alert('Failed to parse AI response. Please try again.');
     } finally {
       setIsEnhancing(false);
     }
@@ -206,6 +252,11 @@ export function JobForm({
   const internalOnSave = () => {
     if (!currentJob.title || !currentJob.company_id || !currentJob.description || !currentJob.location) {
       alert('Please fill in required fields (Title, Company, Description, Location)');
+      return;
+    }
+
+    if (seoReport.score < 70) {
+      alert(`SEO Score is too low (${seoReport.score}/100). Minimum 70 required to publish. Please fix critical SEO checks.`);
       return;
     }
     const finalJob = {

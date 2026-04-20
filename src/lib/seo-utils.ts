@@ -48,7 +48,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: false
   });
 
-  const keywordInTitleStart = hasKeyword && title.toLowerCase().split(/\s+/).slice(0, 3).some((w: string) => focusKeyword.toLowerCase().includes(w));
+  const keywordInTitleStart = hasKeyword && title.toLowerCase().split(/\s+/).slice(0, 3).some((w: string) => focusKeyword.toLowerCase().includes(w.toLowerCase()));
   checks.push({
     id: 2,
     name: 'Keyword in SEO Title (first 3 words)',
@@ -59,7 +59,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const keywordInMeta = hasKeyword && meta.toLowerCase().includes(focusKeyword.toLowerCase());
+  const keywordInMeta = hasKeyword && meta.toLowerCase().includes(focusKeyword.toLowerCase().trim());
   checks.push({
     id: 3,
     name: 'Keyword in Meta Description',
@@ -103,7 +103,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasPowerWord = POWER_WORDS.some(pw => title.toLowerCase().includes(pw.toLowerCase()));
+  const hasPowerWord = POWER_WORDS.some((pw: string) => title.toLowerCase().includes(pw.toLowerCase()));
   checks.push({
     id: 9,
     name: 'Title contains power word',
@@ -114,7 +114,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasSentimentOrNumber = SENTIMENT_WORDS.some(sw => title.toLowerCase().includes(sw.toLowerCase())) || /\d+/.test(title);
+  const hasSentimentOrNumber = SENTIMENT_WORDS.some((sw: string) => title.toLowerCase().includes(sw.toLowerCase())) || /\d+/.test(title);
   checks.push({
     id: 10,
     name: 'Title contains sentiment word or number',
@@ -147,15 +147,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  checks.push({
-    id: 13,
-    name: 'Meta contains Focus Keyword',
-    points: 3,
-    passed: keywordInMeta,
-    message: keywordInMeta ? 'Keyword found in meta.' : 'Keyword missing from meta. Click Fix.',
-    category: 'meta',
-    autoFixAvailable: true
-  });
+  // Duplicate check removed (using id: 3 instead)
 
   const hasCTA = /apply|view|check|now|today/i.test(meta);
   checks.push({
@@ -217,10 +209,21 @@ export function calculateSEOScore(job: any): SEOResult {
   checks.push({
     id: 20,
     name: 'URL is short and clean',
-    points: 4, // Adjusting points to hit 15 for URL
+    points: 2,
     passed: urlNoStopWords,
     message: urlNoStopWords ? 'URL is optimized.' : 'URL contains stop words or redundant terms. Click Fix.',
     category: 'url',
+    autoFixAvailable: true
+  });
+
+  const keywordInSubheading = hasKeyword && (content.match(/<h[23][^>]*>.*?<\/h[23]>/gi) || []).some((h: string) => h.toLowerCase().includes(focusKeyword.toLowerCase()));
+  checks.push({
+    id: 6,
+    name: 'Focus Keyword in at least one H2 or H3',
+    points: 2,
+    passed: keywordInSubheading,
+    message: keywordInSubheading ? 'Keyword found in subheadings.' : 'No subheading contains keyword. Click Fix to rewrite subheadings.',
+    category: 'keyword',
     autoFixAvailable: true
   });
 
@@ -331,6 +334,31 @@ export function calculateSEOScore(job: any): SEOResult {
     message: 'Schema will be generated automatically.',
     category: 'content',
     autoFixAvailable: true
+  });
+
+  const paragraphs = content.split(/<\/p>|<br\s*\/?>/i).filter((p: string) => p.trim().length > 0);
+  const longParagraphs = paragraphs.filter((p: string) => {
+    const sentenceCount = (p.match(/[.!?]/g) || []).length;
+    return sentenceCount > 3;
+  });
+  checks.push({
+    id: 30,
+    name: 'Paragraphs short (max 3 sentences)',
+    points: 2,
+    passed: longParagraphs.length === 0 && paragraphs.length > 0,
+    message: longParagraphs.length === 0 ? 'Paragraph lengths are ideal.' : `Detected ${longParagraphs.length} long paragraphs. Click Fix.`,
+    category: 'content',
+    autoFixAvailable: true
+  });
+
+  checks.push({
+    id: 19,
+    name: 'URL is unique (no duplicates)',
+    points: 2,
+    passed: true, // Requires DB check, defaulting to true for now
+    message: 'URL uniqueness check requires database validation.',
+    category: 'url',
+    autoFixAvailable: false
   });
 
   const totalScore = checks.reduce((acc, check) => acc + (check.passed ? check.points : 0), 0);
