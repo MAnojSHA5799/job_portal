@@ -1,30 +1,24 @@
 import { NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
 
 export async function POST() {
   try {
-    // Use exec with a shell command string to bypass Turbopack's static analyzer entirely
-    // Use process.execPath to get the current node executable path dynamically
-    const nodePath = process.execPath;
-    const scriptPath = path.join(process.cwd(), 'scripts', 'scraper.js');
-    
-    console.log(`📡 Triggering scraper hub with: ${nodePath} ${scriptPath}`);
-    
-    const scraperProcess = spawn(nodePath, [scriptPath], { 
-      cwd: process.cwd(),
-      detached: true,
-      stdio: 'ignore' 
-    });
+    // IMPORTANT: Replace this with your actual Render service URL after deployment
+    // Example: 'https://job-scraper-service.onrender.com/scrape'
+    // const RENDER_SCRAPER_URL = 'https://YOUR_RENDER_SERVICE_URL.onrender.com/scrape';
+    const RENDER_SCRAPER_URL = 'http://localhost:4000/scrape';
 
-    // Unref so the Next.js process doesn't wait for the child
-    scraperProcess.unref();
+    console.log(`📡 Triggering remote scraper on Render: ${RENDER_SCRAPER_URL}`);
 
-    console.log(`✅ Scraper Process Launched.`);
+    // Trigger the scraper asynchronously (don't wait for it to finish)
+    // We use a background fetch to avoid blocking the main thread
+    fetch(RENDER_SCRAPER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(err => console.error('⚠️ Remote Trigger Error:', err.message));
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Scraper started in the background.' 
+      message: 'Scraper triggered on Render successfully. Monitoring will continue via logs.' 
     });
   } catch (error: any) {
     return NextResponse.json({ 

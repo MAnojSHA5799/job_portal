@@ -1,0 +1,15 @@
+{
+  "name": "job-scraper-service",
+  "version": "1.0.0",
+  "description": "Standalone job scraper service for Render",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "npx playwright install-deps chromium && npx playwright install chromium"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "playwright": "^1.40.1"
+  }
+}
