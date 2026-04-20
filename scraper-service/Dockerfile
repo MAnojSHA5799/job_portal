@@ -1,5 +1,5 @@
 # Use official Playwright image which has all browsers and dependencies pre-installed
-FROM mcr.microsoft.com/playwright:v1.40.1-jammy
+FROM mcr.microsoft.com/playwright:v1.59.1-jammy
 
 # Create app directory
 WORKDIR /usr/src/app
