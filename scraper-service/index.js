@@ -1,9 +1,26 @@
 const express = require('express');
+const cors = require('cors');
 const { spawn } = require('child_process');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Update this with your actual frontend Vercel URL
+const allowedOrigins = [
+  // 'http://localhost:3000',
+  'https://job-portal-seven-rosy.vercel.app' 
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+}));
 
 app.use(express.json());
 
