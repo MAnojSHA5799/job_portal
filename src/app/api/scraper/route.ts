@@ -7,6 +7,7 @@ export async function POST() {
     const RENDER_SCRAPER_URL = 'https://job-portal-1-xk6p.onrender.com/scrape';
     // const RENDER_SCRAPER_URL = 'http://localhost:4000/scrape';
 
+    
     console.log(`📡 Triggering remote scraper on Render: ${RENDER_SCRAPER_URL}`);
 
     // Trigger the scraper asynchronously (don't wait for it to finish)
