@@ -560,7 +560,9 @@ export default function ScraperManager() {
                             <span className="text-[12px] font-black text-indigo-600 cursor-pointer">
                               #SR-{log.id.slice(0, 8).toUpperCase()}
                             </span>
-                            <span className="text-[10px] font-bold text-gray-400 mt-0.5">Auto • Filtered Scrape</span>
+                            <span className="text-[10px] font-bold text-gray-400 mt-0.5">
+                              {log.status === 'completed' ? (log.error_message || 'Auto • Filtered Scrape') : log.status === 'failed' ? 'Failed Run' : 'Running...'}
+                            </span>
                           </div>
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap">

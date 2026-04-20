@@ -39,20 +39,7 @@ async function getOrCreateCompany(name) {
 async function scrapeJobs() {
   console.log("🚀 Starting Playwright Multi-Site Scraper with DB Integration...");
   
-  let logId = null;
-  const startTime = Date.now();
-
   try {
-    // Initial log entry
-    const { data: logData, error: logError } = await supabase
-      .from('scraper_logs')
-      .insert([{ status: 'running', jobs_found: 0 }])
-      .select('id')
-      .single();
-    
-    if (logError) console.error("⚠️ Failed to create scraper log:", logError.message);
-    logId = logData?.id;
-
     // Fetch Target URLs
     const { data: targetUrls, error: urlsError } = await supabase
       .from('scraper_urls')
@@ -67,12 +54,6 @@ async function scrapeJobs() {
 
     if (jobUrls.length === 0) {
       console.log("No active target URLs found. Exiting.");
-      if (logId) {
-        await supabase
-          .from('scraper_logs')
-          .update({ status: 'completed', jobs_found: 0 })
-          .eq('id', logId);
-      }
       process.exit(0);
     }
 
@@ -85,11 +66,35 @@ async function scrapeJobs() {
     let totalJobsSaved = 0;
 
     for (const url of jobUrls) {
+      let runLogId = null;
       try {
         console.log(`🌐 Visiting: ${url}`);
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
         
-        // Wait for dynamic content
+        // Find existing log for this URL (we use error_message to match since we don't have a URL column)
+        const urlIdentifier = url.split('/').pop() || url;
+        const { data: existingLogs } = await supabase
+          .from('scraper_logs')
+          .select('id')
+          .ilike('error_message', `%${urlIdentifier}%`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (existingLogs && existingLogs.length > 0) {
+          runLogId = existingLogs[0].id;
+          await supabase
+            .from('scraper_logs')
+            .update({ status: 'running', jobs_found: 0, error_message: `Running: ${urlIdentifier}`, created_at: new Date().toISOString() })
+            .eq('id', runLogId);
+        } else {
+          const { data: newLog } = await supabase
+            .from('scraper_logs')
+            .insert([{ status: 'running', jobs_found: 0, error_message: `Running: ${urlIdentifier}` }])
+            .select('id')
+            .single();
+          runLogId = newLog?.id;
+        }
+
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
         await page.waitForTimeout(5000);
 
         const jobs = await page.evaluate((currentUrl) => {
@@ -144,12 +149,23 @@ async function scrapeJobs() {
 
         console.log(`✅ Found ${jobs.length} jobs from ${url}`);
 
+        let urlJobsSaved = 0;
+        let detectedCompanyName = jobs.length > 0 ? jobs[0].companyName : url.split('/')[2];
+
+        // --- REFRESH LOGIC ---
+        if (jobs.length > 0) {
+          const firstCompanyId = await getOrCreateCompany(jobs[0].companyName);
+          if (firstCompanyId) {
+            console.log(`🧹 Cleaning up old jobs for company: ${jobs[0].companyName}`);
+            await supabase.from('jobs').delete().eq('company_id', firstCompanyId).eq('source_url', url);
+          }
+        }
+
         // Process each job and save to DB
         for (const job of jobs) {
           const companyId = await getOrCreateCompany(job.companyName);
           if (!companyId) continue;
 
-          // Check if job already exists (by apply_link or title+company)
           const { data: existingJob } = await supabase
             .from('jobs')
             .select('id')
@@ -177,19 +193,36 @@ async function scrapeJobs() {
               date_posted: job.date_posted,
               focus_keyword: focusKeyword,
               url_slug: urlSlug,
-              is_approved: true // Set to true to make it visible
+              is_approved: true
             }]);
 
-          if (insertError) {
-            console.error(`❌ Insert Error (${job.title}):`, insertError.message);
-          } else {
+          if (!insertError) {
+            urlJobsSaved++;
             totalJobsSaved++;
             allScrapedJobs.push(job);
           }
         }
 
+        // Final Update for THIS log entry
+        if (runLogId) {
+          await supabase
+            .from('scraper_logs')
+            .update({ 
+              status: 'completed', 
+              jobs_found: urlJobsSaved, 
+              error_message: `[${urlIdentifier}] Scraped: ${detectedCompanyName}`
+            })
+            .eq('id', runLogId);
+        }
+
       } catch (err) {
         console.log(`❌ Failed: ${url}`, err.message);
+        if (runLogId) {
+          await supabase
+            .from('scraper_logs')
+            .update({ status: 'failed', error_message: err.message })
+            .eq('id', runLogId);
+        }
       }
     }
 
@@ -197,36 +230,15 @@ async function scrapeJobs() {
     const outputPath = path.join(__dirname, 'scraped_jobs.json');
     fs.writeFileSync(outputPath, JSON.stringify(allScrapedJobs, null, 2));
 
-    const endTime = Date.now();
-    const duration = Math.floor((endTime - startTime) / 1000);
-
-    console.log(`📦 Scrape Summary: Found ${allScrapedJobs.length} unique jobs, Saved ${totalJobsSaved} new jobs to DB. Duration: ${duration}s`);
+    console.log(`📦 Scrape Summary: Found ${allScrapedJobs.length} unique jobs, Saved ${totalJobsSaved} new jobs to DB.`);
     
-    // Update log
-    if (logId) {
-      const { error: finalUpdateError } = await supabase
-        .from('scraper_logs')
-        .update({ status: 'completed', jobs_found: totalJobsSaved })
-        .eq('id', logId);
-      
-      if (finalUpdateError) {
-        console.error("❌ Final Log Update Error:", finalUpdateError.message);
-      } else {
-        console.log("✅ Final Log Updated: Completed.");
-      }
-    }
+    // Clear JSON
+    fs.writeFileSync(outputPath, JSON.stringify([], null, 2));
 
     await browser.close();
-    console.log("👋 Scraper finished successfully.");
     process.exit(0);
   } catch (err) {
     console.error("❌ Fatal Error:", err);
-    if (logId) {
-      await supabase
-        .from('scraper_logs')
-        .update({ status: 'failed', error_message: err.message })
-        .eq('id', logId);
-    }
     process.exit(1);
   }
 }
