@@ -28,22 +28,27 @@ app.get('/', (req, res) => {
   res.send('Job Scraper Service is Running 🚀');
 });
 
+app.get('/scrape', (req, res) => {
+  res.send('Use POST to trigger scraper, or wait... I will trigger it for you now! 🚀');
+  triggerScraper();
+});
+
 app.post('/scrape', (req, res) => {
-  console.log('📡 Scrape request received...');
-  
-  // Launch scraper in background
-  const scraper = spawn('node', ['scraper.js'], {
-    detached: true,
-    stdio: 'inherit'
-  });
-
-  scraper.unref();
-
+  triggerScraper();
   res.json({
     success: true,
     message: 'Scraper started successfully in the background.'
   });
 });
+
+function triggerScraper() {
+  console.log('📡 Scrape request received...');
+  const scraper = spawn('node', ['scraper.js'], {
+    detached: true,
+    stdio: 'inherit'
+  });
+  scraper.unref();
+}
 
 app.listen(PORT, () => {
   console.log(`🚀 Scraper service listening on port ${PORT}`);
