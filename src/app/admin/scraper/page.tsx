@@ -47,11 +47,13 @@ interface ScraperLog {
   error_message: string;
   duration?: number;
   created_at: string;
+  company_id?: string;
 }
 
 interface CompanyStat {
   id: string;
   name: string;
+  website?: string;
   total_jobs: number;
   last_scraped: string;
 }
@@ -93,7 +95,7 @@ export default function ScraperManager() {
       // Fetch Companies and Jobs
       const { data: companiesData } = await supabase
         .from('companies')
-        .select('id, name');
+        .select('id, name, website');
 
       const { data: jobsData } = await supabase
         .from('jobs')
@@ -114,6 +116,7 @@ export default function ScraperManager() {
         const stats = companiesData.map(c => ({
           id: c.id,
           name: c.name,
+          website: c.website,
           total_jobs: jobCounts[c.id]?.count || 0,
           last_scraped: jobCounts[c.id]?.latest || null
         })).sort((a, b) => b.total_jobs - a.total_jobs);
@@ -214,6 +217,19 @@ export default function ScraperManager() {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}m ${s}s`;
+  };
+
+  const getCompanyByUrl = (url: string) => {
+    if (!url) return null;
+    const cleanDomain = url.replace('https://', '').replace('http://', '').split('/')[0].toLowerCase().replace('www.', '').replace(/[^a-z0-9]/g, '');
+    
+    return companyStats.find(c => {
+      const cleanName = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const cleanWebsite = c.website?.replace('https://', '').replace('http://', '').split('/')[0].toLowerCase().replace('www.', '').replace(/[^a-z0-9]/g, '');
+      
+      return (cleanWebsite && (cleanDomain.includes(cleanWebsite) || cleanWebsite.includes(cleanDomain))) || 
+             (cleanName && (cleanDomain.includes(cleanName) || cleanName.includes(cleanDomain)));
+    });
   };
 
   const handleCleanupStaleLogs = async () => {
@@ -348,7 +364,7 @@ export default function ScraperManager() {
                           </div>
                         </td>
                         <td className="px-8 py-5">
-                          <Link href={`/admin/companies/${company.id}`} target="_blank" rel="noopener noreferrer">
+                          <Link href={`/admin/companies/${company.id}`}>
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[13px] font-black tracking-tight cursor-pointer transition-colors">
                               <Briefcase className="w-4 h-4 text-emerald-500/70" />
                               {company.total_jobs} Jobs
@@ -580,9 +596,22 @@ export default function ScraperManager() {
                            </div>
                         </td>
                         <td className="px-8 py-5">
-                           <div className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[12px] font-black">
-                             {log.jobs_found}
-                           </div>
+                           {(() => {
+                             const companyId = log.company_id || getCompanyByUrl(log.error_message)?.id;
+                             const domain = log.error_message?.replace('https://', '').replace('http://', '').split('/')[0] || '';
+                             const targetUrl = companyId 
+                               ? `/admin/companies/${companyId}` 
+                               : `?search=${encodeURIComponent(domain)}`;
+                             
+                             return (
+                               <Link href={targetUrl} onClick={() => !companyId && setActiveTab('companies')} className="group/count">
+                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[13px] font-black tracking-tight cursor-pointer transition-colors">
+                                   <Briefcase className="w-4 h-4 text-emerald-500/70" />
+                                   {log.jobs_found} Jobs
+                                 </div>
+                               </Link>
+                             );
+                           })()}
                         </td>
                         <td className="px-8 py-5">
                            <Badge className={cn(

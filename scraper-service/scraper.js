@@ -249,7 +249,13 @@ async function scrapeJobs() {
         let urlJobsSaved = 0;
         if (jobs.length > 0) {
           const cid = await getOrCreateCompany(jobs[0].companyName);
-          if (cid) await supabase.from('jobs').delete().eq('company_id', cid).eq('source_url', url);
+          if (cid) {
+            await supabase.from('jobs').delete().eq('company_id', cid).eq('source_url', url);
+            // Link this log run to the company
+            if (runLogId) {
+              await supabase.from('scraper_logs').update({ company_id: cid }).eq('id', runLogId);
+            }
+          }
         }
 
         for (const job of jobs) {
@@ -275,7 +281,7 @@ async function scrapeJobs() {
             category: job.category, apply_link: job.apply_link, source_url: job.source_url,
             date_posted: job.date_posted, focus_keyword: focusKeyword,
             url_slug: focusKeyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-            is_approved: true
+            is_approved: false
           }]);
           if (!error) { urlJobsSaved++; totalJobsSaved++; }
         }

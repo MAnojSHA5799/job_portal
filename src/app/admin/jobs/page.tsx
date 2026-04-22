@@ -471,12 +471,23 @@ export default function JobsQueue() {
                           </div>
                         </td>
                         <td className="px-8 py-6">
-                           <Badge className={cn(
-                             "border-0 px-3 py-1 font-black text-[10px] uppercase tracking-widest rounded-lg",
-                             job.is_approved ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
-                           )}>
-                             {job.is_approved ? 'Approved' : 'Audit Needed'}
-                           </Badge>
+                           <div className="flex items-center gap-3">
+                             <Badge className={cn(
+                               "border-0 px-3 py-1 font-black text-[10px] uppercase tracking-widest rounded-lg",
+                               job.is_approved ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+                             )}>
+                               {job.is_approved ? 'Approved' : 'Audit Needed'}
+                             </Badge>
+                             {!job.is_approved && (
+                               <Button 
+                                 size="sm" 
+                                 onClick={() => handleStatusUpdate(job.id, true)}
+                                 className="h-7 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black rounded-lg border-0 shadow-sm"
+                               >
+                                 APPROVE
+                               </Button>
+                             )}
+                           </div>
                         </td>
                         <td className="px-8 py-6 text-right">
                           <div className="flex items-center justify-end gap-2">
