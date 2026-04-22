@@ -31,9 +31,11 @@ export function calculateSEOScore(job: any): SEOResult {
   const content = job.description || job.content_html || '';
   const salary = job.salary_range || '';
 
-  // Helper to count words
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
-  const keywordCount = focusKeyword ? (content.match(new RegExp(focusKeyword, 'gi')) || []).length : 0;
+  // Helper to count words (strip HTML tags first for accuracy)
+  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const textContent = stripHtml(content);
+  const wordCount = textContent.split(/\s+/).filter(Boolean).length;
+  const keywordCount = focusKeyword ? (textContent.match(new RegExp(focusKeyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'gi')) || []).length : 0;
   const density = wordCount > 0 ? (keywordCount / wordCount) * 100 : 0;
 
   // 1. Focus Keyword Checks (20 pts)
@@ -70,7 +72,8 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const keywordInUrl = hasKeyword && urlSlug.toLowerCase().includes(focusKeyword.toLowerCase().replace(/\s+/g, '-'));
+  const cleanKeywordForUrl = (focusKeyword || '').toLowerCase().replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const keywordInUrl = hasKeyword && (urlSlug.toLowerCase().includes(cleanKeywordForUrl) || urlSlug.toLowerCase().includes(focusKeyword.toLowerCase().replace(/\s+/g, '-')));
   checks.push({
     id: 4,
     name: 'Keyword in URL slug',
@@ -81,7 +84,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const keywordInIntro = hasKeyword && content.slice(0, 500).toLowerCase().includes(focusKeyword.toLowerCase());
+  const keywordInIntro = hasKeyword && textContent.slice(0, 500).toLowerCase().includes(focusKeyword.toLowerCase());
   checks.push({
     id: 5,
     name: 'Keyword in first 100 words',
@@ -231,7 +234,7 @@ export function calculateSEOScore(job: any): SEOResult {
   checks.push({
     id: 21,
     name: 'Word count 600-2,500',
-    points: 6,
+    points: 9,
     passed: wordCount >= 600 && wordCount <= 2500,
     message: `Content is ${wordCount} words. Target 600-2,500.`,
     category: 'content',
@@ -290,7 +293,7 @@ export function calculateSEOScore(job: any): SEOResult {
     passed: hasInternalLinks,
     message: hasInternalLinks ? 'Internal links found.' : 'Insufficient internal links. Add links in editor.',
     category: 'content',
-    autoFixAvailable: false
+    autoFixAvailable: true
   });
 
   const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).filter((l: string) => !l.includes('gethyrd.in')).length >= 1;
@@ -301,7 +304,7 @@ export function calculateSEOScore(job: any): SEOResult {
     passed: hasExternalLink,
     message: hasExternalLink ? 'External link found.' : 'No external links found. Add company or industry link.',
     category: 'content',
-    autoFixAvailable: false
+    autoFixAvailable: true
   });
 
   const hasImageAlt = content.includes('<img') && content.toLowerCase().includes('alt=') && content.toLowerCase().includes(focusKeyword.toLowerCase());

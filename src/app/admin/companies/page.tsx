@@ -17,10 +17,13 @@ import {
   Save,
   Loader2,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Edit3,
+  Eye
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface Company {
   id: string;
@@ -72,19 +75,10 @@ const itemVariants: Variants = {
 };
 
 export default function CompaniesManagement() {
+  const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [currentCompany, setCurrentCompany] = useState<Partial<Company>>({
-    name: '',
-    industry: 'Technology',
-    location: '',
-    website: '',
-    description: ''
-  });
-
   const fetchCompanies = async () => {
     try {
       setLoading(true);
@@ -124,38 +118,6 @@ export default function CompaniesManagement() {
     fetchCompanies();
   }, []);
 
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      if (currentCompany.id) {
-        const { error } = await supabase
-          .from('companies')
-          .update(currentCompany)
-          .eq('id', currentCompany.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('companies')
-          .insert([currentCompany]);
-        if (error) throw error;
-      }
-      
-      setIsEditing(false);
-      setCurrentCompany({
-        name: '',
-        industry: 'Technology',
-        location: '',
-        website: '',
-        description: ''
-      });
-      fetchCompanies();
-    } catch (error: any) {
-      alert('Error saving company: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this company? All associated jobs may also be affected.')) return;
     
@@ -175,34 +137,6 @@ export default function CompaniesManagement() {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `company-logos/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('banners')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from('banners')
-        .getPublicUrl(filePath);
-
-      setCurrentCompany({ ...currentCompany, logo_url: data.publicUrl });
-    } catch (error: any) {
-      alert('Error uploading logo: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.industry?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -219,129 +153,11 @@ export default function CompaniesManagement() {
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Company Management</h1>
           <p className="text-gray-500 font-medium max-w-xl">Configure company profiles, brand assets, and track job distribution across your ecosystem.</p>
         </div>
-        {!isEditing && (
-          <Button onClick={() => setIsEditing(true)} className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all font-bold rounded-2xl">
-            <Plus className="mr-2 h-5 w-5" /> Add New Company
-          </Button>
-        )}
+        <Button onClick={() => router.push('/admin/companies/new')} className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all font-bold rounded-2xl">
+          <Plus className="mr-2 h-5 w-5" /> Add New Company
+        </Button>
       </div>
 
-      {isEditing && (
-        <Card className="p-10 border-none bg-white shadow-2xl shadow-gray-200/50 rounded-[2.5rem] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -mr-32 -mt-32" />
-          
-          <div className="flex justify-between items-start mb-10 relative z-10">
-            <div>
-              <h2 className="text-2xl font-black text-gray-900 leading-none mb-2">
-                {currentCompany.id ? 'Edit Company Profile' : 'Register New Partner'}
-              </h2>
-              <p className="text-sm text-gray-400 font-medium">Please provide accurate information for the company profile.</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)} className="rounded-full bg-gray-50 hover:bg-rose-50 hover:text-rose-500">
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
-            <div className="space-y-6">
-              <div>
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Company Name *</label>
-                <Input 
-                  className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-bold"
-                  placeholder="e.g. Acme Corporation" 
-                  value={currentCompany.name}
-                  onChange={e => setCurrentCompany({...currentCompany, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Industry Domain</label>
-                <select 
-                  className="flex h-12 w-full rounded-2xl border border-gray-100 bg-gray-50/50 px-4 py-1 text-sm font-bold shadow-sm transition-all focus-visible:outline-none focus:ring-4 focus:ring-indigo-100 focus:bg-white"
-                  value={currentCompany.industry || ''}
-                  onChange={e => setCurrentCompany({...currentCompany, industry: e.target.value})}
-                >
-                  <option value="Technology">Technology</option>
-                  <option value="Fintech">Fintech</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="E-commerce">E-commerce</option>
-                  <option value="Social Media">Social Media</option>
-                  <option value="Entertainment">Entertainment</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Headquarters / Location</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    className="h-12 pl-11 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-bold"
-                    placeholder="e.g. San Francisco, CA" 
-                    value={currentCompany.location || ''}
-                    onChange={e => setCurrentCompany({...currentCompany, location: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Official Website</label>
-                  <div className="relative">
-                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input 
-                      className="h-12 pl-11 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all text-sm font-bold"
-                      placeholder="https://example.com" 
-                      value={currentCompany.website || ''}
-                      onChange={e => setCurrentCompany({...currentCompany, website: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Brand Logo URL</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input 
-                        className="h-12 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-indigo-100 transition-all text-xs font-bold"
-                        placeholder="Automatic URL..." 
-                        value={currentCompany.logo_url || ''}
-                        readOnly
-                      />
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="file" 
-                        className="absolute inset-0 opacity-0 cursor-pointer z-20" 
-                        onChange={handleFileUpload}
-                        accept="image/*"
-                        disabled={uploading}
-                      />
-                      <Button variant="outline" className="h-12 w-12 rounded-2xl border-gray-100 bg-gray-50 hover:bg-white transition-all shadow-sm" disabled={uploading}>
-                        {uploading ? <Loader2 className="h-5 w-5 animate-spin text-indigo-500" /> : <Upload className="h-5 w-5 text-indigo-500" />}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block">Company Synopsis</label>
-                <textarea 
-                  className="flex min-h-[140px] w-full rounded-[2rem] border border-gray-100 bg-gray-50/50 px-6 py-4 text-sm font-bold shadow-sm transition-all focus-visible:outline-none focus:ring-4 focus:ring-indigo-100 focus:bg-white"
-                  placeholder="Tell us about the company values, size, and mission..."
-                  value={currentCompany.description || ''}
-                  onChange={e => setCurrentCompany({...currentCompany, description: e.target.value})}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-4 mt-12 pt-8 border-t border-gray-50 relative z-10">
-            <Button variant="ghost" className="h-12 px-8 font-bold text-gray-500" onClick={() => setIsEditing(false)}>Cancel Changes</Button>
-            <Button onClick={handleSave} loading={loading} className="h-12 px-10 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all font-black rounded-2xl">
-              <Save className="mr-3 h-5 w-5" /> {currentCompany.id ? 'Save Profile' : 'Complete Registration'}
-            </Button>
-          </div>
-        </Card>
-      )}
 
       {/* Enhanced Tool Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4 px-2">
@@ -414,12 +230,17 @@ export default function CompaniesManagement() {
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                                onClick={() => {
-                                  setCurrentCompany(company);
-                                  setIsEditing(true);
-                                }}
+                                onClick={() => router.push(`/admin/companies/${company.id}`)}
                              >
-                                <ExternalLink className="h-4 w-4" />
+                                <Eye className="h-4 w-4" />
+                             </Button>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                onClick={() => router.push(`/admin/companies/${company.id}/edit`)}
+                             >
+                                <Edit3 className="h-4 w-4" />
                              </Button>
                              <Button 
                                 variant="ghost" 
@@ -466,22 +287,21 @@ export default function CompaniesManagement() {
                       </div>
                   </div>
 
-                  <div className="flex gap-3 mt-6 relative z-10">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm"
-                        onClick={() => {
-                          setCurrentCompany(company);
-                          setIsEditing(true);
-                        }}
-                      >
-                        Manage
-                      </Button>
-                      <a href={company.website || '#'} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                        <Button variant="outline" className="h-10 w-10 p-0 rounded-xl border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm">
-                          <Globe className="h-4 w-4" />
-                        </Button>
-                      </a>
+                   <div className="flex gap-3 mt-6 relative z-10">
+                       <Button 
+                         variant="outline" 
+                         className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm"
+                         onClick={() => router.push(`/admin/companies/${company.id}/edit`)}
+                       >
+                         Edit Profile
+                       </Button>
+                       <Button 
+                         variant="outline" 
+                         className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm"
+                         onClick={() => router.push(`/admin/companies/${company.id}`)}
+                       >
+                         View Jobs
+                       </Button>
                   </div>
                 </Card>
               </motion.div>

@@ -475,69 +475,76 @@ export default function JobsQueue() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setViewingJob(null)}
-              className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
+              className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-3xl bg-white rounded-[40px] shadow-2xl overflow-hidden"
+              className="relative w-full max-w-[400px] z-10"
             >
-              <div className="p-10 pb-0 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-3xl bg-indigo-50 flex items-center justify-center text-4xl font-black text-indigo-600 shadow-sm">
-                    {viewingJob.title.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900 tracking-tight">{viewingJob.title}</h2>
-                    <p className="text-lg font-bold text-indigo-600 uppercase tracking-widest">{viewingJob.companies?.name}</p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setViewingJob(null)} className="rounded-2xl h-12 w-12 hover:bg-rose-50 hover:text-rose-500">
-                  <X className="h-6 w-6" />
-                </Button>
-              </div>
+              <Card className="p-6 rounded-[32px] hover:shadow-2xl hover:shadow-indigo-600/10 transition-all duration-500 border border-transparent hover:border-indigo-600/20 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group h-full flex flex-col">
+                  {/* Animated top gradient line */}
+                  <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-600 via-indigo-400 to-purple-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
+                  
+                  {/* Close button for modal */}
+                  <button 
+                    onClick={() => setViewingJob(null)}
+                    className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors z-20"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
 
-              <div className="p-10 pt-8 space-y-10 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="p-6 bg-gray-50 rounded-3xl space-y-2">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Location</span>
-                    <div className="flex items-center gap-3 font-bold text-gray-900 text-lg">
-                      <MapPin className="h-5 w-5 text-indigo-500" /> {viewingJob.location}
-                    </div>
+                  <div className="flex justify-between items-start mb-5 relative z-10 pr-10">
+                      <div className="w-12 h-12 bg-gray-50/80 rounded-xl flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 shadow-inner group-hover:scale-110 group-hover:-rotate-6 group-hover:text-indigo-600 transition-all duration-300 overflow-hidden shrink-0">
+                          {(viewingJob.companies?.name || 'J').charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5 origin-top-right">
+                          <button className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all bg-white shadow-sm hover:shadow-md hover:shadow-rose-100 mb-1 group/star">
+                              <Star className="w-4 h-4 group-hover/star:fill-rose-500 transition-colors" />
+                          </button>
+                          <Badge variant="info" className="bg-indigo-600/5 text-indigo-600 border-indigo-600/10 rounded-lg px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
+                              {viewingJob.job_type || 'Full-time'}
+                          </Badge>
+                      </div>
                   </div>
-                  <div className="p-6 bg-gray-50 rounded-3xl space-y-2">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Type & Level</span>
-                    <div className="flex items-center gap-3 font-bold text-gray-900 text-lg">
-                      <Clock className="h-5 w-5 text-indigo-500" /> {viewingJob.job_type} • {viewingJob.experience_level}
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block">Job Description</span>
-                  <div className="bg-gray-50 rounded-[32px] p-8 border border-gray-100 text-gray-600 font-medium leading-relaxed whitespace-pre-wrap">
-                    {viewingJob.description}
+                  <div className="mb-4 relative z-10">
+                      <h3 className="text-base font-black text-gray-900 leading-[1.3] group-hover:text-indigo-600 transition-colors cursor-pointer line-clamp-2 min-h-[42px]">
+                          {viewingJob.title}
+                      </h3>
+                      <p className="text-gray-400 font-bold text-[11px] mt-1.5 group-hover:text-gray-500 transition-colors">
+                          {viewingJob.companies?.name || 'Top Company'}
+                      </p>
                   </div>
-                </div>
-              </div>
+                  
+                  <div className="mb-5 flex-grow relative z-10">
+                      <div className="flex flex-wrap items-center gap-y-1.5 text-[11px] text-gray-500 font-bold bg-gray-50/80 p-2.5 rounded-xl group-hover:bg-indigo-600/[0.03] transition-colors duration-300">
+                          <div className="flex items-center group-hover:text-indigo-600 transition-colors duration-300">
+                            <MapPin className="w-3.5 h-3.5 mr-1.5 text-indigo-600" /> {viewingJob.location || 'Remote'}
+                          </div>
+                          <span className="mx-2 text-gray-200">|</span>
+                          <div className="flex items-center group-hover:text-indigo-600 transition-colors duration-300">
+                            <Briefcase className="w-3.5 h-3.5 mr-1.5 text-indigo-600" /> {viewingJob.experience_level || '3-5 Years'}
+                          </div>
+                      </div>
+                  </div>
 
-              <div className="p-10 pt-0 flex items-center justify-between">
-                <div className="text-sm font-bold text-gray-400">
-                  Last Updated: {new Date(viewingJob.created_at).toLocaleDateString()}
-                </div>
-                <div className="flex gap-4">
-                  <Button variant="outline" size="lg" className="h-14 px-8 rounded-2xl border-gray-200 font-bold" onClick={() => window.open(viewingJob.source_url, '_blank')}>
-                    <ExternalLink className="mr-2 h-5 w-5" /> View Original
-                  </Button>
-                  <Button size="lg" className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-100" onClick={() => {
-                    router.push(`/admin/jobs/${viewingJob.id}/edit`);
-                    setViewingJob(null);
-                  }}>
-                    <Pencil className="mr-2 h-5 w-5" /> EDIT POSTING
-                  </Button>
-                </div>
-              </div>
+                  <div className="flex items-center justify-between gap-3 mt-auto pt-5 border-t border-gray-50 group-hover:border-indigo-600/10 transition-colors duration-300 relative z-10">
+                      <div className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors duration-300">
+                          {viewingJob.salary_range || '$95k - $130k'}
+                      </div>
+                      <Button 
+                          onClick={() => {
+                              router.push(`/admin/jobs/${viewingJob.id}/edit`);
+                              setViewingJob(null);
+                          }}
+                          className="rounded-xl px-4 h-10 text-sm font-black shadow-md shadow-indigo-600/20 hover:shadow-xl hover:shadow-indigo-600/30 transition-all hover:-translate-y-1 flex items-center gap-1.5 group/btn bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                          Edit Job <Pencil className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                      </Button>
+                  </div>
+              </Card>
             </motion.div>
           </div>
         )}
