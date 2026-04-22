@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, Badge, Button, Input, Textarea } from '@/components/ui';
+import { Card, Badge, Button, Input, Textarea, Select } from '@/components/ui';
 import { 
   Plus, 
   Trash2, 
@@ -40,6 +40,10 @@ export default function ScraperTargetsManagement() {
   const [scrapeFilters, setScrapeFilters] = useState({
     jobType: 'All',
     jobAge: 'Any',
+    experienceLevel: 'All',
+    duplicateJob: 'Skip',
+    country: 'All',
+    maxDescLength: 300,
     target: 'All Data'
   });
 
@@ -227,7 +231,7 @@ export default function ScraperTargetsManagement() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Max Job Age</label>
                     <div className="flex flex-wrap gap-2">
-                      {['Any', '24h', '7d', '30d'].map(age => (
+                      {['Any', '24h', '7d', '30d', '60d'].map(age => (
                         <button
                           key={age}
                           onClick={() => setScrapeFilters({...scrapeFilters, jobAge: age})}
@@ -237,6 +241,66 @@ export default function ScraperTargetsManagement() {
                           )}
                         >
                           {age}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Experience Level</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['All', 'Entry', 'Mid', 'Senior', 'Lead'].map(exp => (
+                        <button
+                          key={exp}
+                          onClick={() => setScrapeFilters({...scrapeFilters, experienceLevel: exp})}
+                          className={cn(
+                            "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            scrapeFilters.experienceLevel === exp ? "bg-indigo-600 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          )}
+                        >
+                          {exp}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Country</label>
+                      <Select 
+                        value={scrapeFilters.country}
+                        onChange={(e) => setScrapeFilters({...scrapeFilters, country: e.target.value})}
+                        className="h-9 text-[11px] px-2"
+                      >
+                        {['All', 'USA', 'India', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'Singapore', 'UAE', 'Remote', 'Japan', 'China', 'Brazil', 'Netherlands', 'Sweden', 'Switzerland', 'Ireland', 'Spain', 'Italy', 'South Africa'].map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Max Desc Length</label>
+                      <Input 
+                        type="number"
+                        value={scrapeFilters.maxDescLength}
+                        onChange={(e) => setScrapeFilters({...scrapeFilters, maxDescLength: parseInt(e.target.value) || 300})}
+                        className="h-9 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Duplicate Job</label>
+                    <div className="flex gap-2">
+                      {['Skip', 'Overwrite'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setScrapeFilters({...scrapeFilters, duplicateJob: opt})}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            scrapeFilters.duplicateJob === opt ? "bg-indigo-600 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          )}
+                        >
+                          {opt}
                         </button>
                       ))}
                     </div>

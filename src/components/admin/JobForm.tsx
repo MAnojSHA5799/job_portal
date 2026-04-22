@@ -20,7 +20,8 @@ import {
   Briefcase,
   DollarSign,
   Clock,
-  Zap
+  Zap,
+  Building2
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 
@@ -42,6 +43,7 @@ interface Job {
   apply_link: string;
   source_url: string;
   company_id: string;
+  new_company_name?: string;
   date_posted: string;
   seo_title?: string;
   meta_description?: string;
@@ -81,6 +83,7 @@ export function JobForm({
     apply_link: '',
     source_url: '',
     company_id: '',
+    new_company_name: '',
     date_posted: new Date().toISOString().split('T')[0],
     seo_title: '',
     meta_description: '',
@@ -464,7 +467,7 @@ STRICT RULES:
   };
 
   const internalOnSave = () => {
-    if (!currentJob.title || !currentJob.company_id || !currentJob.description || !currentJob.location) {
+    if (!currentJob.title || (!currentJob.company_id && !currentJob.new_company_name) || !currentJob.description || !currentJob.location) {
       alert('Please fill in required fields (Title, Company, Description, Location)');
       return;
     }
@@ -508,16 +511,42 @@ STRICT RULES:
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company *</label>
-                <select 
-                  className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                  value={currentJob.company_id}
-                  onChange={e => setCurrentJob({...currentJob, company_id: e.target.value})}
-                >
-                  <option value="">Select Company</option>
-                  {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="space-y-3">
+                  <select 
+                    className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                    value={currentJob.company_id}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setCurrentJob({
+                        ...currentJob, 
+                        company_id: val, 
+                        new_company_name: val === 'new' ? (currentJob.new_company_name || '') : ''
+                      });
+                    }}
+                  >
+                    <option value="">Select Existing Company</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                    <option value="new">+ Add New Company</option>
+                  </select>
+                  
+                  {(currentJob.company_id === 'new' || !currentJob.company_id) && (
+                    <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Building2 className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
+                      <Input 
+                        className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                        placeholder="Or type a new company name..." 
+                        value={currentJob.new_company_name || ''}
+                        onChange={e => setCurrentJob({
+                          ...currentJob, 
+                          new_company_name: e.target.value,
+                          company_id: e.target.value ? 'new' : ''
+                        })}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location *</label>

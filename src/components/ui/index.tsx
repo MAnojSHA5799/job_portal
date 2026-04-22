@@ -105,3 +105,20 @@ export function Badge({ children, variant = 'default', className }: { children: 
     </span>
   );
 }
+export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <select
+        className={cn(
+          "flex h-11 w-full rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all appearance-none cursor-pointer",
+          className
+        )}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </select>
+    );
+  }
+);
+Select.displayName = "Select";

@@ -34,16 +34,26 @@ app.get('/scrape', (req, res) => {
 });
 
 app.post('/scrape', (req, res) => {
-  triggerScraper();
+  const { filters } = req.body;
+  triggerScraper(filters);
   res.json({
     success: true,
-    message: 'Scraper started successfully in the background.'
+    message: 'Scraper started successfully in the background.',
+    filters_applied: !!filters
   });
 });
 
-function triggerScraper() {
-  console.log('📡 Scrape request received...');
-  const scraper = spawn('node', ['scraper.js'], {
+function triggerScraper(filters = null) {
+  console.log('📡 Scrape request received with filters:', filters);
+  
+  const args = ['scraper.js'];
+  if (filters) {
+    // Pass filters as a base64 string to avoid shell escaping issues
+    const filtersBase64 = Buffer.from(JSON.stringify(filters)).toString('base64');
+    args.push(filtersBase64);
+  }
+
+  const scraper = spawn('node', args, {
     detached: true,
     stdio: 'inherit'
   });

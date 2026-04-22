@@ -546,6 +546,7 @@ export default function ScraperManager() {
                   <thead>
                     <tr className="bg-indigo-50/40 border-b border-indigo-50">
                       <th className="px-8 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest whitespace-nowrap">Run ID</th>
+                      <th className="px-8 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest whitespace-nowrap">Source</th>
                       <th className="px-8 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest whitespace-nowrap">Started At</th>
                       <th className="px-8 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest whitespace-nowrap">Jobs Found</th>
                       <th className="px-8 py-4 text-[11px] font-extrabold text-indigo-500 uppercase tracking-widest">Status</th>
@@ -557,13 +558,20 @@ export default function ScraperManager() {
                       <tr key={log.id} className="hover:bg-indigo-50/20 transition-all group">
                         <td className="px-8 py-5">
                           <div className="flex flex-col">
-                            <span className="text-[12px] font-black text-indigo-600 cursor-pointer">
+                            <span className="text-[12px] font-black text-indigo-600">
                               #SR-{log.id.slice(0, 8).toUpperCase()}
                             </span>
-                            {/* <span className="text-[10px] font-bold text-gray-400 mt-0.5">
-                              {log.status === 'completed' ? (log.error_message || 'Auto • Filtered Scrape') : log.status === 'failed' ? 'Failed Run' : 'Running...'}
-                            </span> */}
                           </div>
+                        </td>
+                        <td className="px-8 py-5 max-w-[200px]">
+                           <div className="flex flex-col">
+                             <span className="text-[11px] font-bold text-gray-700 truncate" title={log.error_message}>
+                               {log.error_message?.replace('https://', '').replace('http://', '').split('/')[0] || 'Manual Scrape'}
+                             </span>
+                             <span className="text-[10px] text-gray-400 truncate opacity-70">
+                               {log.error_message || 'No details available'}
+                             </span>
+                           </div>
                         </td>
                         <td className="px-8 py-5 whitespace-nowrap">
                            <div className="flex flex-col">

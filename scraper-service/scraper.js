@@ -8,6 +8,26 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://jwmjqlgoettrifzskrtw.s
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_TsvJQ_BFV2z_8ka9KPBvCw_kccW-bJi';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+ 
+// Parse filters from command line arguments
+let scraperFilters = {
+  jobType: 'All',
+  jobAge: 'Any',
+  experienceLevel: 'All',
+  duplicateJob: 'Skip',
+  country: 'All',
+  maxDescLength: 300
+};
+
+if (process.argv[2]) {
+  try {
+    const decoded = Buffer.from(process.argv[2], 'base64').toString('utf8');
+    scraperFilters = { ...scraperFilters, ...JSON.parse(decoded) };
+    console.log("🛠️ Applied Scraper Filters:", scraperFilters);
+  } catch (err) {
+    console.error("⚠️ Failed to parse filters:", err.message);
+  }
+}
 
 async function getOrCreateCompany(name) {
   if (!name) return null;
@@ -62,12 +82,11 @@ async function scrapeJobs() {
       let runLogId = null;
       try {
         console.log(`🌐 Visiting: ${url}`);
-        const urlIdentifier = url.split('/').pop() || url;
-        
+        // Find existing log for this exact URL to update it, or create new
         const { data: existingLogs } = await supabase
           .from('scraper_logs')
           .select('id')
-          .ilike('error_message', `%${urlIdentifier}%`)
+          .eq('error_message', url)
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -75,12 +94,17 @@ async function scrapeJobs() {
           runLogId = existingLogs[0].id;
           await supabase
             .from('scraper_logs')
-            .update({ status: 'running', jobs_found: 0, error_message: `Running: ${urlIdentifier}`, created_at: new Date().toISOString() })
+            .update({ 
+              status: 'running', 
+              jobs_found: 0, 
+              error_message: url, 
+              created_at: new Date().toISOString() 
+            })
             .eq('id', runLogId);
         } else {
           const { data: newLog } = await supabase
             .from('scraper_logs')
-            .insert([{ status: 'running', jobs_found: 0, error_message: `Running: ${urlIdentifier}` }])
+            .insert([{ status: 'running', jobs_found: 0, error_message: url }])
             .select('id')
             .single();
           runLogId = newLog?.id;
@@ -88,36 +112,137 @@ async function scrapeJobs() {
 
         await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
         await page.waitForTimeout(5000);
-
-        const jobs = await page.evaluate((currentUrl) => {
+ 
+        const jobs = await page.evaluate(({ currentUrl, filters }) => {
           const results = [];
-          const elements = document.querySelectorAll('a, div, li, tr');
+          
+          // 1. UNIVERSAL COMPANY DETECTION
+          let detectedCompany = document.querySelector('meta[property="og:site_name"]')?.content 
+                             || document.querySelector('meta[name="application-name"]')?.content
+                             || document.title.split(/[|–-]/)[0].trim();
+          
+          // Fallback if company name is generic
+          if (detectedCompany.match(/(career|job|opening|hiring|opportunity|portal|work)/i) || detectedCompany.length < 2) {
+            detectedCompany = window.location.hostname.replace('www.', '').split('.')[0].toUpperCase();
+          }
+
+          // 2. EXPANDED UNIVERSAL SELECTORS & PATTERNS
+          const elements = document.querySelectorAll('a, div, li, tr, section, article, [class*="job"], [id*="job"]');
+          const ageMap = { '24h': 1, '7d': 7, '30d': 30, '60d': 60 };
+          
+          // Universal Role Keywords (Tech, Sales, HR, Marketing, Finance, Admin, etc.)
+          const roleRegex = /(engineer|developer|manager|associate|analyst|technician|lead|intern|designer|specialist|architect|consultant|executive|coordinator|strategist|operator|representative|accountant|recruiter|hr|legal|sales|marketing|support|admin|writer|editor|producer|nurse|doctor|teacher|driver|chef|assistant)/i;
+          const noiseTitleRegex = /(team|culture|about|work|join|life|mission|values|story|benefit|people|community|diversity)/i;
+
+          const expKeywords = {
+            'Entry': ['entry', 'junior', 'intern', 'fresher', 'associate', '0-2 years', '0-1 years'],
+            'Mid': ['mid', 'intermediate', '3-5 years', '2-4 years', '2-5 years'],
+            'Senior': ['senior', 'sr', '5+ years', '8+ years', '5-10 years'],
+            'Lead': ['lead', 'principal', 'staff', 'manager', 'director', '10+ years']
+          };
+
           elements.forEach((el) => {
             const text = el.innerText ? el.innerText.trim() : "";
-            if (text.length < 20 || text.length > 1000) return;
+            if (text.length < 20 || text.length > 4000) return;
+            
+            const lowerText = text.toLowerCase();
             const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-            const title = lines[0];
-            const hasJobKeywords = text.toLowerCase().match(/(engineer|developer|manager|associate|analyst|technician|lead|intern|designer|specialist)/);
-            const hasActionKeywords = text.toLowerCase().match(/(apply|view|details|full-time|entry|senior|posted)/);
-            if (title && title.length > 5 && title.length < 100 && hasJobKeywords && (hasActionKeywords || el.tagName === 'A')) {
-              const jobIdMatch = text.match(/(?:ID|Ref|Job\sNo)[:\s]*([A-Z0-9-]+)/i) || (el.href ? el.href.match(/(\d{6,})/) : null);
-              results.push({
-                jobId: jobIdMatch ? jobIdMatch[1] : null,
-                title: title,
-                companyName: document.title.split("|")[0].split("-")[0].trim(),
-                location: text.includes("India") ? "India" : (lines.find(l => l.includes(",") || (l.length < 30 && l.length > 3)) || "Remote/Global"),
-                salary_range: text.match(/(?:Rs|INR|USD|\$|£|€)\s*[\d,]+(?:\s*-\s*[\d,]+)?/i)?.[0] || "Not disclosed",
-                description: lines.slice(1, 4).join(" ").substring(0, 300),
-                experience_level: text.match(/(\d+[-/]\d+|\d+)\+?\s*(?:years|yrs|exp)/i)?.[0] || "Not specified",
-                apply_link: el.href && el.href.startsWith('http') ? el.href : window.location.href,
-                source_url: currentUrl,
-                date_posted: new Date().toISOString().split('T')[0],
-                category: text.toLowerCase().includes("engineer") ? "Engineering" : "General"
-              });
+            if (lines.length < 1) return;
+
+            // 3. UNIVERSAL JOB IDENTIFICATION
+            // Look for title: usually in the first 3 lines, matches role keywords, and isn't noise
+            const title = lines.slice(0, 3).find(l => 
+              l.length > 4 && l.length < 120 && 
+              roleRegex.test(l) && 
+              !noiseTitleRegex.test(l)
+            );
+            
+            if (!title) return;
+
+            // Check if it's a valid job container (has action words, links, or specific metadata)
+            const isJobElement = lowerText.match(/(apply|view|details|full-time|posted|remote|onsite|hybrid|salary|experience|yrs|yrs|location|shift)/i)
+                              || el.tagName === 'A' 
+                              || el.querySelector('a');
+            
+            if (!isJobElement) return;
+
+            // 4. UNIVERSAL FILTERING LOGIC
+            
+            // Job Type Detection
+            let detectedJobType = 'Full-time';
+            if (lowerText.includes('intern')) detectedJobType = 'Internship';
+            else if (lowerText.includes('contract') || lowerText.includes('temporary')) detectedJobType = 'Contract';
+            else if (lowerText.includes('freelance')) detectedJobType = 'Freelance';
+            else if (lowerText.includes('part-time')) detectedJobType = 'Part-time';
+
+            if (filters.jobType !== 'All') {
+              const targetType = filters.jobType.toLowerCase();
+              if (!lowerText.includes(targetType) && detectedJobType.toLowerCase() !== targetType) return;
             }
+
+            // Experience Detection (Regex & Keywords)
+            let detectedExpLevel = 'Unknown';
+            const expMatch = text.match(/(\d+)\s*(?:-|to|\+)?\s*(\d+)?\s*(?:years|yrs|exp)/i);
+            if (expMatch) {
+              const years = parseInt(expMatch[1]);
+              if (years <= 1) detectedExpLevel = 'Entry';
+              else if (years <= 4) detectedExpLevel = 'Mid';
+              else if (years <= 8) detectedExpLevel = 'Senior';
+              else detectedExpLevel = 'Lead';
+            } else {
+              for (const [level, keywords] of Object.entries(expKeywords)) {
+                if (keywords.some(kw => lowerText.includes(kw))) { detectedExpLevel = level; break; }
+              }
+            }
+
+            if (filters.experienceLevel !== 'All' && detectedExpLevel !== 'Unknown' && detectedExpLevel !== filters.experienceLevel) {
+              return;
+            }
+
+            // Country/Location Detection
+            if (filters.country !== 'All') {
+              const countryLower = filters.country.toLowerCase();
+              const countryKeywords = [countryLower];
+              if (filters.country === 'India') countryKeywords.push('noida', 'bangalore', 'bengaluru', 'mumbai', 'pune', 'delhi', 'gurgaon', 'gurugram', 'chennai', 'hyderabad', 'kolkata');
+              if (!countryKeywords.some(kw => lowerText.includes(kw))) return;
+            }
+
+            // Job Age Filtering
+            if (filters.jobAge !== 'Any') {
+              const maxDays = ageMap[filters.jobAge] || 999;
+              const ageMatch = text.match(/(\d+)\s*(?:day|hour|h|d|week|w)s?\s*ago/i);
+              if (ageMatch) {
+                let days = parseInt(ageMatch[1]);
+                const unit = ageMatch[0].toLowerCase();
+                if (unit.includes('hour') || unit.includes('h')) days = 0;
+                if (unit.includes('week') || unit.includes('w')) days *= 7;
+                if (days > maxDays) return;
+              }
+            }
+
+            // 5. DATA EXTRACTION
+            const location = lines.find(l => 
+              (l.includes(",") || l.match(/(remote|hybrid|onsite|india|usa|uk|uae|dubai|office)/i)) 
+              && l !== title && l.length < 60
+            ) || "Remote/Global";
+
+            results.push({
+              jobId: text.match(/(?:ID|Ref|Job\sNo)[:\s]*([A-Z0-9-]+)/i)?.[1] || (el.href ? el.href.match(/(\d{6,})/)?.[1] : null),
+              title: title,
+              companyName: detectedCompany,
+              location: location,
+              salary_range: text.match(/(?:Rs|INR|USD|\$|£|€)\s*[\d,]+(?:\s*-\s*[\d,]+)?/i)?.[0] || "Not disclosed",
+              description: lines.slice(1, 6).join(" ").substring(0, filters.maxDescLength || 300),
+              experience_level: expMatch ? expMatch[0] : (detectedExpLevel !== 'Unknown' ? detectedExpLevel : "Not specified"),
+              apply_link: el.href && el.href.startsWith('http') ? el.href : (el.querySelector('a')?.href && el.querySelector('a').href.startsWith('http') ? el.querySelector('a').href : window.location.href),
+              source_url: currentUrl,
+              date_posted: new Date().toISOString().split('T')[0],
+              category: roleRegex.test(title) ? (title.match(/(engineer|developer|architect|tech)/i) ? "Engineering" : "General") : "Other"
+            });
           });
-          return Array.from(new Map(results.map(j => [j.title + j.apply_link, j])).values()).slice(0, 15);
-        }, url);
+          
+          return Array.from(new Map(results.map(j => [j.title + j.apply_link, j])).values()).slice(0, 30);
+        }, { currentUrl: url, filters: scraperFilters });
 
         console.log(`✅ Found ${jobs.length} jobs from ${url}`);
 
@@ -130,12 +255,23 @@ async function scrapeJobs() {
         for (const job of jobs) {
           const companyId = await getOrCreateCompany(job.companyName);
           if (!companyId) continue;
+          
           const { data: existingJob } = await supabase.from('jobs').select('id').eq('apply_link', job.apply_link).single();
-          if (existingJob) continue;
+          
+          if (existingJob) {
+            if (scraperFilters.duplicateJob === 'Skip') {
+              continue;
+            } else {
+              // Overwrite: delete existing first
+              await supabase.from('jobs').delete().eq('id', existingJob.id);
+            }
+          }
+
           const focusKeyword = `${job.title} ${job.location.split(',')[0]}`.trim();
           const { error } = await supabase.from('jobs').insert([{
             title: job.title, company_id: companyId, description: job.description, location: job.location,
-            salary_range: job.salary_range, job_type: 'Full-time', experience_level: job.experience_level,
+            salary_range: job.salary_range, job_type: scraperFilters.jobType === 'All' ? 'Full-time' : scraperFilters.jobType, 
+            experience_level: job.experience_level,
             category: job.category, apply_link: job.apply_link, source_url: job.source_url,
             date_posted: job.date_posted, focus_keyword: focusKeyword,
             url_slug: focusKeyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -147,7 +283,7 @@ async function scrapeJobs() {
         if (runLogId) {
           await supabase.from('scraper_logs').update({ 
             status: 'completed', jobs_found: urlJobsSaved, 
-            error_message: `[${urlIdentifier}] Scraped: ${jobs.length > 0 ? jobs[0].companyName : url.split('/')[2]}`
+            error_message: `${url}`
           }).eq('id', runLogId);
         }
       } catch (err) {

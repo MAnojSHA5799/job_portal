@@ -63,12 +63,40 @@ export default function EditJobPage() {
   const handleSave = async (jobData: any) => {
     setSaving(true);
     try {
+      let finalCompanyId = jobData.company_id;
+
+      // Handle new company creation
+      if (jobData.new_company_name && (jobData.company_id === 'new' || !jobData.company_id)) {
+        const cleanName = jobData.new_company_name.trim();
+        
+        // 1. Check if exists
+        const { data: existing } = await supabase
+          .from('companies')
+          .select('id')
+          .ilike('name', cleanName)
+          .single();
+        
+        if (existing) {
+          finalCompanyId = existing.id;
+        } else {
+          // 2. Create new
+          const { data: created, error: createError } = await supabase
+            .from('companies')
+            .insert([{ name: cleanName, industry: 'Technology' }])
+            .select('id')
+            .single();
+          
+          if (createError) throw createError;
+          finalCompanyId = created.id;
+        }
+      }
+
       // Cleanup job data
-      const { id: jobId, created_at, companies: _, ...updateData } = jobData;
+      const { id: jobId, created_at, companies: _, new_company_name, ...updateData } = jobData;
 
       const { error } = await supabase
         .from('jobs')
-        .update(updateData)
+        .update({ ...updateData, company_id: finalCompanyId })
         .eq('id', id);
       
       if (error) throw error;

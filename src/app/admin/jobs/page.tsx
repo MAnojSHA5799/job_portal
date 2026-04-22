@@ -32,12 +32,14 @@ import {
   Sparkles,
   RefreshCcw,
   ArrowLeft,
-  Star
+  Star,
+  Wand2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { enhanceJobSEO } from '@/lib/seo-enhancer';
 
 interface Job {
   id: string;
@@ -67,6 +69,11 @@ export default function JobsQueue() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingJob, setViewingJob] = useState<Job | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [isBulkEnhancing, setIsBulkEnhancing] = useState(false);
+  const [enhancingJobIds, setEnhancingJobIds] = useState<Set<string>>(new Set());
+  const [enhancingProgress, setEnhancingProgress] = useState({ current: 0, total: 0 });
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,8 +101,13 @@ export default function JobsQueue() {
             name
           )
         `, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        .order('created_at', { ascending: false });
+
+      if (selectedCompanyId !== 'all') {
+        query = query.eq('company_id', selectedCompanyId);
+      }
+
+      query = query.range(from, to);
 
       if (searchQuery) {
         query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
@@ -138,10 +150,27 @@ export default function JobsQueue() {
     }
   };
 
+  const fetchCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      setCompanies(data || []);
+    } catch (error) {
+      console.error('Error fetching companies:', error);
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
     fetchStats();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, selectedCompanyId]);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -178,6 +207,71 @@ export default function JobsQueue() {
     }
   };
 
+  const handleBulkEnhance = async () => {
+    // Filter jobs that need enhancement (score < 70)
+    const jobsToEnhance = jobs.filter(j => (j.seo_score || 0) < 70);
+    
+    if (!jobsToEnhance.length) {
+      alert('All jobs on this page already have a satisfactory SEO score (70+).');
+      return;
+    }
+
+    if (!confirm(`Found ${jobsToEnhance.length} jobs needing optimization (Score < 70). Do you want to AI Enhance them?`)) return;
+
+    setIsBulkEnhancing(true);
+    setEnhancingProgress({ current: 0, total: jobsToEnhance.length });
+    setEnhancingJobIds(new Set());
+
+    try {
+      // Process in small batches to avoid rate limits and keep it fast
+      const batchSize = 2; 
+      for (let i = 0; i < jobsToEnhance.length; i += batchSize) {
+        const batch = jobsToEnhance.slice(i, i + batchSize);
+        
+        // Mark these IDs as enhancing
+        setEnhancingJobIds(prev => {
+          const next = new Set(prev);
+          batch.forEach(j => next.add(j.id));
+          return next;
+        });
+
+        await Promise.all(batch.map(async (job) => {
+          try {
+            const enhancedData = await enhanceJobSEO(job, job.companies?.name || 'Gethyrd');
+            
+            const { error } = await supabase
+              .from('jobs')
+              .update({
+                ...enhancedData,
+                is_approved: true
+              })
+              .eq('id', job.id);
+
+            if (error) throw error;
+          } catch (err) {
+            console.error(`Error enhancing job ${job.id}:`, err);
+          } finally {
+            setEnhancingProgress(prev => ({ ...prev, current: prev.current + 1 }));
+            setEnhancingJobIds(prev => {
+              const next = new Set(prev);
+              next.delete(job.id);
+              return next;
+            });
+          }
+        }));
+      }
+      
+      fetchJobs();
+      fetchStats();
+      alert('Bulk SEO Enhancement completed successfully!');
+    } catch (error) {
+      console.error('Bulk Enhancement Error:', error);
+      alert('Error during bulk enhancement');
+    } finally {
+      setIsBulkEnhancing(false);
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -202,12 +296,27 @@ export default function JobsQueue() {
             >
               <RefreshCcw className={cn("h-4 w-4 text-gray-600", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" className="h-11 px-5 border-gray-200 bg-white hover:bg-gray-50 transition-all rounded-xl shadow-sm font-bold text-gray-700">
-              <FileDown className="mr-2 h-4 w-4" /> Export
+            <Button variant="outline" className="h-11 px-5 border-gray-200 bg-white hover:bg-gray-50 transition-all rounded-xl shadow-sm font-bold text-gray-700 whitespace-nowrap flex items-center justify-center">
+              <FileDown className="mr-2 h-4 w-4 shrink-0" /> Export
             </Button>
-            <Link href="/admin/jobs/new">
-              <Button className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 transition-all font-black rounded-xl border-0">
-                <Plus className="mr-2 h-4 w-4" /> POST NEW JOB
+            <Button 
+              variant="outline" 
+              onClick={handleBulkEnhance}
+              disabled={isBulkEnhancing || loading || jobs.length === 0}
+              className="h-11 px-5 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-all rounded-xl shadow-sm font-bold whitespace-nowrap flex items-center justify-center"
+            >
+              {isBulkEnhancing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4 shrink-0" />
+              )}
+              <span className="truncate">
+                {isBulkEnhancing ? `Enhancing ${enhancingProgress.current}/${enhancingProgress.total}` : 'ALL AI ENHANCE'}
+              </span>
+            </Button>
+            <Link href="/admin/jobs/new" className="shrink-0">
+              <Button className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-100 transition-all font-black rounded-xl border-0 whitespace-nowrap flex items-center justify-center">
+                <Plus className="mr-2 h-4 w-4 shrink-0" /> POST NEW JOB
               </Button>
             </Link>
           </div>
@@ -254,7 +363,20 @@ export default function JobsQueue() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <select 
+                className="h-12 pl-4 pr-10 rounded-2xl bg-white border-0 shadow-sm text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 outline-none min-w-[200px]"
+                value={selectedCompanyId}
+                onChange={e => {
+                  setSelectedCompanyId(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Companies</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
               <select 
                 className="h-12 pl-4 pr-10 rounded-2xl bg-white border-0 shadow-sm text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 outline-none"
                 value={itemsPerPage}
@@ -330,13 +452,18 @@ export default function JobsQueue() {
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-3">
                             <div className={cn(
-                              "h-10 w-10 rounded-xl flex items-center justify-center font-black text-sm",
+                              "h-10 w-10 rounded-xl flex items-center justify-center font-black text-sm relative",
+                              enhancingJobIds.has(job.id) ? "bg-indigo-100 text-indigo-600" :
                               (job.seo_score || 0) >= 85 ? "bg-emerald-50 text-emerald-600" :
                               (job.seo_score || 0) >= 70 ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"
                             )}>
-                              {job.seo_score || 0}
+                              {enhancingJobIds.has(job.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                job.seo_score || 0
+                              )}
                             </div>
-                            {(job.seo_score || 0) < 85 && (
+                            {(job.seo_score || 0) < 85 && !enhancingJobIds.has(job.id) && (
                               <Tooltip text="Low SEO Score - Recommended to optimize">
                                 <AlertCircle className="h-4 w-4 text-amber-500 cursor-help" />
                               </Tooltip>
