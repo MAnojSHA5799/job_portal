@@ -63,6 +63,8 @@ const FILTER_OPTIONS = {
 
 // Mock data removed in favor of Supabase fetching
 
+import { ApplyButton } from '@/components/ApplyButton';
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -99,7 +101,10 @@ export default function HomePage() {
         .select(`
           *,
           companies (
-            name
+            id,
+            name,
+            logo_url,
+            url_slug
           )
         `)
         .eq('is_approved', true)
@@ -116,14 +121,6 @@ export default function HomePage() {
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleApply = (jobTitle: string) => {
-    if (!user) {
-      alert("First login then apply");
-      return;
-    }
-    alert(`Applied for ${jobTitle} successfully!`);
   };
 
   const filteredJobs = useMemo(() => {
@@ -326,7 +323,7 @@ export default function HomePage() {
                 <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">Popular Categories</h2>
                 <p className="text-gray-500 font-medium">Explore jobs by industry and expertise</p>
             </div>
-            <Link href="/companies" className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
+            <Link href="/jobs" className="text-primary font-bold flex items-center gap-2 hover:gap-3 transition-all">
                 View All Categories <ArrowRight className="w-4 h-4" />
             </Link>
         </div>
@@ -387,13 +384,13 @@ export default function HomePage() {
                             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary via-indigo-400 to-purple-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
                             
                             <div className="flex justify-between items-start mb-5 relative z-10">
-                                <div className="w-12 h-12 bg-gray-50/80 rounded-xl flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 shadow-inner group-hover:scale-110 group-hover:-rotate-6 group-hover:text-primary transition-all duration-300 overflow-hidden shrink-0">
+                                <Link href={`/jobs/${job.url_slug || job.id}`} className="w-12 h-12 bg-gray-50/80 rounded-xl flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 shadow-inner group-hover:scale-110 group-hover:-rotate-6 group-hover:text-primary transition-all duration-300 overflow-hidden shrink-0">
                                     {job.companies?.logo_url ? (
                                         <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
                                     ) : (
                                         (job.companies?.name || 'J').charAt(0).toUpperCase()
                                     )}
-                                </div>
+                                </Link>
                                 <div className="flex flex-col items-end gap-1.5 origin-top-right">
                                     <button className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all bg-white shadow-sm hover:shadow-md hover:shadow-rose-100 mb-1 group/star">
                                         <Star className="w-4 h-4 group-hover/star:fill-rose-500 transition-colors" />
@@ -403,12 +400,16 @@ export default function HomePage() {
                             </div>
 
                             <div className="mb-4 relative z-10">
-                                <h3 className="text-base font-black text-gray-900 leading-[1.3] group-hover:text-primary transition-colors cursor-pointer line-clamp-2 min-h-[42px]">
-                                    {job.title}
-                                </h3>
-                                <p className="text-gray-400 font-bold text-[11px] mt-1.5 group-hover:text-gray-500 transition-colors">
-                                    {job.companies?.name || 'Top Company'}
-                                </p>
+                                <Link href={`/jobs/${job.url_slug || job.id}`}>
+                                    <h3 className="text-base font-black text-gray-900 leading-[1.3] group-hover:text-primary transition-colors cursor-pointer line-clamp-2 min-h-[42px]">
+                                        {job.title}
+                                    </h3>
+                                </Link>
+                                <Link href={`/company/${job.companies?.url_slug || job.companies?.id}`}>
+                                    <p className="text-gray-400 font-bold text-[11px] mt-1.5 hover:text-primary transition-colors">
+                                        {job.companies?.name || 'Top Company'}
+                                    </p>
+                                </Link>
                             </div>
                             
                             <div className="mb-5 flex-grow relative z-10">
@@ -427,12 +428,18 @@ export default function HomePage() {
                                 <div className="text-sm font-black text-gray-900 group-hover:text-primary transition-colors duration-300">
                                     {job.salary || '$95k - $130k'}
                                 </div>
-                                <Button 
-                                    onClick={() => handleApply(job.title)}
-                                    className="rounded-xl px-4 h-10 text-sm font-black shadow-md shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all hover:-translate-y-1 flex items-center gap-1.5 group/btn bg-primary hover:bg-primary/90 text-white"
-                                >
-                                    Apply Now <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Link href={`/jobs/${job.url_slug || job.id}`}>
+                                        <Button variant="outline" className="rounded-xl px-3 h-10 text-xs font-black">View</Button>
+                                    </Link>
+                                    <ApplyButton 
+                                      jobId={job.id}
+                                      jobTitle={job.title}
+                                      companyId={job.companies?.id}
+                                      companyName={job.companies?.name}
+                                      applyLink={job.apply_link || '#'}
+                                    />
+                                </div>
                             </div>
                         </Card>
                       </motion.div>

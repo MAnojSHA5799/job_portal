@@ -23,6 +23,8 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 
+import Link from 'next/link';
+
 const data = [
   { name: 'Mon', jobs: 40 },
   { name: 'Tue', jobs: 30 },
@@ -95,7 +97,7 @@ export default function AdminDashboard() {
 
         // Fetch Recent Activity
         const [ { data: latestJobs }, { data: latestLogs } ] = await Promise.all([
-          supabase.from('jobs').select('title, created_at, is_approved').order('created_at', { ascending: false }).limit(5),
+          supabase.from('jobs').select('id, url_slug, title, created_at, is_approved').order('created_at', { ascending: false }).limit(5),
           supabase.from('scraper_logs').select('status, jobs_found, created_at').order('created_at', { ascending: false }).limit(5)
         ]);
 
@@ -104,6 +106,7 @@ export default function AdminDashboard() {
             type: j.is_approved ? 'approval' : 'new_job',
             text: j.is_approved ? `Job approved: ${j.title}` : `New job found: ${j.title}`,
             time: new Date(j.created_at),
+            href: `/jobs/${j.url_slug || j.id}`
           })),
           ...(latestLogs || []).map(l => ({
             type: 'scraper',
@@ -243,7 +246,11 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 leading-tight">
-                      {activity.text}
+                      {activity.href ? (
+                        <Link href={activity.href} className="hover:text-primary transition-colors">
+                            {activity.text}
+                        </Link>
+                      ) : activity.text}
                     </p>
                     <p className="text-[10px] text-gray-400 mt-1 font-bold uppercase tracking-wider">
                       {formatTimeAgo(activity.time)}

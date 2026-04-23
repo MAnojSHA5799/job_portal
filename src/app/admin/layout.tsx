@@ -18,13 +18,15 @@ import {
   ChevronRight,
   Image as ImageIcon,
   Newspaper,
-  Target
+  Target,
+  Users
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
   { icon: Briefcase, label: 'Jobs Queue', href: '/admin/jobs' },
+  { icon: Users, label: 'Applications', href: '/admin/applications' },
   { icon: Globe, label: 'Scraper Status', href: '/admin/scraper' },
   { icon: Target, label: 'Scraper Targets', href: '/admin/scraper-targets' },
   { icon: Copy, label: 'Duplicate Jobs', href: '/admin/duplicates' },

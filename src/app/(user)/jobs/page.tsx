@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Search, 
@@ -22,6 +23,7 @@ import { supabase } from '@/lib/supabase';
 interface Job {
   id: string;
   title: string;
+  url_slug: string;
   location: string;
   salary_range: string;
   job_type: string;
@@ -29,8 +31,10 @@ interface Job {
   created_at: string;
   apply_link: string;
   companies: {
+    id: string;
     name: string;
     logo_url: string;
+    url_slug: string;
   };
 }
 
@@ -38,6 +42,8 @@ const filterCategories = [
   { id: 'category', name: 'Category', options: ['Engineering', 'Design', 'Marketing', 'Product Manager', 'Sales', 'Data Science'] },
   { id: 'job_type', name: 'Job Type', options: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Remote'] },
 ];
+
+import { ApplyButton } from '@/components/ApplyButton';
 
 export default function JobListingPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
@@ -58,8 +64,10 @@ export default function JobListingPage() {
         .select(`
           *,
           companies (
+            id,
             name,
-            logo_url
+            logo_url,
+            url_slug
           )
         `)
         .eq('is_approved', true)
@@ -86,7 +94,7 @@ export default function JobListingPage() {
       const { data, error } = await query;
 
       if (error) throw error;
-      setJobs(data || []);
+      setJobs((data as any) || []);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -234,26 +242,28 @@ export default function JobListingPage() {
                   >
                     <Card className={`p-6 border-0 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group overflow-hidden bg-white ${viewMode === 'list' ? 'flex flex-col md:flex-row md:items-center justify-between gap-6' : ''}`}>
                       <div className="flex items-start gap-6">
-                          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 group-hover:bg-primary group-hover:text-white transition-all shadow-sm shrink-0 overflow-hidden">
+                          <Link href={`/jobs/${job.url_slug || job.id}`} className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 group-hover:bg-primary group-hover:text-white transition-all shadow-sm shrink-0 overflow-hidden">
                               {job.companies?.logo_url ? (
                                 <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover" />
                               ) : (
                                 job.companies?.name?.charAt(0) || 'J'
                               )}
-                          </div>
+                          </Link>
                           <div className="space-y-2">
                              <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-lg md:text-xl font-black text-gray-900 group-hover:text-primary transition-colors cursor-pointer">
-                                    {job.title}
-                                </h3>
+                                <Link href={`/jobs/${job.url_slug || job.id}`}>
+                                    <h3 className="text-lg md:text-xl font-black text-gray-900 group-hover:text-primary transition-colors cursor-pointer">
+                                        {job.title}
+                                    </h3>
+                                </Link>
                                 {new Date(job.created_at) > new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) && (
                                   <Badge variant="success" className="h-5 text-[10px]">NEW</Badge>
                                 )}
                              </div>
                              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
-                                <span className="flex items-center gap-1.5">
+                                <Link href={`/company/${job.companies?.url_slug || job.companies?.id}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
                                    <Briefcase className="w-4 h-4" /> {job.companies?.name}
-                                </span>
+                                </Link>
                                 <span className="flex items-center gap-1.5">
                                    <MapPin className="w-4 h-4" /> {job.location}
                                 </span>
@@ -281,11 +291,19 @@ export default function JobListingPage() {
                               </span>
                               <span className="text-[10px] font-black text-secondary tracking-widest uppercase">Verified Employer</span>
                           </div>
-                          <a href={job.apply_link} target="_blank" rel="noopener noreferrer">
-                            <Button className="font-bold shadow-md shadow-primary/10 px-8 rounded-xl h-10 group-hover:bg-primary/90 transition-all">
-                                Apply Now
-                            </Button>
-                          </a>
+                          <div className="flex gap-2">
+                            <Link href={`/jobs/${job.url_slug || job.id}`}>
+                                <Button variant="outline" className="font-bold border-2 rounded-xl h-10 px-4">View</Button>
+                            </Link>
+                            <ApplyButton 
+                              jobId={job.id}
+                              jobTitle={job.title}
+                              companyId={job.companies?.id}
+                              companyName={job.companies?.name}
+                              applyLink={job.apply_link || '#'}
+                              className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm shadow-indigo-100 border-0 text-sm"
+                            />
+                          </div>
                       </div>
                     </Card>
                   </motion.div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Building2, 
@@ -20,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 interface Company {
   id: string;
   name: string;
+  url_slug: string;
   industry: string;
   location: string;
   logo_url: string;
@@ -58,7 +60,7 @@ export default function CompaniesDirectory() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setCompanies(data || []);
+      setCompanies((data as any) || []);
     } catch (error) {
       console.error('Error fetching companies:', error);
     } finally {
@@ -154,21 +156,23 @@ export default function CompaniesDirectory() {
                   >
                       <Card className="p-8 hover:shadow-2xl hover:shadow-primary/5 border-0 shadow-sm transition-all group group overflow-hidden bg-white">
                           <div className="flex justify-between items-start mb-8">
-                              <div className="w-16 h-16 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-primary p-2 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6 overflow-hidden">
+                              <Link href={`/company/${company.url_slug || company.id}`} className="w-16 h-16 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-primary p-2 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6 overflow-hidden">
                                   {company.logo_url ? (
                                     <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
                                   ) : (
                                     company.name[0]
                                   )}
-                              </div>
+                              </Link>
                               <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-accent/5 text-accent border border-accent/10">
                                   <Star className="h-3.5 w-3.5 fill-accent" /> <span className="font-bold text-xs">{company.rating || '4.5'}</span>
                               </div>
                           </div>
 
-                          <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer">
-                              {company.name}
-                          </h3>
+                          <Link href={`/company/${company.url_slug || company.id}`}>
+                              <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer">
+                                  {company.name}
+                              </h3>
+                          </Link>
                           <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-8">{company.industry}</p>
                           
                           <div className="space-y-4 mb-10 pb-10 border-b border-gray-50 font-medium">
@@ -180,9 +184,11 @@ export default function CompaniesDirectory() {
                               </div>
                           </div>
 
-                          <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl group-hover:shadow-lg transition-all group-hover:shadow-primary/20">
-                              View Careers <ArrowRight className="h-4 w-4 ml-2" />
-                          </Button>
+                          <Link href={`/company/${company.url_slug || company.id}`}>
+                              <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl group-hover:shadow-lg transition-all group-hover:shadow-primary/20">
+                                  View Careers <ArrowRight className="h-4 w-4 ml-2" />
+                              </Button>
+                          </Link>
                       </Card>
                   </motion.div>
               ))}
