@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 4000;
 // Update this with your actual frontend Vercel URL
 const allowedOrigins = [
   // 'http://localhost:3000',
+  //   'http://localhost:3001',
   'https://job-portal-seven-rosy.vercel.app' 
 ];
 

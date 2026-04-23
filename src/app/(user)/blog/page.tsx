@@ -27,6 +27,7 @@ interface Blog {
   category: string;
   image_url: string;
   is_published: boolean;
+  slug?: string;
   created_at: string;
 }
 
@@ -189,7 +190,7 @@ export default function BlogListing() {
                                           {post.excerpt}
                                       </p>
                                       <div className="mt-auto flex items-center justify-between">
-                                          <Link href={`/blog/${post.id}`}>
+                                          <Link href={`/blog/${post.slug || post.id}`}>
                                             <Button variant="ghost" className="text-primary font-black text-xs uppercase tracking-widest px-0 hover:bg-transparent">
                                                 Read Article <ArrowRight className="h-4 w-4 ml-2" />
                                             </Button>

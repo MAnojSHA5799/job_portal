@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Button, Badge } from '@/components/ui';
-import { ArrowLeft, Clock, User, Sparkles, Loader2, Calendar } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, Clock, User, Sparkles, Loader2, Calendar, ArrowRight } from 'lucide-react';
+import { Button, Badge, Card } from '@/components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { Share2, Link as LinkIcon, CheckCircle2, MessageCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Blog {
   id: string;
@@ -17,6 +19,7 @@ interface Blog {
   category: string;
   image_url: string;
   is_published: boolean;
+  slug?: string;
   created_at: string;
 }
 
@@ -24,7 +27,9 @@ export default function BlogPost() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const [blog, setBlog] = useState<Blog | null>(null);
+  const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -35,21 +40,64 @@ export default function BlogPost() {
   const fetchBlog = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('blogs')
-        .select('*')
-        .eq('id', id)
-        .eq('is_published', true)
-        .single();
+      // Precise UUID check
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isUUID = uuidRegex.test(id);
+      
+      let data, error;
+
+      if (isUUID) {
+        // If it's a UUID, it could be the ID or a slug that happens to look like a UUID
+        const result = await supabase
+          .from('blogs')
+          .select('*')
+          .eq('is_published', true)
+          .or(`id.eq.${id},slug.eq.${id}`)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      } else {
+        // If not a UUID, search ONLY in slug to avoid cast errors
+        const result = await supabase
+          .from('blogs')
+          .select('*')
+          .eq('is_published', true)
+          .eq('slug', id)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
+      if (!data) {
+        setBlog(null);
+        return;
+      }
+      
       setBlog(data);
+      
+      // Fetch related blogs
+      const { data: related } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('is_published', true)
+        .neq('id', data.id)
+        .eq('category', data.category)
+        .limit(3);
+      
+      setRelatedBlogs(related || []);
     } catch (error) {
       console.error('Error fetching blog:', error);
-      router.push('/blog'); // Redirect to listing if not found
+      // router.push('/blog');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -153,122 +201,192 @@ export default function BlogPost() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.1, duration: 0.8 }}
-                        className="w-full aspect-[21/9] rounded-[40px] overflow-hidden shadow-2xl shadow-indigo-100/50 border border-gray-100 bg-gray-50 mb-20"
+                        className="w-full aspect-[21/9] rounded-[32px] md:rounded-[48px] overflow-hidden shadow-2xl shadow-indigo-100/50 border border-gray-100 bg-gray-50 mb-20 relative group"
                     >
-                        <img src={blog.image_url} alt={blog.title} className="w-full h-full object-cover" />
+                        <img src={blog.image_url} alt={blog.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                     </motion.div>
                 )}
 
-                <div className="max-w-[720px] mx-auto pt-4 article-content">
-                    <style jsx global>{`
-                        .article-content {
-                            color: #1e293b;
-                            line-height: 1.8;
-                            font-size: 1.125rem;
-                        }
-                        .article-content p {
-                            margin-bottom: 2rem;
-                            letter-spacing: -0.011em;
-                        }
-                        .article-content h1, .article-content h2, .article-content h3, .article-content h4 {
-                            color: #0f172a;
-                            font-weight: 900;
-                            line-height: 1.2;
-                            letter-spacing: -0.04em;
-                            margin-top: 3.5rem;
-                            margin-bottom: 1.5rem;
-                        }
-                        .article-content h1 { font-size: 3rem; }
-                        .article-content h2 { font-size: 2.25rem; }
-                        .article-content h3 { font-size: 1.75rem; }
-                        
-                        .article-content ul, .article-content ol {
-                            margin-bottom: 2rem;
-                            padding-left: 1.5rem;
-                        }
-                        .article-content li {
-                            margin-bottom: 0.75rem;
-                            position: relative;
-                        }
-                        .article-content ul li::before {
-                            content: "";
-                            position: absolute;
-                            left: -1.5rem;
-                            top: 0.75rem;
-                            width: 0.5rem;
-                            height: 0.5rem;
-                            background-color: #4f46e5;
-                            border-radius: 50%;
-                        }
-                        .article-content blockquote {
-                            border-left: 4px solid #4f46e5;
-                            padding-left: 2rem;
-                            font-style: italic;
-                            font-size: 1.5rem;
-                            color: #4f46e5;
-                            margin: 3rem 0;
-                            font-weight: 600;
-                            letter-spacing: -0.02em;
-                        }
-                        .article-content img {
-                            border-radius: 24px;
-                            margin: 3.5rem 0;
-                            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.15);
-                            width: 100%;
-                        }
-                        .article-content table {
-                            width: 100%;
-                            border-collapse: separate;
-                            border-spacing: 0;
-                            margin: 3rem 0;
-                            border: 1px solid #e2e8f0;
-                            border-radius: 16px;
-                            overflow: hidden;
-                        }
-                        .article-content th {
-                            background-color: #f8fafc;
-                            color: #0f172a;
-                            font-weight: 900;
-                            text-align: left;
-                            padding: 1rem 1.5rem;
-                            font-size: 0.875rem;
-                            text-transform: uppercase;
-                            letter-spacing: 0.05em;
-                            border-bottom: 1px solid #e2e8f0;
-                        }
-                        .article-content td {
-                            padding: 1rem 1.5rem;
-                            border-bottom: 1px solid #f1f5f9;
-                            font-size: 1rem;
-                            color: #475569;
-                        }
-                        .article-content tr:last-child td {
-                            border-bottom: none;
-                        }
-                        .article-content tr:nth-child(even) td {
-                            background-color: #fcfcfd;
-                        }
-                        .article-content a {
-                            color: #4f46e5;
-                            text-decoration: underline;
-                            text-decoration-thickness: 2px;
-                            text-underline-offset: 4px;
-                            font-weight: 700;
-                        }
-                        .article-content a:hover {
-                            color: #4338ca;
-                        }
-                        .article-content strong {
-                            font-weight: 900;
-                            color: #0f172a;
-                        }
-                    `}</style>
-                    <div 
-                        className="selection:bg-indigo-100"
-                        dangerouslySetInnerHTML={{ __html: blog.content }} 
-                    />
+                <div className="flex flex-col lg:flex-row gap-12 items-start">
+                    {/* Floating Social Sidebar (Desktop) */}
+                    <aside className="hidden lg:flex flex-col gap-4 sticky top-32 pt-4">
+                        <button 
+                            onClick={handleCopyLink}
+                            className={cn(
+                                "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-sm border",
+                                copied ? "bg-emerald-500 border-emerald-500 text-white" : "bg-white border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-100"
+                            )}
+                        >
+                            {copied ? <CheckCircle2 className="w-5 h-5" /> : <LinkIcon className="w-5 h-5" />}
+                        </button>
+                        <div className="w-px h-8 bg-gray-100 mx-auto" />
+                        <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(blog.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
+                            <Share2 className="w-5 h-5" />
+                        </a>
+                        <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} target="_blank" className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm">
+                            <MessageCircle className="w-5 h-5" />
+                        </a>
+                    </aside>
+
+                    <div className="flex-1 max-w-[760px] mx-auto article-content">
+                        <style jsx global>{`
+                            .article-content {
+                                color: #334155;
+                                line-height: 1.85;
+                                font-size: 1.125rem;
+                            }
+                            .article-content p {
+                                margin-bottom: 2rem;
+                                letter-spacing: -0.005em;
+                            }
+                            .article-content h1, .article-content h2, .article-content h3, .article-content h4 {
+                                color: #0f172a;
+                                font-weight: 900;
+                                line-height: 1.25;
+                                letter-spacing: -0.04em;
+                                margin-top: 4rem;
+                                margin-bottom: 1.5rem;
+                            }
+                            .article-content h2 { font-size: 2.5rem; border-left: 6px solid #4f46e5; padding-left: 1.5rem; margin-left: -2rem; }
+                            .article-content h3 { font-size: 1.875rem; }
+                            
+                            .article-content ul, .article-content ol {
+                                margin-bottom: 2.5rem;
+                                padding-left: 1.5rem;
+                            }
+                            .article-content li {
+                                margin-bottom: 1rem;
+                                position: relative;
+                                padding-left: 1rem;
+                            }
+                            .article-content ul li::before {
+                                content: "";
+                                position: absolute;
+                                left: -1.5rem;
+                                top: 0.8rem;
+                                width: 0.6rem;
+                                height: 2px;
+                                background-color: #4f46e5;
+                                border-radius: 4px;
+                            }
+                            .article-content blockquote {
+                                border-left: 4px solid #4f46e5;
+                                padding: 2.5rem 3rem;
+                                font-style: italic;
+                                font-size: 1.5rem;
+                                color: #0f172a;
+                                margin: 4rem 0;
+                                font-weight: 700;
+                                letter-spacing: -0.03em;
+                                background-color: #f8fafc;
+                                border-radius: 0 32px 32px 0;
+                            }
+                            .article-content img {
+                                border-radius: 32px;
+                                margin: 4.5rem 0;
+                                box-shadow: 0 30px 60px -15px rgb(0 0 0 / 0.2);
+                                width: 100%;
+                                border: 1px solid #f1f5f9;
+                            }
+                            .article-content table {
+                                width: 100%;
+                                border-collapse: separate;
+                                border-spacing: 0;
+                                margin: 4rem 0;
+                                border: 1px solid #e2e8f0;
+                                border-radius: 24px;
+                                overflow: hidden;
+                                box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+                            }
+                            .article-content th {
+                                background-color: #f8fafc;
+                                color: #0f172a;
+                                font-weight: 900;
+                                text-align: left;
+                                padding: 1.25rem 1.75rem;
+                                font-size: 0.75rem;
+                                text-transform: uppercase;
+                                letter-spacing: 0.1em;
+                                border-bottom: 1px solid #e2e8f0;
+                            }
+                            .article-content td {
+                                padding: 1.25rem 1.75rem;
+                                border-bottom: 1px solid #f1f5f9;
+                                font-size: 1rem;
+                                color: #475569;
+                            }
+                            .article-content tr:last-child td { border-bottom: none; }
+                            .article-content tr:hover td { background-color: #f8fafc; }
+                            .article-content a {
+                                color: #4f46e5;
+                                text-decoration: underline;
+                                text-decoration-thickness: 2px;
+                                text-underline-offset: 4px;
+                                font-weight: 700;
+                                transition: all 0.2s;
+                            }
+                            .article-content a:hover { color: #4338ca; background-color: #4f46e510; }
+                            .article-content strong { font-weight: 900; color: #0f172a; }
+
+                            @media (max-width: 768px) {
+                                .article-content h2 { font-size: 2rem; margin-left: 0; border-left-width: 4px; }
+                                .article-content blockquote { padding: 1.5rem 2rem; font-size: 1.25rem; }
+                            }
+                        `}</style>
+                        <div 
+                            className="selection:bg-indigo-100"
+                            dangerouslySetInnerHTML={{ __html: blog.content }} 
+                        />
+
+                        {/* Mobile Share */}
+                        <div className="lg:hidden mt-16 pt-8 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Share this article</span>
+                            <div className="flex gap-2">
+                                <button onClick={handleCopyLink} className="p-3 rounded-xl bg-gray-50 text-gray-400 hover:text-indigo-600 transition-colors">
+                                    <LinkIcon className="w-4 h-4" />
+                                </button>
+                                <button className="p-3 rounded-xl bg-gray-50 text-gray-400 hover:text-indigo-600 transition-colors">
+                                    <Share2 className="w-4 h-4" />
+                                </button>
+                                <button className="p-3 rounded-xl bg-gray-50 text-gray-400 hover:text-indigo-600 transition-colors">
+                                    <MessageCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </article>
+
+            {/* Related Articles Section */}
+            {relatedBlogs.length > 0 && (
+                <section className="mt-32 pt-20 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-12">
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">More from <span className="text-indigo-600">{blog.category}</span></h2>
+                        <Link href="/blog" className="text-sm font-bold text-gray-400 hover:text-indigo-600 transition-colors flex items-center gap-2 group">
+                            View all articles <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {relatedBlogs.map((item) => (
+                            <Link key={item.id} href={`/blog/${item.slug || item.id}`} className="group">
+                                <Card className="overflow-hidden border-0 shadow-sm hover:shadow-2xl transition-all duration-500 rounded-[32px] h-full flex flex-col bg-white">
+                                    <div className="aspect-[16/10] overflow-hidden">
+                                        <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                    </div>
+                                    <div className="p-8 flex-1 flex flex-col">
+                                        <h3 className="text-xl font-black text-gray-900 mb-4 line-clamp-2 leading-tight group-hover:text-indigo-600 transition-colors">{item.title}</h3>
+                                        <p className="text-sm text-gray-500 line-clamp-2 mb-6 flex-1 font-medium leading-relaxed">{item.excerpt}</p>
+                                        <div className="flex items-center gap-3 pt-6 border-t border-gray-50 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            <Calendar className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Newsletter CTA at bottom */}
             <motion.div 

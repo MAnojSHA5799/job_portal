@@ -49,8 +49,14 @@ export default function EditBlogPage() {
       
       if (error) throw error;
       
-      router.push('/admin/blogs');
-      router.refresh();
+      // If it's a draft (not published), stay on the page so they can continue editing
+      if (!blogData.is_published) {
+        alert('Draft saved successfully!');
+        router.refresh();
+      } else {
+        router.push('/admin/blogs');
+        router.refresh();
+      }
     } catch (error: any) {
       alert('Error saving blog: ' + error.message);
     } finally {

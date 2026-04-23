@@ -14,14 +14,22 @@ export default function NewBlogPage() {
   const handleSave = async (blogData: any) => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('blogs')
-        .insert([blogData]);
+        .insert([blogData])
+        .select()
+        .single();
       
       if (error) throw error;
       
-      router.push('/admin/blogs');
-      router.refresh();
+      // If it's a draft or a publish, we redirect to edit page so they can continue working
+      // or at least stay in the same context.
+      if (data?.id) {
+        router.push(`/admin/blogs/${data.id}/edit`);
+        router.refresh();
+      } else {
+        router.push('/admin/blogs');
+      }
     } catch (error: any) {
       alert('Error saving blog: ' + error.message);
     } finally {
