@@ -24,12 +24,29 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).slug;
+  const decodedSlug = decodeURIComponent(slug);
   
   const { data: company } = await supabase
     .from('companies')
     .select('name')
-    .or(`id.eq.${slug},url_slug.eq.${slug}`)
+    .or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`)
     .single();
+
+  if (!company && decodedSlug !== slug) {
+    // Fallback to try original slug
+    const { data: fallbackCompany } = await supabase
+      .from('companies')
+      .select('name')
+      .or(`id.eq.${slug},url_slug.eq.${slug}`)
+      .single();
+    
+    if (fallbackCompany) {
+      return {
+        title: `${fallbackCompany.name} Jobs — Active Openings Hiring Now | Gethyrd.in`,
+        description: `Explore latest career opportunities at ${fallbackCompany.name}. View all active openings and company info. Verified manufacturing jobs at ${fallbackCompany.name}.`
+      };
+    }
+  }
 
   if (!company) return { title: 'Company Not Found' };
 
@@ -41,12 +58,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CompanyPage({ params }: Props) {
   const slug = (await params).slug;
+  const decodedSlug = decodeURIComponent(slug);
 
-  const { data: company, error: companyError } = await supabase
+  let { data: company, error: companyError } = await supabase
     .from('companies')
     .select('*')
-    .or(`id.eq.${slug},url_slug.eq.${slug}`)
+    .or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`)
     .single();
+
+  if ((companyError || !company) && decodedSlug !== slug) {
+    const { data: fallbackCompany, error: fallbackError } = await supabase
+      .from('companies')
+      .select('*')
+      .or(`id.eq.${slug},url_slug.eq.${slug}`)
+      .single();
+    company = fallbackCompany;
+    companyError = fallbackError;
+  }
 
   if (companyError || !company) {
     notFound();
@@ -128,9 +156,16 @@ export default async function CompanyPage({ params }: Props) {
                     <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
                         <Award className="w-6 h-6 text-indigo-600" /> Company Overview
                     </h2>
-                    <div className="text-gray-600 font-medium leading-relaxed">
-                        {company.description || `${company.name} is a company in the ${company.industry || 'Manufacturing'} sector, currently hiring for ${jobCount} positions in ${company.location}.`}
-                    </div>
+                    {company.description ? (
+                      <div 
+                          className="text-gray-600 font-medium leading-relaxed html-content"
+                          dangerouslySetInnerHTML={{ __html: company.description }}
+                      />
+                    ) : (
+                      <div className="text-gray-600 font-medium leading-relaxed">
+                          {`${company.name} is a company in the ${company.industry || 'Manufacturing'} sector, currently hiring for ${jobCount} positions in ${company.location}.`}
+                      </div>
+                    )}
                 </Card>
              </section>
 

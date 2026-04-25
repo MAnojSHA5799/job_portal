@@ -41,7 +41,7 @@ Return ONLY a valid JSON object.
 CRITICAL RULES (ABSOLUTE TRUTH):
 1. "focus_keyword": Use exactly '${focusKeyword}'.
 2. "seo_title": Length MUST BE 50-60 chars. Start with '${focusKeyword}'. Include ONE power word (Urgent, Top, Verified, Exclusive) AND ONE sentiment word (Best, Exciting, Rewarding, Great) AND a number (e.g., "10+ openings", "₹15L salary").
-3. "meta_description": Length MUST BE 130-160 chars. Include '${focusKeyword}'. Mention salary. End EXACTLY with 'Apply now on Gethyrd.in.'
+3. "meta_description": Length MUST BE 130-160 chars. Include '${focusKeyword}'. Mention salary.
 4. "url_slug": Lowercase, hyphenated. MUST be exactly '${focusKeyword.toLowerCase().replace(/\s+/g, '-')}' but remove stop words (in, at, for, the, and, a, an).
 5. "description": HTML format. MIN 1000 words. MUST FOLLOW ALL CHECKLIST RULES:
     - MUST include an <h1> tag containing exactly '${focusKeyword}'.

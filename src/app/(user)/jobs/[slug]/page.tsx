@@ -28,12 +28,14 @@ interface Props {
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 async function getData(slug: string) {
+  const decodedSlug = decodeURIComponent(slug);
+
   // 1. Try to find by ID
-  if (isUUID(slug)) {
+  if (isUUID(decodedSlug)) {
     const { data: job } = await supabase
       .from('jobs')
       .select('*, companies(*)')
-      .eq('id', slug)
+      .eq('id', decodedSlug)
       .single();
     if (job) return { type: 'job', data: job };
   }
@@ -42,12 +44,23 @@ async function getData(slug: string) {
   const { data: jobBySlug } = await supabase
     .from('jobs')
     .select('*, companies(*)')
-    .eq('url_slug', slug)
+    .eq('url_slug', decodedSlug)
     .single();
+
   if (jobBySlug) return { type: 'job', data: jobBySlug };
 
+  // Try original slug just in case
+  if (decodedSlug !== slug) {
+    const { data: jobByOriginalSlug } = await supabase
+      .from('jobs')
+      .select('*, companies(*)')
+      .eq('url_slug', slug)
+      .single();
+    if (jobByOriginalSlug) return { type: 'job', data: jobByOriginalSlug };
+  }
+
   // 3. Try to find by Category
-  const categoryName = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const categoryName = decodedSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const { data: categoryJobs } = await supabase
     .from('jobs')
     .select('*, companies(*)')
@@ -56,9 +69,10 @@ async function getData(slug: string) {
     .limit(20);
 
   if (categoryJobs && categoryJobs.length > 0) {
-    return { type: 'category', data: categoryJobs, name: categoryName, slug };
+    return { type: 'category', data: categoryJobs, name: categoryName, slug: decodedSlug };
   }
 
+  require('fs').writeFileSync('slug_debug.txt', `slug: ${slug}\ndecodedSlug: ${decodedSlug}`);
   return null;
 }
 
@@ -209,9 +223,10 @@ export default async function SlugPage({ params }: Props) {
                         <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-4">
                             <Info className="w-6 h-6 text-indigo-600" /> Job Description
                         </h2>
-                        <div className="text-gray-600 leading-relaxed font-medium whitespace-pre-wrap">
-                            {job.description}
-                        </div>
+                        <div 
+                            className="text-gray-600 leading-relaxed font-medium whitespace-pre-wrap html-content"
+                            dangerouslySetInnerHTML={{ __html: job.description }}
+                        />
                       </section>
 
                       {job.salary_range && (

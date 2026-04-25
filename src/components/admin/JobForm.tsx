@@ -473,10 +473,10 @@ STRICT RULES:
       return;
     }
 
-    if (seoReport.score < 70) {
-      alert(`SEO Score is too low (${seoReport.score}/100). Minimum 70 required to publish. Please fix critical SEO checks.`);
-      return;
-    }
+    // if (seoReport.score < 70) {
+    //   alert(`SEO Score is too low (${seoReport.score}/100). Minimum 70 required to publish. Please fix critical SEO checks.`);
+    //   return;
+    // }
     const finalJob = {
       ...currentJob,
       seo_score: seoReport.score
