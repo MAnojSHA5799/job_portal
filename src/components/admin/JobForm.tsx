@@ -21,7 +21,8 @@ import {
   DollarSign,
   Clock,
   Zap,
-  Building2
+  Building2,
+  Plus
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 
@@ -499,145 +500,170 @@ STRICT RULES:
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="space-y-6">
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Title *</label>
-                <Input 
-                  className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                  placeholder="e.g. Senior Frontend Developer" 
-                  value={currentJob.title}
-                  onChange={e => setCurrentJob({...currentJob, title: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company *</label>
-                <div className="space-y-3">
-                  <select 
-                    className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                    value={currentJob.company_id}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setCurrentJob({
+            {/* Row 1: Title & Company */}
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Title *</label>
+              <Input 
+                className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                placeholder="e.g. Senior Frontend Developer" 
+                value={currentJob.title}
+                onChange={e => setCurrentJob({...currentJob, title: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company *</label>
+              <div className="space-y-3">
+                <select 
+                  className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                  value={currentJob.company_id}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setCurrentJob({
+                      ...currentJob, 
+                      company_id: val, 
+                      new_company_name: val === 'new' ? (currentJob.new_company_name || '') : ''
+                    });
+                  }}
+                >
+                  <option value="">Select Existing Company</option>
+                  {companies.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  <option value="new">+ Add New Company</option>
+                </select>
+                
+                {(currentJob.company_id === 'new' || !currentJob.company_id) && (
+                  <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
+                    <Building2 className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
+                    <Input 
+                      className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                      placeholder="Or type a new company name..." 
+                      value={currentJob.new_company_name || ''}
+                      onChange={e => setCurrentJob({
                         ...currentJob, 
-                        company_id: val, 
-                        new_company_name: val === 'new' ? (currentJob.new_company_name || '') : ''
-                      });
-                    }}
-                  >
-                    <option value="">Select Existing Company</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                    <option value="new">+ Add New Company</option>
-                  </select>
-                  
-                  {(currentJob.company_id === 'new' || !currentJob.company_id) && (
-                    <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
-                      <Building2 className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
-                      <Input 
-                        className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                        placeholder="Or type a new company name..." 
-                        value={currentJob.new_company_name || ''}
-                        onChange={e => setCurrentJob({
-                          ...currentJob, 
-                          new_company_name: e.target.value,
-                          company_id: e.target.value ? 'new' : ''
-                        })}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location *</label>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
-                  <Input 
-                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    placeholder="e.g. Pune, Maharashtra" 
-                    value={currentJob.location}
-                    onChange={e => setCurrentJob({...currentJob, location: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Salary Range</label>
-                <div className="relative">
-                  <DollarSign className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
-                  <Input 
-                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    placeholder="e.g. ₹8L - ₹12L PA" 
-                    value={currentJob.salary_range}
-                    onChange={e => setCurrentJob({...currentJob, salary_range: e.target.value})}
-                  />
-                </div>
+                        new_company_name: e.target.value,
+                        company_id: e.target.value ? 'new' : ''
+                      })}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Type</label>
-                  <select 
-                    className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                    value={currentJob.job_type}
-                    onChange={e => setCurrentJob({...currentJob, job_type: e.target.value})}
-                  >
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Contract">Contract</option>
-                    <option value="Remote">Remote</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Experience</label>
-                  <Input 
-                    className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    placeholder="e.g. 2-5 Years" 
-                    value={currentJob.experience_level}
-                    onChange={e => setCurrentJob({...currentJob, experience_level: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Category</label>
+            {/* Row 2: Location & Salary */}
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location *</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
                 <Input 
-                  className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  placeholder="e.g. Pune, Maharashtra" 
+                  value={currentJob.location}
+                  onChange={e => setCurrentJob({...currentJob, location: e.target.value})}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Salary Range</label>
+              <div className="relative">
+                <DollarSign className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
+                <Input 
+                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  placeholder="e.g. ₹8L - ₹12L PA" 
+                  value={currentJob.salary_range}
+                  onChange={e => setCurrentJob({...currentJob, salary_range: e.target.value})}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Job Type & Experience */}
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Type</label>
+              <select 
+                className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                value={currentJob.job_type}
+                onChange={e => setCurrentJob({...currentJob, job_type: e.target.value})}
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Remote">Remote</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Experience</label>
+              <Input 
+                className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                placeholder="e.g. 2-5 Years" 
+                value={currentJob.experience_level}
+                onChange={e => setCurrentJob({...currentJob, experience_level: e.target.value})}
+              />
+            </div>
+
+            {/* Row 4: Category & Apply Link */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between h-8">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Job Category</label>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    const newCat = prompt("Enter new category name:");
+                    if (newCat) {
+                      setCurrentJob({...currentJob, category: newCat});
+                    }
+                  }}
+                  className="h-7 px-2 rounded-lg text-[9px] font-black text-primary hover:bg-primary/5 uppercase tracking-widest border border-primary/20"
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Add New
+                </Button>
+              </div>
+              <div className="relative group">
+                <Input 
+                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="e.g. Production, Quality" 
                   value={currentJob.category}
                   onChange={e => setCurrentJob({...currentJob, category: e.target.value})}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Date Posted</label>
-                  <Input 
-                    type="date"
-                    className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    value={currentJob.date_posted}
-                    onChange={e => setCurrentJob({...currentJob, date_posted: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Valid Through</label>
-                  <Input 
-                    type="date"
-                    className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    value={currentJob.valid_through}
-                    onChange={e => setCurrentJob({...currentJob, valid_through: e.target.value})}
-                  />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
+                  <Zap className="h-4 w-4" />
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">External Apply Link</label>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center h-8">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">External Apply Link</label>
+              </div>
+              <div className="relative">
                 <Globe className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
                 <Input 
-                  className="h-12 pl-4 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="https://company.com/careers" 
                   value={currentJob.apply_link}
                   onChange={e => setCurrentJob({...currentJob, apply_link: e.target.value})}
                 />
               </div>
+            </div>
+
+            {/* Row 5: Dates */}
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Date Posted</label>
+              <Input 
+                type="date"
+                className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                value={currentJob.date_posted}
+                onChange={e => setCurrentJob({...currentJob, date_posted: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Valid Through</label>
+              <Input 
+                type="date"
+                className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                value={currentJob.valid_through}
+                onChange={e => setCurrentJob({...currentJob, valid_through: e.target.value})}
+              />
             </div>
           </div>
 

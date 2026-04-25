@@ -10,8 +10,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Sparkles,
-  Info,
-  ChevronLeft,
   Eye,
   FileText,
   Link2,
@@ -22,12 +20,22 @@ import {
   Trash2,
   MoveUp,
   MoveDown,
-  Image as ImageIcon
+  Image as ImageIcon,
+  HelpCircle,
+  MessageSquare,
+  User
 } from 'lucide-react';
 import { calculateSeoScore } from '@/lib/seo';
 import { cn } from '@/lib/utils';
 import { uploadMedia } from '@/app/admin/banners/actions';
 import { generateBlogContent, enhanceBlogSEO } from '@/app/admin/blogs/actions';
+import RichTextEditor from './RichTextEditor';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface FAQ {
+  question: string;
+  answer: string;
+}
 
 interface Blog {
   id?: string;
@@ -42,6 +50,7 @@ interface Blog {
   slug: string;
   tags: string;
   meta_description: string;
+  faqs: FAQ[];
 }
 
 interface ContentBlock {
@@ -70,6 +79,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
     slug: '',
     tags: '',
     meta_description: '',
+    faqs: [],
     ...initialData
   });
 
@@ -78,6 +88,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
   const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null);
   const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
   const [isOptimizingSeo, setIsOptimizingSeo] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSeoOptimize = async () => {
     if (!currentBlog.title && !currentBlog.content) {
@@ -136,7 +147,8 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
     if (initialData && Object.keys(initialData).length > 0) {
       setCurrentBlog(prev => ({
         ...prev,
-        ...initialData
+        ...initialData,
+        faqs: initialData.faqs || []
       }));
       
       // Parse HTML content into blocks if editing
@@ -260,6 +272,24 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
     updateHtmlFromBlocks(newBlocks);
   };
 
+  const addFaq = () => {
+    setCurrentBlog(prev => ({
+      ...prev,
+      faqs: [...prev.faqs, { question: '', answer: '' }]
+    }));
+  };
+
+  const updateFaq = (index: number, field: keyof FAQ, value: string) => {
+    const newFaqs = [...currentBlog.faqs];
+    newFaqs[index] = { ...newFaqs[index], [field]: value };
+    setCurrentBlog(prev => ({ ...prev, faqs: newFaqs }));
+  };
+
+  const removeFaq = (index: number) => {
+    const newFaqs = currentBlog.faqs.filter((_, i) => i !== index);
+    setCurrentBlog(prev => ({ ...prev, faqs: newFaqs }));
+  };
+
   const handleAiGenerate = async () => {
     if (!currentBlog.title) {
       alert('Please enter a Title first so AI knows what to write about!');
@@ -276,6 +306,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
 
       if (result.success && result.content) {
         setCurrentBlog({ ...currentBlog, content: result.content });
+        parseHtmlToBlocks(result.content);
       } else {
         throw new Error(result.error || 'AI generation failed');
       }
@@ -331,9 +362,19 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
               <FileText className="h-6 w-6 text-primary" />
               Content Editor
             </h2>
-            <Button variant="ghost" size="icon" onClick={onCancel} className="rounded-full">
-              <X className="h-6 w-6 text-gray-400" />
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreview(true)}
+                className="rounded-xl border-primary/20 text-primary font-bold gap-2"
+                type="button"
+              >
+                <Eye className="h-4 w-4" /> Preview
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onCancel} className="rounded-full" type="button">
+                <X className="h-6 w-6 text-gray-400" />
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -401,6 +442,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
                         onClick={() => moveBlock(index, 'up')} 
                         disabled={index === 0}
                         className="h-8 w-8 rounded-full bg-white shadow-sm border border-gray-100"
+                        type="button"
                       >
                         <MoveUp className="h-3 w-3" />
                       </Button>
@@ -410,6 +452,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
                         onClick={() => moveBlock(index, 'down')} 
                         disabled={index === blocks.length - 1}
                         className="h-8 w-8 rounded-full bg-white shadow-sm border border-gray-100"
+                        type="button"
                       >
                         <MoveDown className="h-3 w-3" />
                       </Button>
@@ -418,6 +461,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
                         size="icon" 
                         onClick={() => removeBlock(block.id)} 
                         className="h-8 w-8 rounded-full bg-rose-50 text-rose-500 border border-rose-100"
+                        type="button"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -425,11 +469,10 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
 
                     {block.type === 'text' ? (
                       <div className="space-y-2">
-                        <Textarea 
-                          placeholder="Write section text here (HTML supported)..." 
-                          value={block.content}
-                          onChange={e => updateBlockContent(block.id, e.target.value)}
-                          className="min-h-[150px] rounded-2xl border-gray-100 focus:border-primary/30 bg-white font-medium leading-relaxed shadow-sm"
+                        <RichTextEditor 
+                          content={block.content}
+                          onChange={content => updateBlockContent(block.id, content)}
+                          placeholder="Write section text here..." 
                         />
                       </div>
                     ) : (
@@ -509,6 +552,70 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
                   </Button>
                 </div>
               </div>
+
+              {/* FAQ Section */}
+              <div className="pt-12 space-y-6">
+                <div className="flex items-center justify-between">
+                   <h3 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                     <HelpCircle className="h-5 w-5 text-primary" /> FAQ Management
+                   </h3>
+                   <Button 
+                     type="button" 
+                     variant="outline" 
+                     onClick={addFaq}
+                     className="rounded-xl font-bold gap-2 border-primary/10 text-primary hover:bg-primary/5"
+                   >
+                     <Plus className="h-4 w-4" /> ADD FAQ
+                   </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {currentBlog.faqs.map((faq, index) => (
+                    <motion.div 
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-6 bg-gray-50/50 rounded-2xl border border-gray-100 relative group/faq"
+                    >
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => removeFaq(index)}
+                        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-rose-50 text-rose-500 opacity-0 group-hover/faq:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Question {index + 1}</label>
+                          <Input 
+                            placeholder="e.g. How to prepare for a technical interview?"
+                            value={faq.question}
+                            onChange={e => updateFaq(index, 'question', e.target.value)}
+                            className="bg-white border-gray-100 rounded-xl font-bold"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Answer {index + 1}</label>
+                          <Textarea 
+                            placeholder="Provide a detailed answer..."
+                            value={faq.answer}
+                            onChange={e => updateFaq(index, 'answer', e.target.value)}
+                            className="bg-white border-gray-100 rounded-xl font-medium min-h-[100px] resize-none"
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  {currentBlog.faqs.length === 0 && (
+                    <div className="text-center py-10 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+                      <MessageSquare className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No FAQs added yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -519,6 +626,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
               loading={loading} 
               size="lg"
               className="h-14 px-8 border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50"
+              type="button"
             >
               SAVE AS DRAFT
             </Button>
@@ -527,6 +635,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
               loading={loading} 
               size="lg"
               className="h-14 px-12 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-xl shadow-primary/20 tracking-tight"
+              type="button"
             >
               {loading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
               {currentBlog.id ? 'UPDATE ARTICLE' : 'PUBLISH ARTICLE'}
@@ -559,6 +668,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
               onClick={handleSeoOptimize}
               disabled={isOptimizingSeo}
               className="w-full h-12 mb-8 bg-primary/20 hover:bg-primary/30 text-primary border-0 font-black rounded-xl gap-2 transition-all group"
+              type="button"
             >
               {isOptimizingSeo ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -619,7 +729,7 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
                   <div className="relative aspect-video rounded-2xl overflow-hidden border border-gray-100 shadow-inner group">
                     <img src={currentBlog.image_url} alt="Featured" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button variant="danger" size="sm" onClick={() => setCurrentBlog({...currentBlog, image_url: ''})} className="rounded-full h-10 w-10 p-0">
+                        <Button variant="danger" size="sm" onClick={() => setCurrentBlog({...currentBlog, image_url: ''})} className="rounded-full h-10 w-10 p-0" type="button">
                           <X className="h-5 w-5" />
                         </Button>
                     </div>
@@ -678,6 +788,129 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
             </div>
         </Card>
       </aside>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {showPreview && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-10"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-5xl h-full rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Eye className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900 leading-none">Live Preview</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">This is how it will look for users</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowPreview(false)} className="rounded-full h-12 w-12 hover:bg-rose-50 hover:text-rose-500 transition-colors" type="button">
+                  <X className="h-6 w-6" />
+                </Button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-8 md:p-16 custom-scrollbar bg-white">
+                <div className="max-w-3xl mx-auto space-y-12">
+                   <div className="text-center space-y-6">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.2em]">
+                        <Sparkles className="h-3 w-3" /> {currentBlog.category || 'Category'}
+                      </div>
+                      <h1 className="text-4xl md:text-6xl font-black text-gray-900 tracking-tight italic leading-tight">{currentBlog.title || 'Your Catchy Title Here'}</h1>
+                      <div className="flex items-center justify-center gap-6 text-sm font-bold text-gray-400">
+                        <div className="flex items-center gap-3 text-gray-900">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <User className="w-5 h-5" />
+                            </div>
+                            <span className="font-black tracking-tight">{currentBlog.author || 'Author'}</span>
+                        </div>
+                        <span className="flex items-center gap-2 text-primary"><Clock className="h-4 w-4" /> {readingTime} min read</span>
+                      </div>
+                   </div>
+
+                   {currentBlog.image_url && (
+                     <div className="aspect-[21/9] rounded-[48px] overflow-hidden shadow-2xl shadow-primary/5 border border-gray-100">
+                       <img src={currentBlog.image_url} alt="Cover" className="w-full h-full object-cover" />
+                     </div>
+                   )}
+
+                   <div 
+                     className="article-content max-w-none text-gray-600 font-medium leading-relaxed"
+                     dangerouslySetInnerHTML={{ __html: currentBlog.content }}
+                   />
+
+                   {currentBlog.faqs.length > 0 && (
+                     <div className="pt-20 border-t border-gray-100 space-y-8">
+                       <h2 className="text-3xl font-black text-gray-900 tracking-tight">Frequently Asked <span className="text-primary italic">Questions</span></h2>
+                       <div className="space-y-4">
+                         {currentBlog.faqs.map((faq, i) => (
+                           <div key={i} className="p-8 bg-gray-50 rounded-3xl border border-gray-100">
+                             <h4 className="text-xl font-black text-gray-900 mb-3 flex items-center gap-3">
+                               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0">Q</div>
+                               {faq.question}
+                             </h4>
+                             <p className="text-gray-500 font-medium leading-relaxed pl-11">{faq.answer}</p>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style jsx global>{`
+        .article-content {
+            color: #334155;
+            line-height: 1.85;
+            font-size: 1.125rem;
+        }
+        .article-content p { margin-bottom: 2rem; }
+        .article-content h1, .article-content h2, .article-content h3 { font-weight: 900; color: #0f172a; margin-top: 3.5rem; margin-bottom: 1.5rem; letter-spacing: -0.04em; }
+        .article-content h2 { font-size: 2.25rem; border-left: 6px solid #1e3a8a; padding-left: 1.5rem; margin-left: -2rem; }
+        .article-content ul, .article-content ol { padding-left: 1.5rem; margin-bottom: 2rem; }
+        .article-content li { margin-bottom: 0.75rem; position: relative; padding-left: 0.5rem; }
+        .article-content ul li::before { content: ""; position: absolute; left: -1.5rem; top: 0.7rem; width: 0.6rem; height: 2px; background-color: #1e3a8a; }
+        .article-content img { border-radius: 32px; margin: 3rem 0; width: 100%; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1); }
+        .article-content a { color: #1e3a8a; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
+        .article-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid #E2E8F0;
+        }
+        .article-content table th, .article-content table td {
+            border: 1px solid #E2E8F0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+        .article-content table th {
+            background-color: #F8FAFC;
+            font-weight: 900;
+            color: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+        @media (max-width: 768px) {
+            .article-content h2 { font-size: 1.75rem; margin-left: 0; }
+        }
+      `}</style>
     </div>
   );
 }

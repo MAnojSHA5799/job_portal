@@ -181,7 +181,7 @@ export default async function LocationPage({ params }: Props) {
                               companyId={job.companies?.id}
                               companyName={job.companies?.name}
                               applyLink={job.apply_link || '#'}
-                              className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm border-0 text-sm font-bold"
+                              className="h-11 text-xs px-8 rounded-xl"
                             />
                           </div>
                          </div>

@@ -438,6 +438,7 @@ export default function HomePage() {
                                       companyId={job.companies?.id}
                                       companyName={job.companies?.name}
                                       applyLink={job.apply_link || '#'}
+                                      className="h-10 text-[10px] px-4 rounded-xl"
                                     />
                                 </div>
                             </div>

@@ -21,6 +21,7 @@ interface Blog {
   is_published: boolean;
   slug?: string;
   created_at: string;
+  faqs?: { question: string; answer: string }[];
 }
 
 export default function BlogPost() {
@@ -338,6 +339,36 @@ export default function BlogPost() {
                             className="selection:bg-indigo-100"
                             dangerouslySetInnerHTML={{ __html: blog.content }} 
                         />
+
+                        {/* FAQ Section */}
+                        {blog.faqs && blog.faqs.length > 0 && (
+                          <div className="mt-20 pt-20 border-t border-gray-100 space-y-12">
+                            <div>
+                                <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+                                    Frequently Asked <span className="text-indigo-600 italic">Questions</span>
+                                </h2>
+                                <p className="text-gray-500 font-medium mt-2">Common queries related to this topic.</p>
+                            </div>
+                            <div className="space-y-6">
+                              {blog.faqs.map((faq, i) => (
+                                <motion.div 
+                                  key={i}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  whileInView={{ opacity: 1, y: 0 }}
+                                  viewport={{ once: true }}
+                                  transition={{ delay: i * 0.1 }}
+                                  className="p-8 bg-gray-50 rounded-[32px] border border-gray-100 group hover:bg-white hover:shadow-2xl hover:shadow-indigo-500/5 transition-all duration-500"
+                                >
+                                  <h4 className="text-xl font-black text-gray-900 mb-4 flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shrink-0 shadow-lg shadow-indigo-200">Q</div>
+                                    {faq.question}
+                                  </h4>
+                                  <p className="text-gray-600 font-medium leading-relaxed pl-14">{faq.answer}</p>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Mobile Share */}
                         <div className="lg:hidden mt-16 pt-8 border-t border-gray-100 flex items-center justify-between">

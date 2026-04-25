@@ -301,7 +301,7 @@ export default function JobListingPage() {
                               companyId={job.companies?.id}
                               companyName={job.companies?.name}
                               applyLink={job.apply_link || '#'}
-                              className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm shadow-indigo-100 border-0 text-sm"
+                              className="h-10 text-xs px-8 rounded-xl"
                             />
                           </div>
                       </div>
