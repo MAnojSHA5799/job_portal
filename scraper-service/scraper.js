@@ -919,10 +919,10 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
     results.push({
       source,
       url:         job.detailUrl,
-      title:       details.title       !== 'Not Found' ? details.title       : job.title,
+      title:       (job.title && job.title !== 'Not Found') ? job.title : (details.title !== 'Not Found' ? details.title : 'Not Found'),
       // ✅ FIX 3: Location — listing page ki scraped location prefer karo agar detail page se nahi mili
       location:    extractBestLocation(details.location, job.location),
-      company:     details.company     !== 'Not Found' ? details.company     : (extra.company   || 'Not Found'),
+      company:     (details.company && details.company !== 'Not Found') ? details.company : (extra.company || extractFallbackCompany(job.detailUrl)),
       date:        details.date,
       experience:  details.experience  !== 'Not Found' ? details.experience  : (job.experience  || 'Not Found'),
       description: details.description,
@@ -936,6 +936,18 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
     results.push({ source, url: job.detailUrl, ...extra, ...job, error: true, message: err.message });
   }
   await page.close();
+}
+
+function extractFallbackCompany(urlStr) {
+  try {
+    const host = new URL(urlStr).hostname;
+    const parts = host.split('.');
+    let name = parts[0];
+    if (name.length < 3 && parts.length > 1) name = parts[1];
+    return name.toUpperCase() || 'Unknown Company';
+  } catch(e) {
+    return 'Unknown Company';
+  }
 }
 
 // ✅ FIX 4: Helper — dono locations mein se best ek choose karo
