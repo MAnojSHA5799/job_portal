@@ -43,7 +43,7 @@ export default function ScraperTargetsManagement() {
     experienceLevel: 'All',
     duplicateJob: 'Skip',
     country: 'All',
-    maxDescLength: 300,
+    maxDescLength: 0,
     target: 'All Data'
   });
 
@@ -282,7 +282,7 @@ export default function ScraperTargetsManagement() {
                       <Input 
                         type="number"
                         value={scrapeFilters.maxDescLength}
-                        onChange={(e) => setScrapeFilters({...scrapeFilters, maxDescLength: parseInt(e.target.value) || 300})}
+                        onChange={(e) => setScrapeFilters({...scrapeFilters, maxDescLength: parseInt(e.target.value) || 0})}
                         className="h-9 text-xs"
                       />
                     </div>
