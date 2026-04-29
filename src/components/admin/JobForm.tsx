@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Card, Button, Input } from '@/components/ui';
+import { Card, Button, Input, Select } from '@/components/ui';
 import { 
   MapPin, 
   Loader2, 
@@ -564,15 +564,92 @@ STRICT RULES:
               </div>
             </div>
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Salary Range</label>
-              <div className="relative">
-                <DollarSign className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
-                <Input 
-                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                  placeholder="e.g. ₹8L - ₹12L PA" 
-                  value={currentJob.salary_range}
-                  onChange={e => setCurrentJob({...currentJob, salary_range: e.target.value})}
-                />
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">Salary Range</label>
+              <div className="space-y-3">
+                <div className="relative group">
+                  <div className="absolute left-4 top-4 h-4 w-4 text-indigo-500 transition-all group-focus-within:scale-110 z-10">
+                    {currentJob.salary_range?.includes('$') || currentJob.salary_range?.includes('USD') ? <DollarSign className="w-full h-full" /> : <Zap className="w-full h-full" />}
+                  </div>
+                  <Input 
+                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                    placeholder="e.g. 80,000 - 1,20,000" 
+                    value={(currentJob.salary_range || "")
+                      .replace(/^[₹\$]/, "")
+                      .replace(/\s?USD|\s?Rupee|\s?Dollar/gi, "")
+                      .replace(/\s?\/\s?month|\s?PA/gi, "")
+                      .trim()}
+                    onChange={e => {
+                      const amount = e.target.value;
+                      const current = currentJob.salary_range || "";
+                      const prefix = current.match(/^[₹\$]/)?.[0] || "";
+                      const cSuffix = current.match(/\s?USD|\s?Rupee|\s?Dollar/gi)?.[0] || "";
+                      const fSuffix = current.match(/\s?\/\s?month|\s?PA/gi)?.[0] || "";
+                      setCurrentJob({...currentJob, salary_range: prefix + amount + cSuffix + fSuffix});
+                    }}
+                  />
+                </div>
+
+                <div className="flex flex-row items-center gap-3">
+                  <div className="flex-1 relative group">
+                    <Globe className="absolute left-4 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
+                    <Select 
+                      className="h-12 pl-12 border-gray-100 bg-gray-50 font-bold text-xs"
+                      value={
+                        currentJob.salary_range?.startsWith('₹') ? '₹' :
+                        currentJob.salary_range?.startsWith('$') ? '$' :
+                        currentJob.salary_range?.includes('USD') ? 'USD' :
+                        currentJob.salary_range?.includes('Rupee') ? 'Rupee' :
+                        currentJob.salary_range?.includes('Dollar') ? 'Dollar' : ''
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        let amount = (currentJob.salary_range || "")
+                          .replace(/^[₹\$]/, "")
+                          .replace(/\s?USD|\s?Rupee|\s?Dollar/gi, "")
+                          .replace(/\s?\/\s?month|\s?PA/gi, "")
+                          .trim();
+                        const fSuffix = (currentJob.salary_range || "").match(/\s?\/\s?month|\s?PA/gi)?.[0] || "";
+                        
+                        if (val === '₹' || val === '$') {
+                          setCurrentJob({...currentJob, salary_range: val + amount + fSuffix});
+                        } else if (val) {
+                          setCurrentJob({...currentJob, salary_range: amount + ' ' + val + fSuffix});
+                        } else {
+                          setCurrentJob({...currentJob, salary_range: amount + fSuffix});
+                        }
+                      }}
+                    >
+                      <option value="">Currency</option>
+                      <option value="₹">₹ (INR)</option>
+                      <option value="$">$ (USD)</option>
+                      <option value="USD">USD (Suffix)</option>
+                      <option value="Rupee">Rupee</option>
+                      <option value="Dollar">Dollar</option>
+                    </Select>
+                  </div>
+
+                  <div className="flex-1 relative group">
+                    <Clock className="absolute left-4 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
+                    <Select 
+                      className="h-12 pl-12 border-gray-100 bg-gray-50 font-bold text-xs"
+                      value={
+                        currentJob.salary_range?.includes('/ month') ? '/ month' :
+                        currentJob.salary_range?.includes('PA') ? 'PA' : ''
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        let base = (currentJob.salary_range || "")
+                          .replace(/\s?\/\s?month|\s?PA/gi, "")
+                          .trim();
+                        setCurrentJob({...currentJob, salary_range: base + (val ? ' ' + val : '')});
+                      }}
+                    >
+                      <option value="">Frequency</option>
+                      <option value="/ month">Monthly</option>
+                      <option value="PA">Yearly (PA)</option>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </div>
 

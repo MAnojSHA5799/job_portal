@@ -44,7 +44,8 @@ export default function ScraperTargetsManagement() {
     duplicateJob: 'Skip',
     country: 'All',
     maxDescLength: 0,
-    target: 'All Data'
+    target: 'New Only',
+    targetUrl: ''
   });
 
   useEffect(() => {
@@ -80,8 +81,12 @@ export default function ScraperTargetsManagement() {
         if (error.code === '23505') alert('This URL already exists!');
         else throw error;
       } else {
+        const addedUrl = singleUrl.trim();
         setSingleUrl('');
         fetchUrls();
+        
+        // Auto-trigger scraper for this newly added URL specifically
+        handleTriggerSingleScraper(addedUrl, true);
       }
     } catch (err: any) {
       alert("Error adding URL: " + err.message);
@@ -175,6 +180,28 @@ export default function ScraperTargetsManagement() {
     }
   };
 
+  const handleTriggerSingleScraper = async (url: string, skipConfirm = false) => {
+    if (!skipConfirm && !confirm(`Run scraper specifically for this URL?\n${url}`)) return;
+    setTriggering(true);
+    try {
+      const response = await fetch('/api/scraper', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filters: { ...scrapeFilters, targetUrl: url } })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Scraper initiated for this specific URL!');
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      alert('Error triggering scraper: ' + error.message);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -188,20 +215,29 @@ export default function ScraperTargetsManagement() {
           </Button>
           
           <div className="relative">
-            <Button 
-              size="lg" 
-              onClick={() => setShowFilters(!showFilters)}
-              disabled={loading || triggering}
-              className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100 transition-all font-bold gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading || triggering ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Play className="w-5 h-5 fill-white" />
-              )}
-              {triggering ? 'Starting...' : 'Run Scraper'}
-              <ChevronDown className={cn("w-4 h-4 transition-transform", showFilters && "rotate-180")} />
-            </Button>
+            <div className="flex items-center gap-0">
+              <Button 
+                size="lg" 
+                onClick={handleTriggerScraper}
+                disabled={loading || triggering}
+                className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white rounded-l-xl rounded-r-none shadow-lg shadow-indigo-100 transition-all font-bold gap-2 disabled:opacity-50 disabled:cursor-not-allowed border-r border-indigo-500/30"
+              >
+                {loading || triggering ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Play className="w-5 h-5 fill-white" />
+                )}
+                {triggering ? 'Starting...' : 'Run Scraper'}
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => setShowFilters(!showFilters)}
+                disabled={loading || triggering}
+                className="h-12 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-xl rounded-l-none shadow-lg shadow-indigo-100 transition-all border-l border-indigo-700/20"
+              >
+                <ChevronDown className={cn("w-5 h-5 transition-transform", showFilters && "rotate-180")} />
+              </Button>
+            </div>
 
             {showFilters && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl shadow-gray-200/50 border border-gray-100 p-5 z-50">
@@ -210,6 +246,17 @@ export default function ScraperTargetsManagement() {
                 </h4>
                 
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target URL (Optional)</label>
+                    <Input 
+                      placeholder="Paste specific URL to scrape only this one..." 
+                      value={scrapeFilters.targetUrl}
+                      onChange={(e) => setScrapeFilters({...scrapeFilters, targetUrl: e.target.value})}
+                      className="h-9 text-xs"
+                    />
+                    <p className="text-[9px] text-gray-400">Leave empty to scrape all active URLs in the database.</p>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Job Type</label>
                     <div className="flex flex-wrap gap-2">
@@ -286,6 +333,25 @@ export default function ScraperTargetsManagement() {
                         className="h-9 text-xs"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Discovery Mode</label>
+                    <div className="flex gap-2">
+                      {['New Only', 'All Data'].map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => setScrapeFilters({...scrapeFilters, target: opt})}
+                          className={cn(
+                            "flex-1 py-1.5 rounded-lg text-xs font-bold transition-all",
+                            scrapeFilters.target === opt ? "bg-indigo-600 text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                          )}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-gray-400">'New Only' skips URLs scraped in the last 24h.</p>
                   </div>
 
                   <div className="space-y-2">
@@ -397,6 +463,14 @@ export default function ScraperTargetsManagement() {
                     </div>
                     
                     <div className="flex items-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        className="h-8 text-xs px-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-0"
+                        onClick={() => handleTriggerSingleScraper(target.url)}
+                      >
+                        <Play className="h-3 w-3 mr-1" /> Scrape
+                      </Button>
                       <Button 
                         size="sm" 
                         variant={target.is_active ? 'outline' : 'primary'} 
