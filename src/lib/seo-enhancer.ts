@@ -11,9 +11,6 @@ export interface EnhancedJobData {
 }
 
 export async function enhanceJobSEO(job: any, companyName: string): Promise<EnhancedJobData> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OpenAI API Key not found');
-
   const generateFocusKeyword = (title: string, location: string | null | undefined) => {
     if (!location) return title || '';
     return `${title} ${location.split(',')[0]}`.trim();
@@ -22,11 +19,10 @@ export async function enhanceJobSEO(job: any, companyName: string): Promise<Enha
   const focusKeyword = job.focus_keyword || generateFocusKeyword(job.title, job.location);
 
   // Round 1: Major Generation
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('/api/openai', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       model: 'gpt-4o',
@@ -122,9 +118,9 @@ CRITICAL RULES (ABSOLUTE TRUTH):
     console.log(`Round ${retryCount + 1}: Fixing ${failedChecks.length} SEO issues...`);
 
     for (const check of failedChecks) {
-      const fixResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const fixResponse = await fetch('/api/openai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'gpt-4o', // Upgraded to gpt-4o for fixing to ensure 100% score
           messages: [

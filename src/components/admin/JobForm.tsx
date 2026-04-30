@@ -120,11 +120,10 @@ export function JobForm({
     setFixingCheckId(check.id);
     try {
       if (check.category === 'title') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -149,11 +148,10 @@ Return ONLY the string. No quotes.`
         const data = await response.json();
         setCurrentJob({ ...currentJob, seo_title: data.choices[0].message.content.replace(/"/g, '') });
       } else if (check.category === 'meta') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -187,11 +185,10 @@ Return ONLY the new description string. No quotes or explanation.`
           .replace(/^-|-$/g, ''); // Trim hyphens
         setCurrentJob({ ...currentJob, url_slug: slug });
       } else if (check.category === 'content') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -229,11 +226,10 @@ Instructions:
     try {
       const focusKeyword = currentJob.focus_keyword || generateFocusKeyword(currentJob.title, currentJob.location);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4o',
@@ -344,9 +340,9 @@ CRITICAL RULES (ABSOLUTE TRUTH):
         for (const check of failedChecks) {
           // Internal fix logic for each check
           if (check.category === 'title') {
-            const fixResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            const fixResponse = await fetch('/api/openai', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: `Fix this SEO title: ${check.name}. ${check.message}. Target 50-60 chars. Return only the title.` }, { role: 'user', content: finalSeoTitle }]
@@ -355,9 +351,9 @@ CRITICAL RULES (ABSOLUTE TRUTH):
             const fixData = await fixResponse.json();
             finalSeoTitle = fixData.choices[0].message.content.replace(/"/g, '').trim();
           } else if (check.category === 'meta') {
-            const fixResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            const fixResponse = await fetch('/api/openai', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: `Fix this meta description: ${check.name}. ${check.message}. Target 130-160 chars. Return only the meta.` }, { role: 'user', content: finalMeta }]
@@ -366,9 +362,9 @@ CRITICAL RULES (ABSOLUTE TRUTH):
             const fixData = await fixResponse.json();
             finalMeta = fixData.choices[0].message.content.replace(/"/g, '').trim();
           } else if (check.category === 'content') {
-            const fixResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            const fixResponse = await fetch('/api/openai', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 model: 'gpt-4o-mini',
                 messages: [{ role: 'system', content: `Fix this HTML content issue: ${check.name}. ${check.message}. Return only the updated HTML.` }, { role: 'user', content: finalDescription }]
@@ -403,11 +399,10 @@ CRITICAL RULES (ABSOLUTE TRUTH):
     if (!currentJob.description) return;
     setIsEnhancing(true);
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',

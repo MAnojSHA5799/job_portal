@@ -121,11 +121,10 @@ export function CompanyForm({
     setFixingCheckId(check.id);
     try {
       if (check.category === 'title') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -145,11 +144,10 @@ MANDATORY: 50-60 chars. Start with focus keyword. Return ONLY the title string.`
         const data = await response.json();
         setCurrentCompany({ ...currentCompany, seo_title: data.choices[0].message.content.replace(/"/g, '') });
       } else if (check.category === 'meta') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -177,11 +175,10 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
           .replace(/^-|-$/g, '');
         setCurrentCompany({ ...currentCompany, url_slug: slug });
       } else if (check.category === 'content') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
@@ -213,11 +210,10 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
     try {
       const focusKeyword = currentCompany.focus_keyword || generateFocusKeyword(currentCompany.name, currentCompany.location);
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4o',
@@ -304,25 +300,25 @@ RULES:
 
         for (const check of failed) {
            if (check.category === 'title') {
-             const fRes = await fetch('https://api.openai.com/v1/chat/completions', {
+             const fRes = await fetch('/api/openai', {
                method: 'POST',
-               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+               headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company SEO title: ${check.name}. ${check.message}. Target 50-60 chars. Return only the title.` }, { role: 'user', content: finalSeoTitle }] })
              });
              const fData = await fRes.json();
              finalSeoTitle = fData.choices[0].message.content.trim();
            } else if (check.category === 'meta') {
-             const fRes = await fetch('https://api.openai.com/v1/chat/completions', {
+             const fRes = await fetch('/api/openai', {
                method: 'POST',
-               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+               headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company meta description: ${check.name}. ${check.message}. Target 130-160 chars. Return only the meta.` }, { role: 'user', content: finalMeta }] })
              });
              const fData = await fRes.json();
              finalMeta = fData.choices[0].message.content.trim();
            } else if (check.category === 'content') {
-             const fRes = await fetch('https://api.openai.com/v1/chat/completions', {
+             const fRes = await fetch('/api/openai', {
                method: 'POST',
-               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}` },
+               headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company description issue: ${check.name}. ${check.message}. Return only the updated HTML.` }, { role: 'user', content: finalDescription }] })
              });
              const fData = await fRes.json();
@@ -350,11 +346,10 @@ RULES:
     if (!currentCompany.description) return;
     setIsEnhancing(true);
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
