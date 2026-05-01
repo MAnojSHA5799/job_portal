@@ -8,7 +8,9 @@ export async function POST(req: Request) {
     // Example: 'https://job-scraper-service.onrender.com/scrape'
     // const RENDER_SCRAPER_URL = 'https://job-portal-1-xk6p.onrender.com/scrape';   
     const RENDER_SCRAPER_URL = 'http://87.76.191.93:4000/scrape';
+    console.log("http://87.76.191.93:4000/scrape")
     
+
 
 
 

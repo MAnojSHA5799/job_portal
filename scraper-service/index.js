@@ -11,7 +11,7 @@ const allowedOrigins = [
   // 'http://localhost:3000',
     // 'http://87.76.191.93:3000',
   'http://www.hiringstores.com',
-  'https://www.hiringstores.com'
+  // 'https://www.hiringstores.com'
   // 'https://job-portal-seven-rosy.vercel.app' 
 ];
 
