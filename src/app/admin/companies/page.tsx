@@ -32,6 +32,7 @@ interface Company {
   industry: string | null;
   logo_url: string | null;
   website: string | null;
+  career_page_url?: string | null;
   description: string | null;
   active_jobs?: number;
 }

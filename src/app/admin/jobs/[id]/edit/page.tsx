@@ -128,7 +128,7 @@ export default function EditJobPage() {
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-50/50 to-transparent -z-10" />
       <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-200/20 blur-[120px] rounded-full -z-10" />
       
-      <div className="max-w-6xl mx-auto px-6 md:px-10 pt-10">
+      <div className="max-w-7xl mx-auto px-6 md:px-10 pt-10">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
            <div className="space-y-4">
               <Button 

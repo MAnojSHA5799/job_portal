@@ -27,6 +27,7 @@ interface Company {
   industry: string;
   location: string;
   website: string;
+  career_page_url?: string;
   description: string;
   logo_url: string;
   seo_title?: string;
@@ -58,6 +59,7 @@ export function CompanyForm({
     industry: 'Technology',
     location: '',
     website: '',
+    career_page_url: '',
     description: '',
     logo_url: '',
     seo_title: '',
@@ -424,18 +426,21 @@ RULES:
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Industry</label>
-                <select 
-                  className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
+                <Input 
+                  className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  placeholder="e.g. Technology" 
                   value={currentCompany.industry}
                   onChange={e => setCurrentCompany({...currentCompany, industry: e.target.value})}
-                >
-                  <option value="Technology">Technology</option>
-                  <option value="Fintech">Fintech</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="E-commerce">E-commerce</option>
-                  <option value="Social Media">Social Media</option>
-                  <option value="Entertainment">Entertainment</option>
-                </select>
+                  list="industry-options"
+                />
+                <datalist id="industry-options">
+                  <option value="Technology" />
+                  <option value="Fintech" />
+                  <option value="Healthcare" />
+                  <option value="E-commerce" />
+                  <option value="Social Media" />
+                  <option value="Entertainment" />
+                </datalist>
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location</label>
@@ -461,6 +466,18 @@ RULES:
                     placeholder="https://company.com" 
                     value={currentCompany.website}
                     onChange={e => setCurrentCompany({...currentCompany, website: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Careers Page Link</label>
+                <div className="relative">
+                  <Zap className="absolute left-4 top-4 h-4 w-4 text-amber-400" />
+                  <Input 
+                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                    placeholder="https://company.com/careers" 
+                    value={currentCompany.career_page_url}
+                    onChange={e => setCurrentCompany({...currentCompany, career_page_url: e.target.value})}
                   />
                 </div>
               </div>

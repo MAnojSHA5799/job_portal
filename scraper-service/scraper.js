@@ -38,47 +38,52 @@ if (process.argv[2]) {
 // ════════════════════════════════════════════════════════════════════════════
 let currentExistingLinks = new Set();
 
+let currentTargetExtra = {};
+
 (async () => {
   console.log("🚀 Starting Playwright Multi-ATS Scraper...");
   global.processedUrls = new Set();
 
   // ── Supabase se active URLs fetch karo ya specific URL use karo ─────────
-  let jobUrls = [];
+  let allTargets = [];
+
   try {
     if (scraperFilters.targetUrl) {
       const targetUrl = scraperFilters.targetUrl;
-      jobUrls = [targetUrl];
-      console.log(`📊 Scrape single target URL: ${targetUrl}`);
+      
+      // Fetch target details from DB even for single URL
+      const { data: existing } = await supabase
+        .from('scraper_urls')
+        .select('id, url, company_name, location')
+        .eq('url', targetUrl)
+        .single();
 
-      // ── ✨ NEW: Ensure targetUrl is saved in the database for tracking ──
-      try {
-        const { data: existing } = await supabase
-          .from('scraper_urls')
-          .select('id')
-          .eq('url', targetUrl)
-          .single();
-
-        if (!existing) {
+      if (existing) {
+        allTargets = [existing];
+        console.log(`📊 Scrape single target URL from DB: ${targetUrl} (${existing.company_name || 'No Name'})`);
+      } else {
+        // Fallback for URLs not yet in DB
+        allTargets = [{ url: targetUrl }];
+        console.log(`📊 Scrape single target URL (Not in DB): ${targetUrl}`);
+        
+        try {
           await supabase.from('scraper_urls').insert([{ url: targetUrl, is_active: true }]);
           console.log(`📝 Added new target URL to database: ${targetUrl}`);
-        }
-      } catch (err) {
-        // Ignore errors for single() if not found, or other minor db issues
+        } catch (err) {}
       }
     } else {
       const { data: targetUrls, error: urlsError } = await supabase
         .from('scraper_urls')
-        .select('url')
+        .select('id, url, company_name, location')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (urlsError) {
         console.error("⚠️  URL Fetch Error:", urlsError.message);
       } else {
-        const allUrls = (targetUrls || []).map(t => t.url);
+        const fullTargets = targetUrls || [];
         
         if (scraperFilters.target === 'New Only') {
-          // Fetch URLs that have been scraped successfully in the last 24 hours
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
           const { data: recentLogs } = await supabase
             .from('scraper_logs')
@@ -87,19 +92,20 @@ let currentExistingLinks = new Set();
             .gt('created_at', twentyFourHoursAgo);
           
           const recentlyScraped = new Set((recentLogs || []).map(l => l.error_message));
-          jobUrls = allUrls.filter(url => !recentlyScraped.has(url));
-          console.log(`📊 Found ${allUrls.length} active URLs. Filtering for 'New Only': ${jobUrls.length} to process.`);
+          allTargets = fullTargets.filter(t => !recentlyScraped.has(t.url));
+          console.log(`📊 Found ${fullTargets.length} active URLs. Filtering for 'New Only': ${allTargets.length} to process.`);
         } else {
-          jobUrls = allUrls;
-          console.log(`📊 Found ${jobUrls.length} active URLs in database.`);
+          allTargets = fullTargets;
+          console.log(`📊 Found ${allTargets.length} active URLs in database.`);
         }
       }
     }
+
   } catch (err) {
     console.error("❌ Supabase connection error:", err.message);
   }
 
-  if (jobUrls.length === 0) {
+  if (allTargets.length === 0) {
     console.log("⚠️  No active target URLs found. Check 'scraper_urls' table.");
     process.exit(0);
   }
@@ -118,9 +124,19 @@ let currentExistingLinks = new Set();
   // ════════════════════════════════════════════════════════════════════════
   // 📋  LISTING URLS LOOP
   // ════════════════════════════════════════════════════════════════════════
-  for (const listingUrl of jobUrls) {
+  for (const target of allTargets) {
+    const listingUrl = target.url;
+    const targetId   = target.id;
+    
+    // Set current target extra info from DB (Admin settings)
+    currentTargetExtra = { 
+      company:  target.company_name, 
+      location: target.location 
+    };
+
     let runLogId = null;
     const page = await context.newPage();
+
 
     try {
       // ── Scraper log entry ──────────────────────────────────────────────
@@ -192,6 +208,15 @@ let currentExistingLinks = new Set();
       // ── Filter + Supabase Save ─────────────────────────────────────────
       const urlJobsSaved = await filterAndSaveJobs(jobsBatch, listingUrl, runLogId);
       totalJobsSaved += urlJobsSaved;
+
+      // Update last_scraped_at for this target
+      if (targetId) {
+        await supabase
+          .from('scraper_urls')
+          .update({ last_scraped_at: new Date().toISOString() })
+          .eq('id', targetId);
+      }
+
 
       if (runLogId) {
         await supabase.from('scraper_logs').update({
@@ -402,7 +427,24 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
 
     // ── FILTER: country ──────────────────────────────────────────────────
     if (scraperFilters.country !== 'All') {
-      if (!location.toLowerCase().includes(scraperFilters.country.toLowerCase())) {
+      const countryFilter = scraperFilters.country.toLowerCase();
+      const locLower = location.toLowerCase();
+      let match = locLower.includes(countryFilter);
+      
+      if (!match && countryFilter === 'india') {
+        const indianCities = [
+          'india', ', in', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'noida', 'gurgaon', 'gurugram', 
+          'chennai', 'hyderabad', 'pune', 'kolkata', 'ahmedabad', 'jaipur', 'lucknow', 'kanpur', 
+          'chandigarh', 'indore', 'coimbatore', 'nagpur', 'vadodara', 'kochi', 'visakhapatnam', 
+          'surat', 'patna', 'ludhiana', 'agra', 'nashik', 'meerut', 'rajkot', 'varanasi', 'srinagar',
+          'dharuhera', 'haridwar', 'neemrana', 'halol', 'chittoor', 'mysore', 'mysuru',
+          'karnataka', 'maharashtra', 'gujarat', 'tamil nadu', 'telangana', 'kerala', 'haryana', 'uttar pradesh',
+          'multiple locations'
+        ];
+        match = indianCities.some(city => locLower.includes(city));
+      }
+
+      if (!match) {
         console.log(`  ⏭️  Skip (country mismatch): ${title}`);
         continue;
       }
@@ -1446,16 +1488,16 @@ async function scrapeBajajAuto(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeAdityaBirla(page, context, listingUrl, results) {
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"job-card\"], [class*=\"JobCard\"], [class*=\"job-item\"], article', { timeout: 35000 }).catch(() => {});
+  await page.waitForSelector('[class*="job-card"], [class*="JobCard"], [class*="job-item"], article', { timeout: 35000 }).catch(() => {});
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
     const selectors = [
-      '[class*=\"job-card\"]',
-      '[class*=\"JobCard\"]',
-      '[class*=\"job-item\"]',
+      '[class*="job-card"]',
+      '[class*="JobCard"]',
+      '[class*="job-item"]',
       'article',
-      'li[class*=\"position\"]',
+      'li[class*="position"]',
     ];
     let items = [];
     for (const sel of selectors) {
@@ -1463,15 +1505,15 @@ async function scrapeAdityaBirla(page, context, listingUrl, results) {
       if (items.length) break;
     }
     if (!items.length) {
-      return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({
+      return [...document.querySelectorAll('a[href*="job"]')].map(a => ({
         title: a.innerText?.trim() || 'Not Found',
         location: 'Not Found',
         detailUrl: a.href,
       }));
     }
     return items.map(item => ({
-      title:    item.querySelector('h2,h3,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
+      title:    item.querySelector('h2,h3,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1479,6 +1521,7 @@ async function scrapeAdityaBirla(page, context, listingUrl, results) {
   console.log(`  ↳ Aditya Birla: ${jobLinks.length} jobs`);
   for (const job of jobLinks) { await visitDetailPage(context, job, 'aditya_birla', results, { company: 'Aditya Birla Group' }); await delay(400); }
 }
+
 
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1496,7 +1539,7 @@ async function scrapePanasonic(page, context, listingUrl, results) {
     
     const jobLinks = await page.evaluate(() => {
       return [...document.querySelectorAll('mat-expansion-panel')].map(panel => ({
-        title:     panel.querySelector('.job-title-link span[itemprop=\"title\"]')?.innerText?.trim() || 'Not Found',
+        title:     panel.querySelector('.job-title-link span[itemprop="title"]')?.innerText?.trim() || 'Not Found',
         location:  panel.querySelector('.job-result__location .label-value.location')?.innerText?.trim()?.replace(/\n/g, ' ') || 'Not Found',
         detailUrl: panel.querySelector('.job-title-link')?.href || '',
       })).filter(j => j.detailUrl && j.title !== 'Not Found');
@@ -1603,27 +1646,58 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
       finalTitle = job.title;
     }
 
-    // Location priority: If listing has a specific location, keep it. 
-    // Otherwise use detail page location.
+    // ── Metadata Priority ───────────────────────────────────────────
+    const dbCompany  = currentTargetExtra.company;
+    const dbLocation = currentTargetExtra.location;
+
+    // Location priority: DB override > Listing location > Detail page location
     let finalLocation = details.location;
-    if (job.location && job.location !== 'Not Found') {
+    if (dbLocation && dbLocation !== 'Not Found') {
+      finalLocation = dbLocation;
+    } else if (job.location && job.location !== 'Not Found') {
       finalLocation = job.location;
     } else if (!finalLocation || finalLocation === 'Not Found') {
       finalLocation = 'Not Found';
     }
 
+
+    // Title cleanup
+    if (finalTitle) {
+      finalTitle = finalTitle.replace(/[\n\r\s]+Apply now.*/gi, '').trim();
+    }
+
     let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-    if (source === 'darwinbox' && (job.detailUrl.includes('jslhrms.darwinbox.in') || (extra.company === 'Jindal Stainless'))) {
-      finalApplyLink = 'https://jslhrms.darwinbox.in/ms/candidatev2/main/auth/login';
+    if (job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com')) {
+      finalApplyLink = job.detailUrl;
     }
+
+    if (job.detailUrl.includes('heromotocorp.com')) {
+      const match = job.detailUrl.match(/\/(\d+)\/?(?:[?#].*)?$/);
+      if (match && (!job.jobId || job.jobId === 'Not Found')) {
+        job.jobId = match[1];
+      }
+    }
+
+    // Company priority: DB override > Function extra > Detail page
+    let finalCompany = dbCompany;
+    if (!finalCompany || finalCompany === 'Not Found') {
+      finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : (details.company !== 'Not Found' ? details.company : extractFallbackCompany(job.detailUrl));
+    }
+
+    if (finalCompany === 'Office') {
+      if (job.detailUrl.includes('heromotocorp.com')) finalCompany = 'Hero Motocorp';
+      else if (job.detailUrl.includes('technipfmc.com')) finalCompany = 'TechnipFMC';
+      else finalCompany = extractFallbackCompany(job.detailUrl);
+    }
+
 
     results.push({
       source,
       url:         job.detailUrl,
       title:       finalTitle,
       location:    finalLocation,
-      company:     (extra.company && extra.company !== 'Not Found') ? extra.company : (details.company !== 'Not Found' ? details.company : extractFallbackCompany(job.detailUrl)),
+      company:     finalCompany,
       date:        details.date,
       experience:  details.experience  !== 'Not Found' ? details.experience  : (job.experience || 'Not Found'),
       description: details.description,
@@ -1710,6 +1784,19 @@ function genericJobEvaluator() {
 
   // Title
   let title=getText(['.job-details__title','h4.display-2','.text-3xl.font-bold','span[itemprop=\"title\"][data-careersite-propertyid=\"title\"]','[data-careersite-propertyid=\"title\"]','.job__title h1','.app-title','.posting-headline h2','.jobTitle','h1 span[itemprop=\"title\"]','h1','[data-test=\"job-title\"]','[class*=\"job-title\"]','[id*=\"job-title\"]','[itemprop=\"title\"]','.careers-title','.role-title','.jd-title','.job-header__title','.header-title','[data-automation=\"job-title\"]','[data-ph-at-id=\"job-title\"]','.job-title--h1','[aria-label=\"Job title\"]','meta[property=\"og:title\"]','meta[name=\"twitter:title\"]']);
+  
+  // Darwinbox specific title extraction
+  if (!title || title.toLowerCase() === 'key responsibilities') {
+    const breadcrumb = [...document.querySelectorAll('.link.ng-star-inserted')].pop();
+    if (breadcrumb && breadcrumb.innerText.trim()) {
+      title = breadcrumb.innerText.trim();
+    }
+  }
+  if (!title) {
+    const dbHeader = document.querySelector('.view-container h2, .view-container h1, .view-container .title');
+    if (dbHeader) title = dbHeader.innerText.trim();
+  }
+
   if(!title) title=ld?.title||ld?.name||'';
   if(!title) title=document.querySelector('meta[property=\"og:title\"]')?.content?.trim()||'';
   if(!title) title=document.title?.split(/[|\-]/)[0]?.trim()||'';
@@ -1722,7 +1809,7 @@ function genericJobEvaluator() {
     }
   }
 
-  const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description'];
+  const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description', 'key responsibilities', 'role summary', 'job summary'];
   if (title && genericTitles.includes(title.toLowerCase())) {
     title = '';
   }

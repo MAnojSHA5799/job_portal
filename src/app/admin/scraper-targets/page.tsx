@@ -1,4 +1,5 @@
 "use client";
+// Scraper Targets Management Page
 
 import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button, Input, Textarea, Select } from '@/components/ui';
@@ -13,7 +14,8 @@ import {
   AlignLeft,
   Play,
   ChevronDown,
-  Filter
+  Filter,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -21,9 +23,33 @@ import { supabase } from '@/lib/supabase';
 interface ScraperUrl {
   id: string;
   url: string;
+  company_name?: string;
+  location?: string;
   is_active: boolean;
+  last_scraped_at?: string;
   created_at: string;
 }
+
+const DEFAULT_TARGETS = [
+  { name: 'Hero MotoCorp', url: 'https://jobs.heromotocorp.com/search/?createNewAlert=false&q=&optionsFacetsDD_department=&locationsearch=India' },
+  { name: 'Darwinbox (JSL)', url: 'https://jslhrms.darwinbox.in/ms/candidatev2/main/careers/allJobs' },
+  { name: 'Unilever', url: 'https://careers.unilever.com/en/search-jobs/India/34155/2/1269750/22/79/100/2' },
+  { name: 'Mercedes-Benz', url: 'https://jobs.mercedes-benz.com/en?en=&PositionLocation.Country=[390]&JobCategory.Code=[46]' },
+  { name: 'Caterpillar', url: 'https://careers.caterpillar.com/en/jobs/?search=&country=India#results' },
+  { name: 'Tenneco', url: 'https://jobs.tenneco.com/search/?createNewAlert=false&q=engineer&locationsearch=India' },
+  { name: 'Maruti Suzuki', url: 'https://maruti.app.param.ai/jobs/?filters=Job%2520Category%255B%255D=Finance%26Job%2520Category%255B%255D=Accounting%252FAuditing%26Job%2520Category%255B%255D=Analyst%26Job%2520Category%255B%255D=Construction%26Job%2520Location%255B%255D=Gurgaon%26Job%2520Type%255B%255D=Full-time' },
+  { name: 'Bajaj Electricals', url: 'https://careers.bajajelectricals.com/search/?createNewAlert=false&q=UI%2FUX+Designer&locationsearch=india' },
+  { name: 'Bajaj Auto', url: 'https://www.bajajauto.com/careers/search-result' },
+  { name: 'Ashok Leyland', url: 'https://ashokleyland.darwinbox.in/ms/candidate/a61cb038c35a54/careers' },
+  { name: 'Aditya Birla', url: 'https://careers.adityabirla.com/jobs/search' },
+  { name: 'TechnipFMC', url: 'https://careers.technipfmc.com/search/?createNewAlert=false&q=&locationsearch=india&optionsFacetsDD_customfield4=&optionsFacetsDD_customfield2=&optionsFacetsDD_customfield3=' },
+  { name: 'Siemens', url: 'https://jobs.siemens.com/en_US/externaljobs/SearchJobs/?42414=%5B812053%5D&42414_format=17570&listFilterMode=1&folderRecordsPerPage=6&' },
+  { name: 'Apollo Tyres', url: 'https://apollotyres.csod.com/ux/ats/careersite/1/home?c=apollotyres&country=in' },
+  { name: 'Royal Enfield', url: 'https://careers.royalenfield.com/us/en/search-results' },
+  { name: 'Panasonic', url: 'https://careers.na.panasonic.com/jobs?locations=Mumbai,,India%7CNew%20Delhi,,India%7CPune,,India&page=1' },
+  { name: 'Oracle', url: 'https://fa-escq-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs?location=India&locationId=300000000446243&locationLevel=country&mode=location' },
+  { name: 'Honeywell', url: 'https://careers.honeywell.com/en/sites/Honeywell/jobs?lastSelectedFacet=CATEGORIES&location=India&locationId=300000000469485&locationLevel=country&mode=location&selectedCategoriesFacet=300000017425649' }
+];
 
 export default function ScraperTargetsManagement() {
   const [urls, setUrls] = useState<ScraperUrl[]>([]);
@@ -32,7 +58,12 @@ export default function ScraperTargetsManagement() {
   const [addingBulk, setAddingBulk] = useState(false);
   
   const [singleUrl, setSingleUrl] = useState('');
+  const [singleName, setSingleName] = useState('');
   const [bulkUrls, setBulkUrls] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [urlLogs, setUrlLogs] = useState<Record<string, string>>({});
+
 
   // Scraper Trigger States
   const [triggering, setTriggering] = useState(false);
@@ -62,7 +93,37 @@ export default function ScraperTargetsManagement() {
     if (error) {
       console.error('Error fetching urls:', error);
     } else {
+      if (!data || data.length === 0) {
+        // Auto-seed if empty
+        const inserts = DEFAULT_TARGETS.map(t => ({
+          url: t.url,
+          company_name: t.name,
+          is_active: true
+        }));
+        const { error: seedError } = await supabase.from('scraper_urls').insert(inserts);
+        if (!seedError) {
+          fetchUrls(); // Re-fetch after seeding
+          return;
+        }
+      }
       setUrls(data || []);
+
+      // ✨ SMART FALLBACK: Fetch latest logs to find last scraped date if column is missing
+      const { data: logs } = await supabase
+        .from('scraper_logs')
+        .select('error_message, created_at')
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+      
+      if (logs) {
+        const logMap: Record<string, string> = {};
+        logs.forEach(l => {
+          if (!logMap[l.error_message]) {
+            logMap[l.error_message] = l.created_at;
+          }
+        });
+        setUrlLogs(logMap);
+      }
     }
     setLoading(false);
   };
@@ -101,34 +162,82 @@ export default function ScraperTargetsManagement() {
 
     setAddingBulk(true);
     try {
-      // Split by newline or comma, trim, and filter out empties
       const urlArray = bulkUrls
         .split(/[\n,]+/)
         .map(u => u.trim())
-        .filter(u => u.length > 5); // basic validation
+        .filter(u => u.length > 5);
 
       if (urlArray.length === 0) return;
 
-      const inserts = urlArray.map(url => ({ url }));
+      const inserts = urlArray.map(url => ({ 
+        url,
+        company_name: url.split('/')[2].replace('www.', '').split('.')[0].toUpperCase()
+      }));
 
-      const { error } = await supabase
-        .from('scraper_urls')
-        .insert(inserts)
-        // Ignoring duplicates based on ON CONFLICT is tricky via JS client without an RPC, 
-        // fallback to trying them all and catching errors or inserting one by one 
-        // if unique constraint strictly fails the whole batch.
-        // For simplicity, we just insert. If it fails due to unique constraint, we'll alert.
-      
+      const { error } = await supabase.from('scraper_urls').insert(inserts);
       if (error) throw error;
       
       setBulkUrls('');
       fetchUrls();
     } catch (err: any) {
-      alert("Error bulk adding URLs. Some might be duplicates: " + err.message);
+      alert("Error bulk adding URLs: " + err.message);
     } finally {
       setAddingBulk(false);
     }
   };
+
+  const handleSeedDefaults = async () => {
+    if (!confirm('Add default career targets to the database?')) return;
+    setLoading(true);
+    try {
+      const inserts = DEFAULT_TARGETS.map(t => ({
+        url: t.url,
+        company_name: t.name,
+        is_active: true
+      }));
+
+      const { error } = await supabase.from('scraper_urls').insert(inserts);
+      if (error) throw error;
+      
+      fetchUrls();
+    } catch (err: any) {
+      alert('Error seeding: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLocationSwitch = async (id: string, currentUrl: string, targetLocation: 'India' | 'US') => {
+    let newUrl = currentUrl;
+    if (targetLocation === 'US') {
+      newUrl = currentUrl
+        .replace(/locationsearch=India/gi, 'locationsearch=United States')
+        .replace(/location=India/gi, 'location=United States')
+        .replace(/country=India/gi, 'country=United States')
+        .replace(/country=in/gi, 'country=us')
+        .replace(/India/g, 'United States');
+    } else {
+      newUrl = currentUrl
+        .replace(/locationsearch=United States/gi, 'locationsearch=India')
+        .replace(/location=United States/gi, 'location=India')
+        .replace(/country=United States/gi, 'country=India')
+        .replace(/country=us/gi, 'country=in')
+        .replace(/United States/g, 'India');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('scraper_urls')
+        .update({ url: newUrl })
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchUrls();
+    } catch (err: any) {
+      alert('Error updating location: ' + err.message);
+    }
+  };
+
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to remove this URL?')) return;
@@ -201,17 +310,28 @@ export default function ScraperTargetsManagement() {
       setTriggering(false);
     }
   };
+  const filteredUrlsList = urls.filter(u => {
+    const matchesSearch = (u.url || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (u.company_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || 
+                         (filterStatus === 'active' && u.is_active) || 
+                         (filterStatus === 'inactive' && !u.is_active);
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Scraper Targets</h1>
-          <p className="text-gray-500">Manage the URLs that the automated job scraper will visit.</p>
+          <p className="text-gray-500">Configure and manage active job discovery targets.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={fetchUrls} variant="outline" className="shadow-sm">
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh List
+          <Button onClick={handleSeedDefaults} variant="outline" className="bg-white border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-bold">
+            <RefreshCw className="mr-2 h-4 w-4" /> Seed Defaults
+          </Button>
+          <Button onClick={fetchUrls} variant="ghost" className="text-gray-500 hover:text-indigo-600 font-bold">
+             Refresh List
           </Button>
           
           <div className="relative">
@@ -394,16 +514,28 @@ export default function ScraperTargetsManagement() {
         <div className="space-y-6">
           <Card className="p-6 bg-white border-0 shadow-sm border-t-4 border-t-primary">
             <h3 className="font-black text-gray-900 text-lg mb-4 flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" /> Add Single URL
+              <Plus className="h-5 w-5 text-primary" /> New Discovery Target
             </h3>
             <form onSubmit={handleAddSingle} className="space-y-4">
-              <Input 
-                placeholder="https://careers.company.com..." 
-                value={singleUrl}
-                onChange={(e) => setSingleUrl(e.target.value)}
-                autoComplete="off"
-              />
-              <Button type="submit" loading={addingSingle} className="w-full">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</label>
+                <Input 
+                  placeholder="e.g. Google" 
+                  value={singleName}
+                  onChange={(e) => setSingleName(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Career URL</label>
+                <Input 
+                  placeholder="https://careers.google.com..." 
+                  value={singleUrl}
+                  onChange={(e) => setSingleUrl(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" loading={addingSingle} className="w-full h-11 bg-indigo-600 font-bold">
                 Save Target
               </Button>
             </form>
@@ -430,66 +562,141 @@ export default function ScraperTargetsManagement() {
 
         {/* Right Col: List of URLs */}
         <div className="lg:col-span-2">
-          <Card className="p-6 bg-white border-0 shadow-sm min-h-[500px]">
-            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
-               <Globe className="h-5 w-5 text-gray-400" />
-               <h3 className="font-black text-gray-900 text-lg">Active Target List ({urls.length})</h3>
+          <Card className="p-0 bg-white border-0 shadow-sm min-h-[500px] overflow-hidden">
+            <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-indigo-500" />
+                <h3 className="font-black text-gray-900 text-lg">Discovery Pipeline ({filteredUrlsList.length})</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative group flex-1 md:w-64">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                  <Input 
+                    placeholder="Filter by company or URL..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-9 pl-9 text-xs border-gray-100 bg-gray-50 focus:bg-white"
+                  />
+                </div>
+                <Select 
+                  value={filterStatus}
+                  onChange={(e: any) => setFilterStatus(e.target.value)}
+                  className="h-9 text-xs w-32 px-2"
+                >
+                  <option value="all">All Targets</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Disabled</option>
+                </Select>
+              </div>
             </div>
 
             {loading && urls.length === 0 ? (
-              <div className="py-20 flex justify-center">
-                 <Loader2 className="h-8 w-8 animate-spin text-primary/30" />
+              <div className="py-32 flex flex-col items-center justify-center space-y-4">
+                 <Loader2 className="h-10 w-10 animate-spin text-indigo-500/30" />
+                 <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Scanning infrastructure...</p>
               </div>
-            ) : urls.length === 0 ? (
-              <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <ListPlus className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-900">No Target URLs Found</h3>
-                <p className="text-gray-500 text-sm mt-1">Add some URLs from the sidebar to begin scraping.</p>
+            ) : filteredUrlsList.length === 0 ? (
+              <div className="text-center py-32 bg-gray-50/50">
+                <ListPlus className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                <h3 className="text-xl font-black text-gray-900">No Pipeline Targets</h3>
+                <p className="text-gray-500 text-sm mt-1 font-medium max-w-xs mx-auto">Either you haven't added any URLs yet, or your search criteria returned zero results.</p>
+                <Button onClick={handleSeedDefaults} variant="outline" className="mt-6 font-bold border-indigo-100 text-indigo-600">Seed Default Targets</Button>
               </div>
             ) : (
-              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 pb-4 custom-scrollbar">
-                {urls.map((target) => (
-                  <div key={target.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-primary/20 hover:shadow-md transition-all group bg-white">
-                    <div className="flex-1 min-w-0 mr-4">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-2 h-2 rounded-full ${target.is_active ? 'bg-success' : 'bg-danger'}`}></span>
-                        <a href={target.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-gray-900 truncate hover:text-primary transition-colors">
-                          {target.url}
-                        </a>
-                      </div>
-                      <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mt-2 ml-5">
-                        Added: {new Date(target.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        size="sm" 
-                        variant="secondary"
-                        className="h-8 text-xs px-3 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-0"
-                        onClick={() => handleTriggerSingleScraper(target.url)}
-                      >
-                        <Play className="h-3 w-3 mr-1" /> Scrape
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant={target.is_active ? 'outline' : 'primary'} 
-                        className="h-8 text-xs px-3"
-                        onClick={() => toggleStatus(target.id, target.is_active)}
-                      >
-                        {target.is_active ? 'Disable' : 'Enable'}
-                      </Button>
-                      <Button 
-                        size="icon" 
-                        variant="danger" 
-                        className="h-8 w-8"
-                        onClick={() => handleDelete(target.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50/50 border-b border-gray-100">
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Company & Location</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Discovery URL</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Scraped</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredUrlsList.map((target) => {
+                      const hasLocationParam = target.url.toLowerCase().includes('india') || target.url.toLowerCase().includes('united states') || target.url.toLowerCase().includes('country=');
+                      const isIndia = target.url.toLowerCase().includes('india') || target.url.toLowerCase().includes('country=in');
+                      
+                      return (
+                        <tr key={target.id} className="hover:bg-indigo-50/10 transition-colors group">
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{target.company_name || 'Unknown Company'}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge className={cn("text-[8px] px-1.5 py-0 font-black uppercase tracking-tighter", target.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400")}>
+                                  {target.is_active ? 'Discovery Active' : 'Pipeline Disabled'}
+                                </Badge>
+                                {hasLocationParam && (
+                                  <div className="flex items-center gap-1">
+                                    <select 
+                                      className="text-[9px] font-black border-none bg-indigo-50 text-indigo-600 rounded px-1 cursor-pointer outline-none"
+                                      value={isIndia ? 'India' : 'US'}
+                                      onChange={(e) => handleLocationSwitch(target.id, target.url, e.target.value as any)}
+                                    >
+                                      <option value="India">📍 India</option>
+                                      <option value="US">🇺🇸 US</option>
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col gap-1 max-w-[300px]">
+                              <a href={target.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-indigo-500 truncate hover:underline">
+                                {target.url}
+                              </a>
+                              <span className="text-[9px] text-gray-400 font-medium">Added {new Date(target.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col">
+                              <span className="text-[11px] font-black text-gray-700">
+                                {(target.last_scraped_at || urlLogs[target.url]) 
+                                  ? new Date(target.last_scraped_at || urlLogs[target.url]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
+                                  : 'Never Scraped'}
+                              </span>
+                              {(target.last_scraped_at || urlLogs[target.url]) && (
+                                <span className="text-[9px] font-bold text-gray-400">
+                                  {new Date(target.last_scraped_at || urlLogs[target.url]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className="h-8 px-3 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                onClick={() => handleTriggerSingleScraper(target.url)}
+                              >
+                                <Play className="h-3 w-3 mr-1.5" /> RUN
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                className={cn("h-8 px-3 text-[10px] font-black rounded-lg", target.is_active ? "text-orange-600 hover:bg-orange-50" : "text-emerald-600 hover:bg-emerald-50")}
+                                onClick={() => toggleStatus(target.id, target.is_active)}
+                              >
+                                {target.is_active ? 'DISABLE' : 'ENABLE'}
+                              </Button>
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="h-8 w-8 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                onClick={() => handleDelete(target.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </Card>

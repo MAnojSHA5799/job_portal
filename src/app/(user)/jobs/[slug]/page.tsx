@@ -72,7 +72,6 @@ async function getData(slug: string) {
     return { type: 'category', data: categoryJobs, name: categoryName, slug: decodedSlug };
   }
 
-  require('fs').writeFileSync('slug_debug.txt', `slug: ${slug}\ndecodedSlug: ${decodedSlug}`);
   return null;
 }
 

@@ -20,7 +20,9 @@ import {
   Building2,
   Filter,
   Settings,
-  ChevronDown
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -72,6 +74,11 @@ export default function ScraperManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [activeTab, setActiveTab] = useState<'logs' | 'companies'>('companies');
+  
+  // Pagination State
+  const [logsPage, setLogsPage] = useState(1);
+  const [companiesPage, setCompaniesPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Scraper Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -185,9 +192,21 @@ export default function ScraperManager() {
     });
   }, [logs, searchQuery, statusFilter]);
 
+  const paginatedLogs = useMemo(() => {
+    const from = (logsPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage;
+    return filteredLogs.slice(from, to);
+  }, [filteredLogs, logsPage]);
+
   const filteredCompanies = useMemo(() => {
     return companyStats.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [companyStats, searchQuery]);
+
+  const paginatedCompanies = useMemo(() => {
+    const from = (companiesPage - 1) * itemsPerPage;
+    const to = from + itemsPerPage;
+    return filteredCompanies.slice(from, to);
+  }, [filteredCompanies, companiesPage]);
 
   const handleTriggerScraper = async () => {
     setTriggering(true);
@@ -328,7 +347,10 @@ export default function ScraperManager() {
                 placeholder="Search companies..." 
                 className="pl-11 h-11 bg-white border-none shadow-sm shadow-gray-200/50 focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-medium" 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCompaniesPage(1);
+                }}
               />
             </div>
           </div>
@@ -351,7 +373,7 @@ export default function ScraperManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 bg-white">
-                    {filteredCompanies.map((company) => (
+                    {paginatedCompanies.map((company) => (
                       <tr key={company.id} className="hover:bg-indigo-50/20 transition-all group">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
@@ -404,6 +426,37 @@ export default function ScraperManager() {
                 </table>
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && filteredCompanies.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-8 py-6 border-t border-gray-50 bg-gray-50/30">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Showing <span className="text-gray-900">{(companiesPage - 1) * itemsPerPage + 1}</span> to <span className="text-gray-900">{Math.min(companiesPage * itemsPerPage, filteredCompanies.length)}</span> of <span className="text-gray-900">{filteredCompanies.length}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={companiesPage === 1}
+                    onClick={() => setCompaniesPage(prev => prev - 1)}
+                    className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Previous
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={companiesPage >= Math.ceil(filteredCompanies.length / itemsPerPage)}
+                    onClick={() => setCompaniesPage(prev => prev + 1)}
+                    className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       ) : (
@@ -531,7 +584,10 @@ export default function ScraperManager() {
                   placeholder="Search by run ID or error..." 
                   className="pl-11 h-11 bg-white border-none shadow-sm shadow-gray-200/50 focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-medium" 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setLogsPage(1);
+                  }}
                 />
               </div>
               <select 
@@ -545,7 +601,7 @@ export default function ScraperManager() {
                 <option>In Progress</option>
               </select>
             </div>
-            <Button variant="ghost" className="text-indigo-600 font-bold text-sm hover:bg-indigo-50" onClick={() => { setSearchQuery(''); setStatusFilter('All Status'); }}>
+            <Button variant="ghost" className="text-indigo-600 font-bold text-sm hover:bg-indigo-50" onClick={() => { setSearchQuery(''); setStatusFilter('All Status'); setLogsPage(1); }}>
               Clear Filters
             </Button>
           </div>
@@ -570,7 +626,7 @@ export default function ScraperManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 bg-white">
-                    {filteredLogs.map((log) => (
+                    {paginatedLogs.map((log) => (
                       <tr key={log.id} className="hover:bg-indigo-50/20 transition-all group">
                         <td className="px-8 py-5">
                           <div className="flex flex-col">
@@ -639,6 +695,37 @@ export default function ScraperManager() {
                 </table>
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && filteredLogs.length > itemsPerPage && (
+              <div className="flex items-center justify-between px-8 py-6 border-t border-gray-50 bg-gray-50/30">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  Showing <span className="text-gray-900">{(logsPage - 1) * itemsPerPage + 1}</span> to <span className="text-gray-900">{Math.min(logsPage * itemsPerPage, filteredLogs.length)}</span> of <span className="text-gray-900">{filteredLogs.length}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={logsPage === 1}
+                    onClick={() => setLogsPage(prev => prev - 1)}
+                    className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" /> Previous
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={logsPage >= Math.ceil(filteredLogs.length / itemsPerPage)}
+                    onClick={() => setLogsPage(prev => prev + 1)}
+                    className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+                  >
+                    Next <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       )}

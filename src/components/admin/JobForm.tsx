@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Card, Button, Input, Select } from '@/components/ui';
+import { Card, Button, Input, Select, Badge } from '@/components/ui';
 import { 
   MapPin, 
   Loader2, 
   Sparkles, 
   Save, 
-  X,
   Search,
   Globe,
   FileText,
@@ -22,7 +22,11 @@ import {
   Clock,
   Zap,
   Building2,
-  Plus
+  Plus,
+  Eye,
+  Star,
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 
@@ -52,6 +56,7 @@ interface Job {
   url_slug?: string;
   seo_score?: number;
   valid_through?: string;
+  is_approved?: boolean;
 }
 
 interface JobFormProps {
@@ -99,6 +104,8 @@ export function JobForm({
   const [isFixingAll, setIsFixingAll] = useState(false);
   const [showSeoDetails, setShowSeoDetails] = useState(true);
   const [fixingCheckId, setFixingCheckId] = useState<number | null>(null);
+  const [savingType, setSavingType] = useState<'draft' | 'publish' | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Real-time SEO Scoring
   const seoReport = calculateSEOScore({
@@ -462,28 +469,30 @@ STRICT RULES:
     }
   };
 
-  const internalOnSave = () => {
+  const internalOnSave = (isApproved: boolean) => {
     if (!currentJob.title || (!currentJob.company_id && !currentJob.new_company_name) || !currentJob.description || !currentJob.location) {
       alert('Please fill in required fields (Title, Company, Description, Location)');
       return;
     }
 
-    // if (seoReport.score < 70) {
-    //   alert(`SEO Score is too low (${seoReport.score}/100). Minimum 70 required to publish. Please fix critical SEO checks.`);
-    //   return;
-    // }
+    setSavingType(isApproved ? 'publish' : 'draft');
+    
     const finalJob = {
       ...currentJob,
+      is_approved: isApproved,
       seo_score: seoReport.score
     };
     onSave(finalJob);
   };
 
+  const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+  const companyName = currentJob.company_id === 'new' ? currentJob.new_company_name : selectedCompany?.name;
+
   return (
     <Card className="p-0 border-0 bg-transparent shadow-none overflow-visible">
-      <div className="flex flex-col xl:flex-row gap-8 items-start">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* Main Job Details Form */}
-        <div className="flex-1 bg-white p-8 rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-10">
+        <div className="flex-1 max-w-[650px] bg-white p-6 rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-10">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h2>
@@ -497,20 +506,24 @@ STRICT RULES:
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             {/* Row 1: Title & Company */}
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Title *</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Job Title *</label>
+              </div>
               <Input 
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                 placeholder="e.g. Senior Frontend Developer" 
-                value={currentJob.title}
+                value={currentJob.title || ''}
                 onChange={e => setCurrentJob({...currentJob, title: e.target.value})}
               />
             </div>
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company *</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Company *</label>
+              </div>
               <div className="space-y-3">
                 <select 
                   className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold shadow-none focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                  value={currentJob.company_id}
+                  value={currentJob.company_id || ''}
                   onChange={e => {
                     const val = e.target.value;
                     setCurrentJob({
@@ -547,48 +560,51 @@ STRICT RULES:
 
             {/* Row 2: Location & Salary */}
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location *</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Location *</label>
+              </div>
               <div className="relative">
                 <MapPin className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
                 <Input 
                   className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="e.g. Pune, Maharashtra" 
-                  value={currentJob.location}
+                  value={currentJob.location || ''}
                   onChange={e => setCurrentJob({...currentJob, location: e.target.value})}
                 />
               </div>
             </div>
-            <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 block">Salary Range</label>
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between h-6 mb-3">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Salary Range</label>
+              </div>
               <div className="space-y-3">
-                <div className="relative group">
-                  <div className="absolute left-4 top-4 h-4 w-4 text-indigo-500 transition-all group-focus-within:scale-110 z-10">
-                    {currentJob.salary_range?.includes('$') || currentJob.salary_range?.includes('USD') ? <DollarSign className="w-full h-full" /> : <Zap className="w-full h-full" />}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-[2] relative group">
+                    <div className="absolute left-4 top-4 h-4 w-4 text-indigo-500 transition-all group-focus-within:scale-110 z-10">
+                      {currentJob.salary_range?.includes('$') || currentJob.salary_range?.includes('USD') ? <DollarSign className="w-full h-full" /> : <Zap className="w-full h-full" />}
+                    </div>
+                    <Input 
+                      className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                      placeholder="e.g. 80k - 120k" 
+                      value={(currentJob.salary_range || "")
+                        .replace(/^[₹\$]/, "")
+                        .replace(/\s?USD|\s?Rupee|\s?Dollar/gi, "")
+                        .replace(/\s?\/\s?month|\s?PA/gi, "")
+                        .trim()}
+                      onChange={e => {
+                        const amount = e.target.value;
+                        const current = currentJob.salary_range || "";
+                        const prefix = current.match(/^[₹\$]/)?.[0] || "";
+                        const cSuffix = current.match(/\s?USD|\s?Rupee|\s?Dollar/gi)?.[0] || "";
+                        const fSuffix = current.match(/\s?\/\s?month|\s?PA/gi)?.[0] || "";
+                        setCurrentJob({...currentJob, salary_range: prefix + amount + cSuffix + fSuffix});
+                      }}
+                    />
                   </div>
-                  <Input 
-                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                    placeholder="e.g. 80,000 - 1,20,000" 
-                    value={(currentJob.salary_range || "")
-                      .replace(/^[₹\$]/, "")
-                      .replace(/\s?USD|\s?Rupee|\s?Dollar/gi, "")
-                      .replace(/\s?\/\s?month|\s?PA/gi, "")
-                      .trim()}
-                    onChange={e => {
-                      const amount = e.target.value;
-                      const current = currentJob.salary_range || "";
-                      const prefix = current.match(/^[₹\$]/)?.[0] || "";
-                      const cSuffix = current.match(/\s?USD|\s?Rupee|\s?Dollar/gi)?.[0] || "";
-                      const fSuffix = current.match(/\s?\/\s?month|\s?PA/gi)?.[0] || "";
-                      setCurrentJob({...currentJob, salary_range: prefix + amount + cSuffix + fSuffix});
-                    }}
-                  />
-                </div>
-
-                <div className="flex flex-row items-center gap-3">
                   <div className="flex-1 relative group">
-                    <Globe className="absolute left-4 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
+                    <Globe className="absolute left-3 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
                     <Select 
-                      className="h-12 pl-12 border-gray-100 bg-gray-50 font-bold text-xs"
+                      className="h-12 pl-10 border-gray-100 bg-gray-50 font-bold text-[10px]"
                       value={
                         currentJob.salary_range?.startsWith('₹') ? '₹' :
                         currentJob.salary_range?.startsWith('$') ? '$' :
@@ -615,18 +631,15 @@ STRICT RULES:
                       }}
                     >
                       <option value="">Currency</option>
-                      <option value="₹">₹ (INR)</option>
-                      <option value="$">$ (USD)</option>
-                      <option value="USD">USD (Suffix)</option>
-                      <option value="Rupee">Rupee</option>
-                      <option value="Dollar">Dollar</option>
+                      <option value="₹">₹ INR</option>
+                      <option value="$">$ USD</option>
+                      <option value="USD">USD</option>
                     </Select>
                   </div>
-
                   <div className="flex-1 relative group">
-                    <Clock className="absolute left-4 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
+                    <Clock className="absolute left-3 top-4 h-4 w-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors z-10 pointer-events-none" />
                     <Select 
-                      className="h-12 pl-12 border-gray-100 bg-gray-50 font-bold text-xs"
+                      className="h-12 pl-10 border-gray-100 bg-gray-50 font-bold text-[10px]"
                       value={
                         currentJob.salary_range?.includes('/ month') ? '/ month' :
                         currentJob.salary_range?.includes('PA') ? 'PA' : ''
@@ -639,9 +652,9 @@ STRICT RULES:
                         setCurrentJob({...currentJob, salary_range: base + (val ? ' ' + val : '')});
                       }}
                     >
-                      <option value="">Frequency</option>
+                      <option value="">Period</option>
                       <option value="/ month">Monthly</option>
-                      <option value="PA">Yearly (PA)</option>
+                      <option value="PA">Yearly</option>
                     </Select>
                   </div>
                 </div>
@@ -650,10 +663,12 @@ STRICT RULES:
 
             {/* Row 3: Job Type & Experience */}
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Job Type</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Job Type</label>
+              </div>
               <select 
                 className="flex h-12 w-full rounded-xl border-0 bg-gray-50 px-4 text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
-                value={currentJob.job_type}
+                value={currentJob.job_type || ''}
                 onChange={e => setCurrentJob({...currentJob, job_type: e.target.value})}
               >
                 <option value="Full-time">Full-time</option>
@@ -663,18 +678,20 @@ STRICT RULES:
               </select>
             </div>
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Experience</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Experience</label>
+              </div>
               <Input 
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                 placeholder="e.g. 2-5 Years" 
-                value={currentJob.experience_level}
+                value={currentJob.experience_level || ''}
                 onChange={e => setCurrentJob({...currentJob, experience_level: e.target.value})}
               />
             </div>
 
             {/* Row 4: Category & Apply Link */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between h-8">
+              <div className="flex items-center justify-between h-6 mb-2">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Job Category</label>
                 <Button 
                   type="button" 
@@ -695,7 +712,7 @@ STRICT RULES:
                 <Input 
                   className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="e.g. Production, Quality" 
-                  value={currentJob.category}
+                  value={currentJob.category || ''}
                   onChange={e => setCurrentJob({...currentJob, category: e.target.value})}
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
@@ -704,7 +721,7 @@ STRICT RULES:
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center h-8">
+              <div className="flex items-center justify-between h-6 mb-2">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">External Apply Link</label>
               </div>
               <div className="relative">
@@ -712,7 +729,7 @@ STRICT RULES:
                 <Input 
                   className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="https://company.com/careers" 
-                  value={currentJob.apply_link}
+                  value={currentJob.apply_link || ''}
                   onChange={e => setCurrentJob({...currentJob, apply_link: e.target.value})}
                 />
               </div>
@@ -720,20 +737,24 @@ STRICT RULES:
 
             {/* Row 5: Dates */}
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Date Posted</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Date Posted</label>
+              </div>
               <Input 
                 type="date"
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                value={currentJob.date_posted}
+                value={currentJob.date_posted || ''}
                 onChange={e => setCurrentJob({...currentJob, date_posted: e.target.value})}
               />
             </div>
             <div>
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Valid Through</label>
+              <div className="flex items-center justify-between h-6 mb-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Valid Through</label>
+              </div>
               <Input 
                 type="date"
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                value={currentJob.valid_through}
+                value={currentJob.valid_through || ''}
                 onChange={e => setCurrentJob({...currentJob, valid_through: e.target.value})}
               />
             </div>
@@ -756,21 +777,195 @@ STRICT RULES:
             <textarea 
               className="w-full min-h-[400px] rounded-[24px] border-0 bg-gray-50 p-6 text-sm font-medium leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               placeholder="Describe the role, responsibilities, and requirements..."
-              value={currentJob.description}
+              value={currentJob.description || ''}
               onChange={e => setCurrentJob({...currentJob, description: e.target.value})}
             />
           </div>
 
-          <div className="flex justify-end pt-8">
-             <Button onClick={internalOnSave} disabled={loading} className="h-14 px-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-100">
-               {loading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
-               PUBLISH JOB POSTING
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8">
+             <Button 
+               variant="outline"
+               type="button"
+               onClick={() => setShowPreview(true)}
+               className="h-11 px-5 border-2 border-indigo-100 bg-white text-indigo-600 font-bold rounded-xl transition-all w-full sm:w-auto hover:bg-indigo-50 text-xs"
+             >
+               <Eye className="h-4 w-4 mr-2" />
+               PREVIEW
+             </Button>
+             <Button 
+               variant="outline"
+               onClick={() => internalOnSave(false)} 
+               disabled={loading} 
+               className="h-11 px-5 border-2 border-gray-100 hover:border-indigo-100 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 font-bold rounded-xl transition-all w-full sm:w-auto text-xs"
+             >
+               {loading && savingType === 'draft' ? (
+                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+               ) : (
+                 <FileText className="h-4 w-4 mr-2" />
+               )}
+               <span className="whitespace-nowrap">SAVE DRAFT</span>
+             </Button>
+             <Button 
+               onClick={() => internalOnSave(true)} 
+               disabled={loading} 
+               className="h-11 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl shadow-lg shadow-indigo-100 w-full sm:w-auto text-xs"
+             >
+               {loading && savingType === 'publish' ? (
+                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+               ) : (
+                 <Save className="h-4 w-4 mr-2" />
+               )}
+               <span className="whitespace-nowrap">PUBLISH JOB</span>
              </Button>
           </div>
         </div>
 
+        {/* Preview Modal */}
+        <AnimatePresence>
+          {showPreview && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              >
+                <div className="bg-gray-50 rounded-[40px] shadow-2xl overflow-hidden relative border border-gray-100">
+                  {/* Modal Header/Close */}
+                  <div className="absolute top-6 right-6 z-[110]">
+                    <button 
+                      onClick={() => setShowPreview(false)}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center hover:bg-white/40 transition-colors text-white border border-white/20 shadow-xl"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+
+                  <div className="max-h-[90vh] overflow-y-auto">
+                    {/* Gradient Header Mockup */}
+                    <div className="h-48 bg-gradient-to-r from-indigo-600 to-indigo-900 relative">
+                      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                      <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-gray-50 to-transparent"></div>
+                    </div>
+
+                    <div className="px-6 md:px-12 -mt-24 pb-16 relative z-10">
+                      <div className="flex flex-col lg:flex-row gap-8">
+                        {/* Main Content Area */}
+                        <div className="flex-1 space-y-8">
+                          <Card className="p-8 md:p-12 border-0 shadow-2xl shadow-gray-200/50 bg-white rounded-[32px]">
+                            {/* Header Section */}
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
+                              <div className="flex items-start gap-6">
+                                <div className="w-20 h-20 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-indigo-600 p-2 overflow-hidden shrink-0">
+                                  {companyName?.charAt(0) || 'G'}
+                                </div>
+                                <div className="space-y-2">
+                                  <h1 className="text-3xl font-black text-gray-900 tracking-tighter leading-tight">
+                                    {currentJob.title || 'Your Job Title Here'}
+                                  </h1>
+                                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
+                                    <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-indigo-600" /> {companyName || 'Company Name'}</span>
+                                    <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-indigo-600" /> {currentJob.location || 'Location'}</span>
+                                    {currentJob.salary_range && (
+                                      <span className="flex items-center gap-1.5 text-indigo-600"><Star className="w-4 h-4 fill-indigo-600" /> {currentJob.salary_range}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Badges Bar */}
+                            <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8 overflow-x-auto whitespace-nowrap">
+                              <Badge className="px-4 py-1.5 font-black text-[10px] bg-emerald-50 text-emerald-600 border-emerald-100 uppercase tracking-widest">{currentJob.job_type || 'FULL-TIME'}</Badge>
+                              <Badge className="px-4 py-1.5 font-black text-[10px] bg-indigo-50 text-indigo-600 border-indigo-100 uppercase tracking-widest">{currentJob.experience_level || 'EXPERIENCED'}</Badge>
+                              <Badge className="px-4 py-1.5 font-black text-[10px] bg-amber-50 text-amber-600 border-amber-100 uppercase tracking-widest">URGENT</Badge>
+                              <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> Posted {new Date().toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            {/* Job Description Body */}
+                            <div className="prose prose-slate max-w-none space-y-12">
+                              <section>
+                                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-6">
+                                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                                    <FileText className="w-4 h-4 text-indigo-600" />
+                                  </div> 
+                                  Job Description
+                                </h2>
+                                <div 
+                                  className="text-gray-600 leading-relaxed font-medium whitespace-pre-wrap html-content"
+                                  dangerouslySetInnerHTML={{ __html: currentJob.description || '<p className="text-gray-400 italic">No description provided yet...</p>' }}
+                                />
+                              </section>
+
+                              {currentJob.salary_range && (
+                                <section className="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100">
+                                  <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-4">
+                                    <Zap className="w-6 h-6 text-indigo-600 fill-indigo-600" /> Salary & Benefits
+                                  </h2>
+                                  <p className="text-gray-700 font-medium">
+                                    This position at {companyName} offers a salary of <strong>{currentJob.salary_range}</strong>. Candidates will also be eligible for standard statutory benefits as per company policy.
+                                  </p>
+                                </section>
+                              )}
+
+                              <section className="pt-8 border-t border-gray-100">
+                                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-6">
+                                  <Building2 className="w-6 h-6 text-indigo-600" /> About the Company
+                                </h2>
+                                <div className="text-gray-600 leading-relaxed font-medium">
+                                  {companyName} is a verified employer in the industrial sector. They are looking for dedicated professionals to join their team and contribute to their growth.
+                                </div>
+                              </section>
+                            </div>
+                          </Card>
+                        </div>
+
+                        {/* Sidebar Mockup */}
+                        <aside className="w-full lg:w-[350px] space-y-8">
+                          <Card className="p-8 border-0 shadow-2xl shadow-indigo-100/30 bg-gray-900 text-white rounded-3xl sticky top-8">
+                            <h3 className="text-xl font-black mb-6">Quick Overview</h3>
+                            <div className="space-y-4 mb-10">
+                              <div className="flex items-center justify-between text-sm py-4 border-b border-white/5 font-bold">
+                                <span className="text-gray-400">Salary</span>
+                                <span className="text-indigo-400">{currentJob.salary_range || 'Competitive'}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm py-4 border-b border-white/5 font-bold">
+                                <span className="text-gray-400">Job Type</span>
+                                <span className="text-white">{currentJob.job_type}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm py-4 border-b border-white/5 font-bold">
+                                <span className="text-gray-400">Location</span>
+                                <span className="text-white">{currentJob.location || 'Remote'}</span>
+                              </div>
+                            </div>
+                            
+                            <Button className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-xl shadow-indigo-500/20 pointer-events-none">
+                              APPLY NOW
+                            </Button>
+                          </Card>
+                        </aside>
+                      </div>
+
+                      <div className="mt-12 flex justify-center pb-8">
+                        <Button 
+                          onClick={() => setShowPreview(false)}
+                          className="h-14 px-12 bg-gray-900 text-white font-black rounded-2xl shadow-xl transition-transform hover:scale-105"
+                        >
+                          CLOSE PREVIEW & CONTINUE EDITING
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* SEO Sidebar */}
-        <aside className="w-full xl:w-[450px] space-y-8 sticky top-10">
+        <aside className="w-full lg:w-[380px] shrink-0 space-y-8 sticky top-10">
           <Card className="p-8 bg-gray-900 text-white rounded-[32px] border-0 shadow-2xl shadow-indigo-100">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -796,7 +991,7 @@ STRICT RULES:
                   <Input 
                     className="h-12 pl-11 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:ring-indigo-500/50"
                     placeholder="e.g. CNC Operator Pune"
-                    value={currentJob.focus_keyword}
+                    value={currentJob.focus_keyword || ''}
                     onChange={e => setCurrentJob({...currentJob, focus_keyword: e.target.value})}
                   />
                 </div>
@@ -817,7 +1012,7 @@ STRICT RULES:
                   <Input 
                     className="h-12 pl-11 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:ring-indigo-500/50"
                     placeholder="cnc-operator-pune"
-                    value={currentJob.url_slug}
+                    value={currentJob.url_slug || ''}
                     onChange={e => setCurrentJob({...currentJob, url_slug: e.target.value})}
                   />
                 </div>
@@ -828,7 +1023,7 @@ STRICT RULES:
                 <div className="relative group">
                   <Input 
                     className="h-12 bg-white/5 border-white/10 text-white rounded-xl pr-12 focus:ring-indigo-500/50"
-                    value={currentJob.seo_title}
+                    value={currentJob.seo_title || ''}
                     onChange={e => setCurrentJob({...currentJob, seo_title: e.target.value})}
                   />
                   <span className={cn(
@@ -845,7 +1040,7 @@ STRICT RULES:
                 <div className="relative">
                   <textarea 
                     className="w-full min-h-[100px] bg-white/5 border border-white/10 text-white text-sm p-4 rounded-xl focus:ring-indigo-500/50 outline-none transition-all"
-                    value={currentJob.meta_description}
+                    value={currentJob.meta_description || ''}
                     onChange={e => setCurrentJob({...currentJob, meta_description: e.target.value})}
                   />
                   <span className={cn(
@@ -860,17 +1055,17 @@ STRICT RULES:
           </Card>
 
           <Card className="p-8 bg-white rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/30 overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest whitespace-nowrap">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" /> SEO Checklist
               </h4>
               <Button 
                 onClick={handleFixAllChecklist}
                 disabled={isFixingAll}
-                className="h-8 px-3 text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg uppercase tracking-wider shadow-md shadow-indigo-200"
+                className="h-9 px-4 text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl uppercase tracking-wider shadow-lg shadow-indigo-200 whitespace-nowrap w-full sm:w-auto"
               >
                 {isFixingAll ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-2" />}
-                All Checklist Enhance
+                Auto-Enhance All
               </Button>
             </div>
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">

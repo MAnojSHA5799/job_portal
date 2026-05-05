@@ -44,6 +44,7 @@ interface Company {
   id: string;
   name: string;
   industry: string;
+  career_page_url?: string;
 }
 
 export default function CompanyJobsPage({ params }: { params: Promise<{ id: string }> }) {

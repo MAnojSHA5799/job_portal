@@ -13,11 +13,11 @@ import {
   Building2, 
   Clock, 
   ExternalLink,
-  ChevronRight,
-  MoreVertical,
   CheckCircle2,
   XCircle,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,22 +26,67 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    reviewed: 0,
+    shortlisted: 0
+  });
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+    fetchStats();
+  }, [currentPage, searchQuery]);
+
+  const fetchStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('job_applications')
+        .select('status');
+      
+      if (error) throw error;
+      
+      const counts = (data || []).reduce((acc: any, curr: any) => {
+        acc.total++;
+        if (curr.status === 'pending') acc.pending++;
+        if (curr.status === 'reviewed') acc.reviewed++;
+        if (curr.status === 'accepted') acc.shortlisted++;
+        return acc;
+      }, { total: 0, pending: 0, reviewed: 0, shortlisted: 0 });
+      
+      setStats(counts);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('job_applications')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' });
+
+      if (searchQuery) {
+        query = query.or(`user_name.ilike.%${searchQuery}%,user_email.ilike.%${searchQuery}%,job_title.ilike.%${searchQuery}%,company_name.ilike.%${searchQuery}%`);
+      }
+
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      console.log('Fetched Applications Data:', data);
       setApplications(data || []);
+      setTotalCount(count || 0);
       setError(null);
     } catch (error: any) {
       console.error('Error fetching applications:', error);
@@ -60,20 +105,14 @@ export default function ApplicationsPage() {
 
       if (error) throw error;
       setApplications(applications.map(app => app.id === id ? { ...app, status } : app));
+      fetchStats();
     } catch (error) {
       console.error('Error updating status:', error);
     }
   };
 
-  const filteredApplications = applications.filter(app => {
-    const search = searchQuery.toLowerCase();
-    return (
-      (app.user_name || '').toLowerCase().includes(search) ||
-      (app.user_email || '').toLowerCase().includes(search) ||
-      (app.job_title || '').toLowerCase().includes(search) ||
-      (app.company_name || '').toLowerCase().includes(search)
-    );
-  });
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const filteredApplications = applications; // Already filtered server-side now
 
   return (
     <div className="space-y-8">
@@ -97,7 +136,10 @@ export default function ApplicationsPage() {
               placeholder="Search candidates, jobs..."
               className="pl-10 pr-4 h-11 w-64 rounded-xl border-0 bg-white shadow-sm font-medium text-sm focus:ring-2 focus:ring-primary/20 transition-all"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // Reset to first page on search
+              }}
             />
           </div>
           <Button variant="outline" className="rounded-xl h-11 gap-2">
@@ -109,10 +151,10 @@ export default function ApplicationsPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Total Applications', value: applications.length, color: 'bg-blue-50 text-blue-600' },
-          { label: 'Pending', value: applications.filter(a => a.status === 'pending').length, color: 'bg-amber-50 text-amber-600' },
-          { label: 'Reviewed', value: applications.filter(a => a.status === 'reviewed').length, color: 'bg-indigo-50 text-indigo-600' },
-          { label: 'Shortlisted', value: applications.filter(a => a.status === 'accepted').length, color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Total Applications', value: stats.total, color: 'bg-blue-50 text-blue-600' },
+          { label: 'Pending', value: stats.pending, color: 'bg-amber-50 text-amber-600' },
+          { label: 'Reviewed', value: stats.reviewed, color: 'bg-indigo-50 text-indigo-600' },
+          { label: 'Shortlisted', value: stats.shortlisted, color: 'bg-emerald-50 text-emerald-600' },
         ].map((stat, i) => (
           <Card key={i} className="p-6 border-0 shadow-sm bg-white rounded-[24px]">
              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
@@ -257,6 +299,63 @@ export default function ApplicationsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && totalCount > itemsPerPage && (
+          <div className="flex items-center justify-between px-6 py-6 border-t border-gray-50 bg-gray-50/30">
+            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Showing <span className="text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="text-gray-900">{Math.min(currentPage * itemsPerPage, totalCount)}</span> of <span className="text-gray-900">{totalCount}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" /> Previous
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Basic pagination logic: show 5 pages around current
+                  let pageNum = i + 1;
+                  if (totalPages > 5 && currentPage > 3) {
+                    pageNum = currentPage - 3 + i + 1;
+                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        "w-10 h-10 rounded-xl text-xs font-black transition-all",
+                        currentPage === pageNum 
+                          ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                          : "bg-white text-gray-400 hover:bg-gray-50 border border-transparent hover:border-gray-100"
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
