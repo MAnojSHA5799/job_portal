@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 import { supabase } from '@/lib/supabase';
+import { enhanceCompanySEO } from '@/lib/seo-enhancer';
 
 interface Company {
   id?: string;
@@ -119,6 +120,7 @@ export function CompanyForm({
     }
   };
 
+
   const handleAIFix = async (check: SEOCheck) => {
     setFixingCheckId(check.id);
     try {
@@ -210,135 +212,20 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
   const handleFixAllChecklist = async () => {
     setIsFixingAll(true);
     try {
-      const focusKeyword = currentCompany.focus_keyword || generateFocusKeyword(currentCompany.name, currentCompany.location);
-
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: `You are an ELITE SEO copywriter. Generate a perfectly optimized company profile for Gethyrd.in.
-Return ONLY valid JSON.
-
-RULES:
-1. "focus_keyword": Use exactly '${focusKeyword}'.
-2. "seo_title": 50-60 chars. Start with '${focusKeyword}'.
-3. "meta_description": 130-160 chars. Include '${focusKeyword}'. End with 'View on Gethyrd.in.'
-4. "url_slug": Hyphenated, no stop words.
-5. "description": HTML format. MIN 1000 words. MUST FOLLOW ALL CHECKLIST RULES:
-    - <h1> with '${focusKeyword}'.
-    - 3+ <h2> tags.
-    - TOC section with header "<h2>Table of Contents</h2>".
-    - FAQ section with 3+ questions.
-    - 2 internal links to /jobs.
-    - <img> with alt="${focusKeyword} logo".
-    - 1.2% Keyword Density (repeat 12-15 times).
-    - Paragraphs max 2 sentences.`
-            },
-            {
-              role: 'user',
-              content: `Company: ${currentCompany.name}, Industry: ${currentCompany.industry}, Location: ${currentCompany.location}, Raw Description: ${currentCompany.description}`
-            }
-          ]
-        })
-      });
-      
-      const data = await response.json();
-      const aiResponse = JSON.parse(data.choices[0].message.content);
-      
-      let finalDescription = aiResponse.description || aiResponse.content_html || '';
-
-      // Power Fixer
-      if (!finalDescription.includes('Table of Contents')) {
-        finalDescription = `<h2>Table of Contents</h2><ul><li><a href="#about">About ${currentCompany.name}</a></li><li><a href="#culture">Our Culture</a></li><li><a href="#jobs">Current Openings</a></li></ul>` + finalDescription;
-      }
-      if (!finalDescription.includes('<img')) {
-        finalDescription += `<br/><img src="${currentCompany.logo_url || '/logo.png'}" alt="${focusKeyword} logo" style="max-width:200px;" />`;
-      }
-
-      // Programmatic Trimming
-      let finalSeoTitle = aiResponse.seo_title || '';
-      if (finalSeoTitle.length > 60) finalSeoTitle = finalSeoTitle.substring(0, 60);
-      if (finalSeoTitle.length < 50) finalSeoTitle = (finalSeoTitle + " - Leading Company in " + currentCompany.location).substring(0, 60);
-      
-      let finalMeta = aiResponse.meta_description || '';
-      if (finalMeta.length > 160) finalMeta = finalMeta.substring(0, 160);
-      if (finalMeta.length < 130) finalMeta = (finalMeta + " Explore our company culture, values, and latest job opportunities on Gethyrd.in. Join our growing team today!").substring(0, 160);
-
-      const finalSlug = focusKeyword.toLowerCase().replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+      const enhanced = await enhanceCompanySEO(currentCompany);
 
       setCurrentCompany(prev => ({
         ...prev,
-        focus_keyword: focusKeyword,
-        seo_title: finalSeoTitle,
-        meta_description: finalMeta,
-        url_slug: finalSlug,
-        description: finalDescription
+        focus_keyword: enhanced.focus_keyword,
+        seo_title: enhanced.seo_title,
+        meta_description: enhanced.meta_description,
+        url_slug: enhanced.url_slug,
+        description: enhanced.description,
+        seo_score: enhanced.seo_score
       }));
-
-      // Iterative Loop
-      let retryCount = 0;
-      const MAX_RETRIES = 2;
-      while (retryCount < MAX_RETRIES) {
-        const currentScore = calculateSEOScore({
-          ...currentCompany,
-          title: currentCompany.name,
-          seo_title: finalSeoTitle,
-          meta_description: finalMeta,
-          description: finalDescription,
-          focus_keyword: focusKeyword,
-          url_slug: finalSlug,
-          location: currentCompany.location
-        });
-
-        const failed = currentScore.checks.filter(c => !c.passed && c.autoFixAvailable);
-        if (failed.length === 0) break;
-
-        for (const check of failed) {
-           if (check.category === 'title') {
-             const fRes = await fetch('/api/openai', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company SEO title: ${check.name}. ${check.message}. Target 50-60 chars. Return only the title.` }, { role: 'user', content: finalSeoTitle }] })
-             });
-             const fData = await fRes.json();
-             finalSeoTitle = fData.choices[0].message.content.trim();
-           } else if (check.category === 'meta') {
-             const fRes = await fetch('/api/openai', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company meta description: ${check.name}. ${check.message}. Target 130-160 chars. Return only the meta.` }, { role: 'user', content: finalMeta }] })
-             });
-             const fData = await fRes.json();
-             finalMeta = fData.choices[0].message.content.trim();
-           } else if (check.category === 'content') {
-             const fRes = await fetch('/api/openai', {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: `Fix company description issue: ${check.name}. ${check.message}. Return only the updated HTML.` }, { role: 'user', content: finalDescription }] })
-             });
-             const fData = await fRes.json();
-             finalDescription = fData.choices[0].message.content.replace(/```html|```/g, '').trim();
-           }
-        }
-        retryCount++;
-      }
-
-      setCurrentCompany(prev => ({
-        ...prev,
-        seo_title: finalSeoTitle,
-        meta_description: finalMeta,
-        description: finalDescription
-      }));
-
     } catch (error) {
       console.error('All Checklist Enhance Error:', error);
+      alert('Failed to enhance checklist.');
     } finally {
       setIsFixingAll(false);
     }
@@ -348,43 +235,25 @@ RULES:
     if (!currentCompany.description) return;
     setIsEnhancing(true);
     try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: `Optimize company description for SEO. Return JSON { "seo_title", "meta_description", "url_slug", "content_html", "focus_keyword" }. MIN 1000 words.`
-            },
-            {
-              role: 'user',
-              content: `Company: ${currentCompany.name}, Raw Description: ${currentCompany.description}, Focus Keyword: ${currentCompany.focus_keyword}`
-            }
-          ]
-        })
-      });
-      const data = await response.json();
-      const aiResponse = JSON.parse(data.choices[0].message.content);
+      const enhanced = await enhanceCompanySEO(currentCompany);
       
       setCurrentCompany({ 
         ...currentCompany, 
-        seo_title: aiResponse.seo_title,
-        meta_description: aiResponse.meta_description,
-        url_slug: aiResponse.url_slug?.replace('/companies/', ''),
-        description: aiResponse.content_html || aiResponse.content
+        focus_keyword: enhanced.focus_keyword,
+        seo_title: enhanced.seo_title,
+        meta_description: enhanced.meta_description,
+        url_slug: enhanced.url_slug,
+        description: enhanced.description,
+        seo_score: enhanced.seo_score
       });
     } catch (error) {
       console.error('Enhance Error:', error);
-      alert('Failed to parse AI response.');
+      alert('Failed to enhance description.');
     } finally {
       setIsEnhancing(false);
     }
   };
+
 
   const internalOnSave = () => {
     if (!currentCompany.name || !currentCompany.description) {
@@ -627,6 +496,17 @@ RULES:
                 </div>
               </div>
             </div>
+
+            <div className="pt-4 mt-6 border-t border-white/10">
+              <Button 
+                onClick={handleFixAllChecklist}
+                disabled={isFixingAll}
+                className="h-12 w-full text-[12px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl uppercase tracking-wider shadow-lg shadow-indigo-500/20"
+              >
+                {isFixingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                Full SEO Optimization
+              </Button>
+            </div>
           </Card>
 
           <Card className="p-8 bg-white rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/30 overflow-hidden">
@@ -634,14 +514,6 @@ RULES:
               <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" /> SEO Checklist
               </h4>
-              <Button 
-                onClick={handleFixAllChecklist}
-                disabled={isFixingAll}
-                className="h-8 px-3 text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg uppercase tracking-wider shadow-md shadow-indigo-200"
-              >
-                {isFixingAll ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-2" />}
-                All Checklist Enhance
-              </Button>
             </div>
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {seoReport.checks.map((check) => (
@@ -675,6 +547,7 @@ RULES:
               ))}
             </div>
           </Card>
+
         </aside>
       </div>
     </Card>

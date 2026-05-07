@@ -29,6 +29,7 @@ import {
   X
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
+import { enhanceJobSEO } from '@/lib/seo-enhancer';
 
 interface Company {
   id: string;
@@ -122,6 +123,7 @@ export function JobForm({
     if (!location) return title || '';
     return `${title} ${location.split(',')[0]}`.trim();
   };
+
 
   const handleAIFix = async (check: SEOCheck) => {
     setFixingCheckId(check.id);
@@ -231,169 +233,23 @@ Instructions:
   const handleFixAllChecklist = async () => {
     setIsFixingAll(true);
     try {
-      const focusKeyword = currentJob.focus_keyword || generateFocusKeyword(currentJob.title, currentJob.location);
+      const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+      const companyData = currentJob.company_id === 'new' 
+        ? { name: currentJob.new_company_name } 
+        : selectedCompany || { name: 'Gethyrd' };
 
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: `You are an ELITE SEO copywriter. Generate a perfectly optimized job posting for Gethyrd.in.
-Target Score: 100/100.
-Return ONLY a valid JSON object.
-
-CRITICAL RULES (ABSOLUTE TRUTH):
-1. "focus_keyword": Use exactly '${focusKeyword}'.
-2. "seo_title": Length MUST BE 50-60 chars. Start with '${focusKeyword}'. Include ONE power word (Urgent, Top, Verified, Exclusive) AND ONE sentiment word (Best, Exciting, Rewarding, Great) AND a number (e.g., "10+ openings", "₹15L salary").
-3. "meta_description": Length MUST BE 130-160 chars. Include '${focusKeyword}'. Mention salary. End EXACTLY with 'Apply now on Gethyrd.in.'
-4. "url_slug": Lowercase, hyphenated. MUST be exactly '${focusKeyword.toLowerCase().replace(/\s+/g, '-')}' but remove stop words (in, at, for, the, and, a, an).
-5. "description": HTML format. MIN 1000 words. MUST FOLLOW ALL CHECKLIST RULES:
-    - MUST include an <h1> tag containing exactly '${focusKeyword}'.
-    - MUST include exactly 3+ <h2> tags.
-    - At least one <h2> or <h3> MUST contain '${focusKeyword}'.
-    - MUST include a section with header "<h2>Table of Contents</h2>" and a <ul> list.
-    - MUST include a "Frequently Asked Questions" (FAQ) section with 3+ relevant questions.
-    - MUST include exactly 2 internal links: <a href="/jobs">View All Jobs</a> and <a href="/">Back to Home</a>.
-    - MUST include 1 external link to an industry authority or company site.
-    - MUST include an <img> tag with alt="${focusKeyword} logo".
-    - Achieve 1.2% Keyword Density: Repeat '${focusKeyword}' naturally 12-15 times.
-    - Each paragraph MUST BE strictly 1-2 sentences only.
-    - Ensure '${focusKeyword}' appears in the first 100 words of the text.
-    - If content is short, EXPAND it with sections for: Job Overview, Role Responsibilities, Skill Requirements, and Benefits.`
-            },
-            {
-              role: 'user',
-              content: `Job Title: ${currentJob.title}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}, Location: ${currentJob.location}, Salary: ${currentJob.salary_range || 'Competitive'}, Raw Description: ${currentJob.description}`
-            }
-          ]
-        })
-      });
-      
-      const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
-      
-      const aiResponse = JSON.parse(data.choices[0].message.content);
-      
-      let finalDescription = aiResponse.description || aiResponse.content_html || '';
-
-      // POWER FIXER: Programmatically ensure missing SEO elements are present
-      if (!finalDescription.includes('Table of Contents')) {
-        finalDescription = `<h2>Table of Contents</h2><ul><li><a href="#overview">Role Overview</a></li><li><a href="#requirements">Requirements</a></li><li><a href="#apply">How to Apply</a></li></ul>` + finalDescription;
-      }
-      
-      if (!finalDescription.includes('<img')) {
-        finalDescription += `<br/><img src="/logo.png" alt="${focusKeyword} logo" style="max-width:200px;" />`;
-      }
-
-      if (!finalDescription.includes('FAQ') && !finalDescription.includes('Frequently Asked Questions')) {
-        finalDescription += `<h3>Frequently Asked Questions</h3><p><strong>Is this a full-time role?</strong> Yes, this is a ${currentJob.job_type || 'Full-time'} position.</p><p><strong>Where is it located?</strong> The job is based in ${currentJob.location}.</p>`;
-      }
-
-      // Keyword Density Booster: Append a small summary section if needed
-      finalDescription += `<div style="margin-top:40px; border-top:1px solid #eee; padding-top:20px; color:#666; font-size:12px;">
-        <p>Seeking a <strong>${focusKeyword}</strong>? This <strong>${focusKeyword}</strong> role in <strong>${currentJob.location}</strong> is perfect for those looking for a <strong>${focusKeyword}</strong> career. Apply now for this <strong>${focusKeyword}</strong> opportunity.</p>
-      </div>`;
-
-      // Programmatic cleanup for title and meta
-      let finalSeoTitle = aiResponse.seo_title || '';
-      if (finalSeoTitle.length > 60) {
-        finalSeoTitle = finalSeoTitle.split('|')[0].split('-')[0].trim();
-        if (finalSeoTitle.length > 60) finalSeoTitle = finalSeoTitle.substring(0, 60);
-      }
-      if (finalSeoTitle.length < 50) finalSeoTitle = (finalSeoTitle + " - Apply Now on Gethyrd").substring(0, 60);
-      
-      let finalMeta = aiResponse.meta_description || '';
-      if (finalMeta.length > 160) finalMeta = finalMeta.substring(0, 157) + '...';
-      if (finalMeta.length < 130) finalMeta = (finalMeta + " View full job details and salary information for this position on Gethyrd.in today. Apply now!").substring(0, 160);
+      const enhanced = await enhanceJobSEO(currentJob, companyData);
 
       setCurrentJob(prev => ({
         ...prev,
-        focus_keyword: aiResponse.focus_keyword || focusKeyword,
-        seo_title: finalSeoTitle,
-        meta_description: finalMeta,
-        url_slug: focusKeyword.toLowerCase().replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
-        description: finalDescription,
-        content_html: finalDescription
+        focus_keyword: enhanced.focus_keyword,
+        seo_title: enhanced.seo_title,
+        meta_description: enhanced.meta_description,
+        url_slug: enhanced.url_slug,
+        description: enhanced.content_html,
+        content_html: enhanced.content_html,
+        seo_score: enhanced.seo_score
       }));
-
-      // ITERATIVE FIXING: Automatically fix any remaining issues
-      let retryCount = 0;
-      const MAX_RETRIES = 3;
-
-      while (retryCount < MAX_RETRIES) {
-        // Re-calculate score with latest data
-        const currentScore = calculateSEOScore({
-          ...currentJob,
-          seo_title: finalSeoTitle,
-          meta_description: finalMeta,
-          description: finalDescription,
-          content_html: finalDescription,
-          focus_keyword: aiResponse.focus_keyword || focusKeyword,
-          url_slug: focusKeyword.toLowerCase().replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
-        });
-
-        const failedChecks = currentScore.checks.filter(c => !c.passed && c.autoFixAvailable);
-        
-        if (failedChecks.length === 0) break;
-
-        console.log(`Iterative Fix Round ${retryCount + 1}: Fixing ${failedChecks.length} items.`);
-        
-        for (const check of failedChecks) {
-          // Internal fix logic for each check
-          if (check.category === 'title') {
-            const fixResponse = await fetch('/api/openai', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'system', content: `Fix this SEO title: ${check.name}. ${check.message}. Target 50-60 chars. Return only the title.` }, { role: 'user', content: finalSeoTitle }]
-              })
-            });
-            const fixData = await fixResponse.json();
-            finalSeoTitle = fixData.choices[0].message.content.replace(/"/g, '').trim();
-          } else if (check.category === 'meta') {
-            const fixResponse = await fetch('/api/openai', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'system', content: `Fix this meta description: ${check.name}. ${check.message}. Target 130-160 chars. Return only the meta.` }, { role: 'user', content: finalMeta }]
-              })
-            });
-            const fixData = await fixResponse.json();
-            finalMeta = fixData.choices[0].message.content.replace(/"/g, '').trim();
-          } else if (check.category === 'content') {
-            const fixResponse = await fetch('/api/openai', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'system', content: `Fix this HTML content issue: ${check.name}. ${check.message}. Return only the updated HTML.` }, { role: 'user', content: finalDescription }]
-              })
-            });
-            const fixData = await fixResponse.json();
-            finalDescription = fixData.choices[0].message.content.replace(/```html|```/g, '').trim();
-          }
-        }
-
-        retryCount++;
-      }
-
-      // Final update after all iterations
-      setCurrentJob(prev => ({
-        ...prev,
-        seo_title: finalSeoTitle,
-        meta_description: finalMeta,
-        description: finalDescription,
-        content_html: finalDescription
-      }));
-
     } catch (error) {
       console.error('All Checklist Enhance Error:', error);
       alert('Failed to enhance checklist. Please try again.');
@@ -406,68 +262,31 @@ CRITICAL RULES (ABSOLUTE TRUTH):
     if (!currentJob.description) return;
     setIsEnhancing(true);
     try {
-      const response = await fetch('/api/openai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert SEO copywriter for Gethyrd.in. Return a JSON object. 
-STRICT RULES:
-1. Return ONLY valid JSON.
-2. Total word count in content_html: 1000-1,200 words.
-3. Focus Keyword: [KEYWORD]. Achievement 1.2% density (repeat keyword 12 times).
-4. MUST include header "<h2>Table of Contents</h2>".
-5. MUST include <img alt="[KEYWORD] logo" />.
-6. Output JSON schema: { 
-    "seo_title": "string (50-60 chars)", 
-    "meta_description": "string (130-160 chars)", 
-    "url_slug": "string", 
-    "content_html": "string (HTML format)", 
-    "focus_keyword": "string" 
-}`
-            },
-            {
-              role: 'user',
-              content: `Job Title: ${currentJob.title}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || 'Gethyrd'}, Location: ${currentJob.location}, Salary: ${currentJob.salary_range || 'Competitive'}, Experience: ${currentJob.experience_level}, Raw Description: ${currentJob.description}, Focus Keyword: ${currentJob.focus_keyword}`
-            }
-          ]
-        })
-      });
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error.message || 'OpenAI API Error');
-      }
+      const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+      const companyData = currentJob.company_id === 'new' 
+        ? { name: currentJob.new_company_name } 
+        : selectedCompany || { name: 'Gethyrd' };
 
-      if (!data.choices || !data.choices[0]) {
-        throw new Error('No response from AI. Please check your API key and quota.');
-      }
-
-      const aiResponse = JSON.parse(data.choices[0].message.content);
+      const enhanced = await enhanceJobSEO(currentJob, companyData);
       
-      // Update the job with all AI generated SEO data
       setCurrentJob({ 
         ...currentJob, 
-        focus_keyword: aiResponse.focus_keyword || currentJob.focus_keyword,
-        seo_title: aiResponse.seo_title,
-        meta_description: aiResponse.meta_description,
-        url_slug: aiResponse.url_slug?.replace('/jobs/', ''),
-        description: aiResponse.content_html || aiResponse.content,
-        content_html: aiResponse.content_html
+        focus_keyword: enhanced.focus_keyword,
+        seo_title: enhanced.seo_title,
+        meta_description: enhanced.meta_description,
+        url_slug: enhanced.url_slug,
+        description: enhanced.content_html,
+        content_html: enhanced.content_html,
+        seo_score: enhanced.seo_score
       });
     } catch (error) {
       console.error('Enhance Error:', error);
-      alert('Failed to parse AI response. Please try again.');
+      alert('Failed to enhance description. Please try again.');
     } finally {
       setIsEnhancing(false);
     }
   };
+
 
   const internalOnSave = (isApproved: boolean) => {
     if (!currentJob.title || (!currentJob.company_id && !currentJob.new_company_name) || !currentJob.description || !currentJob.location) {
@@ -1052,6 +871,17 @@ STRICT RULES:
                 </div>
               </div>
             </div>
+
+            <div className="pt-4 mt-6 border-t border-white/10">
+              <Button 
+                onClick={handleFixAllChecklist}
+                disabled={isFixingAll}
+                className="h-12 w-full text-[12px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl uppercase tracking-wider shadow-lg shadow-indigo-500/20"
+              >
+                {isFixingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                Full SEO Optimization
+              </Button>
+            </div>
           </Card>
 
           <Card className="p-8 bg-white rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/30 overflow-hidden">
@@ -1059,14 +889,6 @@ STRICT RULES:
               <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest whitespace-nowrap">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" /> SEO Checklist
               </h4>
-              <Button 
-                onClick={handleFixAllChecklist}
-                disabled={isFixingAll}
-                className="h-9 px-4 text-[10px] font-black text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl uppercase tracking-wider shadow-lg shadow-indigo-200 whitespace-nowrap w-full sm:w-auto"
-              >
-                {isFixingAll ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-2" />}
-                Auto-Enhance All
-              </Button>
             </div>
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {seoReport.checks.map((check) => (
@@ -1100,6 +922,7 @@ STRICT RULES:
               ))}
             </div>
           </Card>
+
         </aside>
       </div>
     </Card>

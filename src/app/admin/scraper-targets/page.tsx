@@ -508,60 +508,10 @@ export default function ScraperTargetsManagement() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
         
-        {/* Left Col: Forms to Add URLs */}
-        <div className="space-y-6">
-          <Card className="p-6 bg-white border-0 shadow-sm border-t-4 border-t-primary">
-            <h3 className="font-black text-gray-900 text-lg mb-4 flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" /> New Discovery Target
-            </h3>
-            <form onSubmit={handleAddSingle} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</label>
-                <Input 
-                  placeholder="e.g. Google" 
-                  value={singleName}
-                  onChange={(e) => setSingleName(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Career URL</label>
-                <Input 
-                  placeholder="https://careers.google.com..." 
-                  value={singleUrl}
-                  onChange={(e) => setSingleUrl(e.target.value)}
-                  autoComplete="off"
-                />
-              </div>
-              <Button type="submit" loading={addingSingle} className="w-full h-11 bg-indigo-600 font-bold">
-                Save Target
-              </Button>
-            </form>
-          </Card>
-
-          <Card className="p-6 bg-white border-0 shadow-sm border-t-4 border-t-secondary">
-            <h3 className="font-black text-gray-900 text-lg mb-4 flex items-center gap-2">
-              <AlignLeft className="h-5 w-5 text-secondary" /> Bulk Upload URLs
-            </h3>
-            <form onSubmit={handleBulkAdd} className="space-y-4">
-              <p className="text-xs text-gray-500">Paste multiple URLs separated by commas or new lines.</p>
-              <Textarea 
-                placeholder="https://careers.ibm.com&#10;https://careers.google.com" 
-                value={bulkUrls}
-                onChange={(e) => setBulkUrls(e.target.value)}
-                className="h-32 text-xs"
-              />
-              <Button type="submit" variant="secondary" loading={addingBulk} className="w-full">
-                <Upload className="h-4 w-4 mr-2" /> Bulk Insert
-              </Button>
-            </form>
-          </Card>
-        </div>
-
-        {/* Right Col: List of URLs */}
-        <div className="lg:col-span-2">
+        {/* Left Col: List of URLs (Table) - Priority 1 */}
+        <div className="lg:col-span-2 order-1">
           <Card className="p-0 bg-white border-0 shadow-sm min-h-[500px] overflow-hidden">
             <div className="p-6 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white">
               <div className="flex items-center gap-2">
@@ -701,6 +651,57 @@ export default function ScraperTargetsManagement() {
             )}
           </Card>
         </div>
+
+        {/* Right Col: Forms to Add URLs - Priority 2 */}
+        <div className="space-y-6 order-2">
+          <Card className="p-6 bg-white border-0 shadow-sm border-t-4 border-t-indigo-600">
+            <h3 className="font-black text-gray-900 text-lg mb-4 flex items-center gap-2">
+              <Plus className="h-5 w-5 text-indigo-600" /> New Discovery Target
+            </h3>
+            <form onSubmit={handleAddSingle} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Company Name</label>
+                <Input 
+                  placeholder="e.g. Google" 
+                  value={singleName}
+                  onChange={(e) => setSingleName(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Career URL</label>
+                <Input 
+                  placeholder="https://careers.google.com..." 
+                  value={singleUrl}
+                  onChange={(e) => setSingleUrl(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" loading={addingSingle} className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 font-bold transition-all shadow-md shadow-indigo-100">
+                Save Target
+              </Button>
+            </form>
+          </Card>
+
+          <Card className="p-6 bg-white border-0 shadow-sm border-t-4 border-t-purple-600">
+            <h3 className="font-black text-gray-900 text-lg mb-4 flex items-center gap-2">
+              <AlignLeft className="h-5 w-5 text-purple-600" /> Bulk Upload URLs
+            </h3>
+            <form onSubmit={handleBulkAdd} className="space-y-4">
+              <p className="text-xs text-gray-500">Paste multiple URLs separated by commas or new lines.</p>
+              <Textarea 
+                placeholder="https://careers.ibm.com&#10;https://careers.google.com" 
+                value={bulkUrls}
+                onChange={(e) => setBulkUrls(e.target.value)}
+                className="h-32 text-xs focus:ring-purple-500 focus:border-purple-500"
+              />
+              <Button type="submit" variant="secondary" loading={addingBulk} className="w-full font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 border-none">
+                <Upload className="h-4 w-4 mr-2" /> Bulk Insert
+              </Button>
+            </form>
+          </Card>
+        </div>
+
       </div>
     </div>
   );
