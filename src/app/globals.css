@@ -4,16 +4,17 @@
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   
-  --color-primary: #4F46E5;
-  --color-primary-dark: #3730A3;
-  --color-primary-light: #818CF8;
-  --color-secondary: #10B981;
-  --color-accent: #F59E0B;
-  --color-danger: #EF4444;
-  --color-background-gray: #F9FAFB;
+  --color-primary: #4f46e5;
+  --color-primary-dark: #4338ca;
+  --color-primary-light: #6366f1;
+  --color-secondary: #0ea5e9;
+  --color-accent: #f59e0b;
+  --color-danger: #ef4444;
+  --color-background-gray: #f8fafc;
   
-  --radius-xl: 12px;
-  --radius-lg: 10px;
+  --radius-2xl: 24px;
+  --radius-xl: 16px;
+  --radius-lg: 12px;
   --radius-md: 8px;
 
   @keyframes scroll {
@@ -29,13 +30,13 @@
 }
 
 :root {
-  --background: #F9FAFB;
-  --foreground: #111827;
-  --primary: #4F46E5;
-  --primary-glow: rgba(79, 70, 229, 0.15);
-  --secondary: #10B981;
-  --accent: #F59E0B;
-  --danger: #EF4444;
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --primary: #4f46e5;
+  --primary-glow: rgba(79, 70, 229, 0.1);
+  --secondary: #0ea5e9;
+  --accent: #f59e0b;
+  --danger: #ef4444;
 }
 
 body {
@@ -70,11 +71,11 @@ body {
 }
 
 .animate-scroll {
-  animation: scroll 30s linear infinite;
+  animation: scroll 5s linear infinite;
 }
 
 .animate-infinite-scroll {
-  animation: scroll 30s linear infinite;
+  animation: scroll 5s linear infinite;
 }
 
 .animate-float {

@@ -14,7 +14,9 @@ import {
   HelpCircle,
   Mail,
   Globe,
-  Star
+  Star,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -23,6 +25,7 @@ import { Banner } from '@/components/Banner';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   };
 
   const navigation = [
-    { name: 'Find Jobs', href: '/jobs' },
+    { name: 'Find Jobs', href: '/jobs', hasDropdown: true },
     { name: 'Companies', href: '/companies' },
     { name: 'Salary Intel', href: '/salary' },
     { name: 'ATS Score', href: '/ats-score' },
@@ -52,68 +55,110 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     { name: 'Contact', href: '/contact' },
   ];
 
+  const jobsDropdownItems = {
+    left: [
+      { name: 'Work From Home Jobs', href: '/jobs/wfh' },
+      { name: 'Part Time Jobs', href: '/jobs/part-time' },
+      { name: 'Freshers Jobs', href: '/jobs/freshers' },
+      { name: 'Jobs for women', href: '/jobs/women' },
+      { name: 'Full Time Jobs', href: '/jobs/full-time' },
+      { name: 'Night Shift Jobs', href: '/jobs/night-shift' },
+    ],
+    right: [
+      { name: 'Jobs By City', href: '/jobs/city' },
+      { name: 'Jobs By Department', href: '/jobs/department' },
+      { name: 'Jobs By Company', href: '/jobs/company' },
+      { name: 'Jobs By Qualification', href: '/jobs/qualification' },
+      { name: 'Others', href: '/jobs/others' },
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Navigation */}
-      <nav className="sticky top-0 bg-white/70 backdrop-blur-xl z-50 border-b border-gray-100/50 shadow-sm transition-all">
+      <nav className="sticky top-0 bg-white z-50 border-b border-gray-100 shadow-sm" onMouseLeave={() => setJobsDropdownOpen(false)}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20 items-center">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-10">
-              <Link href="/" className="flex items-center gap-3 group">
-                <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 group-hover:shadow-md transition-all">
-                  <img src="/lo.jpeg" alt="JobPortal" className="h-8 w-auto object-contain" />
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="p-1 rounded-lg transition-all">
+                  <img src="/lo.jpeg" alt="JobPortal" className="h-9 w-auto object-contain" />
                 </div>
+                <span className="text-xl font-bold text-primary tracking-tight">JobPortal</span>
               </Link>
               
               <div className="hidden lg:flex items-center gap-8">
                 {navigation.map((item) => (
-                  <Link 
-                    key={item.href} 
-                    href={item.href}
-                    className="text-sm font-bold text-gray-500 hover:text-primary transition-all relative after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full"
-                  >
-                    {item.name}
-                  </Link>
+                  <div key={item.name} className="relative group/nav py-5" onMouseEnter={() => item.hasDropdown && setJobsDropdownOpen(true)}>
+                    <Link 
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-1 text-sm font-semibold transition-all",
+                        item.hasDropdown && jobsDropdownOpen ? "text-primary" : "text-gray-600 hover:text-primary"
+                      )}
+                    >
+                      {item.name}
+                      {item.hasDropdown && <ChevronDown className={cn("w-4 h-4 transition-transform", jobsDropdownOpen && "rotate-180")} />}
+                    </Link>
+
+                    {item.hasDropdown && jobsDropdownOpen && (
+                      <div className="absolute top-full left-0 w-[500px] bg-white border border-gray-100 rounded-b-2xl shadow-xl z-50 flex overflow-hidden">
+                        <div className="flex-1 py-4">
+                           {jobsDropdownItems.left.map((subItem) => (
+                             <Link 
+                               key={subItem.name} 
+                               href={subItem.href}
+                               className="block px-8 py-3 text-sm font-medium text-gray-500 hover:text-primary hover:bg-gray-50 transition-all"
+                             >
+                               {subItem.name}
+                             </Link>
+                           ))}
+                        </div>
+                        <div className="w-px bg-gray-100 my-4" />
+                        <div className="flex-1 py-4">
+                           {jobsDropdownItems.right.map((subItem) => (
+                             <Link 
+                               key={subItem.name} 
+                               href={subItem.href}
+                               className="flex items-center justify-between px-8 py-3 text-sm font-medium text-gray-500 hover:text-primary hover:bg-gray-50 transition-all group"
+                             >
+                               {subItem.name}
+                               <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                             </Link>
+                           ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="hidden lg:flex items-center gap-6">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-primary transition-colors" />
-                <input 
-                  type="text" 
-                  placeholder="Job title, company..." 
-                  className="pl-9 pr-4 py-2 bg-gray-50 border border-transparent focus:border-primary/20 focus:bg-white focus:ring-4 focus:ring-primary/5 rounded-xl text-sm font-medium w-64 transition-all outline-none"
-                />
-              </div>
               <div className="flex items-center gap-3">
                 {user ? (
                   <>
-                    <div className="flex items-center gap-3 bg-gray-50 p-1.5 pr-4 rounded-xl border border-gray-100 hover:border-primary/20 transition-all cursor-pointer">
-                      <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-black text-xs">
+                    <div className="flex items-center gap-3 bg-gray-50 p-1.5 pr-4 rounded-full border border-gray-100 hover:border-primary/20 transition-all cursor-pointer">
+                      <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs shadow-sm">
                         {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                       </div>
-                      <span className="text-xs font-bold text-gray-700">{user.fullName || 'User'}</span>
+                      <span className="text-xs font-semibold text-gray-700">{user.fullName || 'User'}</span>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={handleLogout} className="font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 h-10 px-4 rounded-xl transition-all">
+                    <Button variant="ghost" size="sm" onClick={handleLogout} className="font-bold text-gray-500 hover:text-red-500 hover:bg-red-50 h-9 px-4 rounded-xl transition-all">
                       Log Out
                     </Button>
                   </>
                 ) : (
                   <>
                     <Link href="/login">
-                      <Button variant="ghost" size="sm" className="font-bold text-gray-600 hover:text-primary hover:bg-primary/5 px-4 h-10 rounded-xl">
-                          Sign In
+                      <Button variant="ghost" size="sm" className="font-bold text-gray-600 hover:text-primary px-4 h-9 rounded-lg">
+                          Login
                       </Button>
                     </Link>
                     <Link href="/register">
-                      <div className="flex items-center gap-1 bg-primary text-white p-1 pr-1.5 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
-                        <div className="bg-white/20 p-1 rounded-full">
-                          <UserPlus className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm font-bold px-2">Post a Job</span>
-                      </div>
+                      <Button size="sm" className="bg-primary text-white font-bold px-6 h-9 rounded-lg shadow-md hover:shadow-lg transition-all">
+                        Post a Job
+                      </Button>
                     </Link>
                   </>
                 )}
@@ -124,7 +169,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             <div className="lg:hidden flex items-center">
               <button 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 text-gray-500 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                className="p-2 text-gray-500 hover:text-primary rounded-lg transition-colors"
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
@@ -134,35 +179,70 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-8 space-y-4 shadow-xl">
+          <div className="lg:hidden bg-white border-b border-gray-100 px-4 py-6 space-y-4 max-h-[80vh] overflow-y-auto">
              {navigation.map((item) => (
-                <Link 
-                  key={item.href} 
-                  href={item.href}
-                  className="block text-lg font-bold text-gray-900 hover:text-primary transition-colors py-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
+                <div key={item.name}>
+                  <div 
+                    className="flex items-center justify-between text-base font-semibold text-gray-700 hover:text-primary transition-colors py-2 cursor-pointer"
+                    onClick={() => {
+                      if (item.hasDropdown) {
+                        setJobsDropdownOpen(!jobsDropdownOpen);
+                      } else {
+                        setMobileMenuOpen(false);
+                        window.location.href = item.href;
+                      }
+                    }}
+                  >
+                    <span>{item.name}</span>
+                    {item.hasDropdown && <ChevronDown className={cn("w-4 h-4 transition-transform", jobsDropdownOpen && "rotate-180")} />}
+                  </div>
+
+                  {item.hasDropdown && jobsDropdownOpen && (
+                    <div className="pl-4 mt-2 space-y-2 border-l-2 border-gray-50">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-4">Browse by Type</div>
+                      {jobsDropdownItems.left.map((subItem) => (
+                        <Link 
+                          key={subItem.name} 
+                          href={subItem.href}
+                          className="block py-2 text-sm text-gray-600 hover:text-primary"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-6">Browse by Category</div>
+                      {jobsDropdownItems.right.map((subItem) => (
+                        <Link 
+                          key={subItem.name} 
+                          href={subItem.href}
+                          className="block py-2 text-sm text-gray-600 hover:text-primary"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
-              <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
+              <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
                 {user ? (
                    <>
-                     <div className="flex items-center gap-3 px-4 py-3 mb-2 bg-gray-50 rounded-xl border border-gray-100">
-                       <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xl shadow-inner">
+                     <div className="flex items-center gap-3 px-4 py-2 mb-2 bg-gray-50 rounded-xl">
+                       <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
                          {user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
                        </div>
-                       <span className="font-black text-gray-900 text-lg">{user.fullName || 'User'}</span>
+                       <span className="font-bold text-gray-900">{user.fullName || 'User'}</span>
                      </div>
-                     <Button variant="outline" onClick={handleLogout} className="w-full h-12 rounded-xl font-bold text-base hover:bg-red-50 hover:text-red-600 hover:border-red-200">Log Out</Button>
+                     <Button variant="outline" onClick={handleLogout} className="w-full h-11 rounded-xl">Log Out</Button>
                    </>
                 ) : (
                   <>
                     <Link href="/login" className="w-full">
-                       <Button variant="outline" className="w-full h-12 rounded-xl font-bold text-base">Sign In</Button>
+                       <Button variant="outline" className="w-full h-11 rounded-xl">Login</Button>
                     </Link>
                     <Link href="/register" className="w-full">
-                       <Button className="w-full h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/20">Post a Job</Button>
+                       <Button className="w-full h-11 rounded-xl">Post a Job</Button>
                     </Link>
                   </>
                 )}
@@ -180,91 +260,72 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
       </main>
 
       {/* Footer Redesign */}
-      <footer className="bg-[#0A0A1F] text-gray-400 pt-24 pb-12 mt-auto">
+      <footer className="bg-gray-50 border-t border-gray-100 pt-20 pb-12 mt-auto text-gray-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
                 
-                <div className="lg:col-span-3 space-y-6">
-                    <Link href="/" className="flex items-center gap-3">
-                        <div className="bg-white p-2.5 rounded-2xl shadow-xl shadow-primary/10">
-                          <img src="/lo.jpeg" alt="JobPortal" className="h-8 w-auto object-contain" />
-                        </div>
-                        <span className="text-2xl font-black text-white tracking-tighter">JobPortal</span>
+                <div className="lg:col-span-4 space-y-6">
+                    <Link href="/" className="flex items-center gap-2">
+                        <img src="/lo.jpeg" alt="JobPortal" className="h-10 w-auto object-contain" />
+                        <span className="text-2xl font-bold text-primary tracking-tight">JobPortal</span>
                     </Link>
-                    <p className="text-gray-400 leading-relaxed text-sm">
-                        Connecting great talent with amazing opportunities across the globe. We build tools that make hiring and job seeking effortless.
+                    <p className="text-gray-500 leading-relaxed text-sm max-w-sm">
+                        India's leading job portal. Helping millions find their dream jobs and helping companies hire the best talent.
                     </p>
                     <div className="flex items-center gap-4">
-                        <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-white/10 hover:border-primary">
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                          </svg>
-                        </a>
-                        <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-white/10 hover:border-primary">
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                            <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                          </svg>
-                        </a>
-                        <a href="#" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-primary hover:text-white transition-all border border-white/10 hover:border-primary">
-                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                          </svg>
-                        </a>
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Connect with us</span>
+                        <div className="flex gap-3">
+                          {/* Social Icons simplified */}
+                          {[1,2,3,4].map(i => <div key={i} className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:text-primary hover:border-primary transition-all cursor-pointer"><Globe className="w-4 h-4" /></div>)}
+                        </div>
                     </div>
                 </div>
 
                 <div className="lg:col-span-2">
-                    <h4 className="font-bold text-white mb-8 text-sm uppercase tracking-wider">Platform</h4>
-                    <ul className="space-y-4 text-sm font-medium">
-                        <li><Link href="/jobs" className="hover:text-primary transition-colors">Find Jobs</Link></li>
-                        <li><Link href="/companies" className="hover:text-primary transition-colors">Browse Companies</Link></li>
-                        <li><Link href="/salary" className="hover:text-primary transition-colors">Salary Insights</Link></li>
-                        <li><Link href="/ats-score" className="hover:text-primary transition-colors">ATS Score</Link></li>
-                        <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
-                        <li><Link href="/contact" className="hover:text-primary transition-colors">Contact</Link></li>
+                    <h4 className="font-bold text-gray-900 mb-6 text-sm">Jobs by City</h4>
+                    <ul className="space-y-3 text-sm">
+                        {['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'].map(city => (
+                          <li key={city}><Link href={`/jobs-in/${city.toLowerCase().replace(' ', '-')}`} className="hover:text-primary transition-colors">Jobs in {city}</Link></li>
+                        ))}
                     </ul>
                 </div>
 
                 <div className="lg:col-span-2">
-                    <h4 className="font-bold text-white mb-8 text-sm uppercase tracking-wider">Company</h4>
-                    <ul className="space-y-4 text-sm font-medium">
-                        <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-                        <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Support</Link></li>
+                    <h4 className="font-bold text-gray-900 mb-6 text-sm">Popular Jobs</h4>
+                    <ul className="space-y-3 text-sm">
+                        {['Work From Home', 'Part Time', 'Freshers', 'Full Time', 'Night Shift'].map(type => (
+                          <li key={type}><Link href={`/jobs/${type.toLowerCase().replace(' ', '-')}`} className="hover:text-primary transition-colors">{type} Jobs</Link></li>
+                        ))}
+                    </ul>
+                </div>
+
+                <div className="lg:col-span-2">
+                    <h4 className="font-bold text-gray-900 mb-6 text-sm">Platform</h4>
+                    <ul className="space-y-3 text-sm">
+                        <li><Link href="/companies" className="hover:text-primary transition-colors">Companies</Link></li>
+                        <li><Link href="/salary" className="hover:text-primary transition-colors">Salary Intel</Link></li>
+                        <li><Link href="/ats-score" className="hover:text-primary transition-colors">ATS Score</Link></li>
+                        <li><Link href="/blog" className="hover:text-primary transition-colors">Career Blog</Link></li>
+                        <li><Link href="/contact" className="hover:text-primary transition-colors">Contact Us</Link></li>
+                    </ul>
+                </div>
+
+                <div className="lg:col-span-2">
+                    <h4 className="font-bold text-gray-900 mb-6 text-sm">Legal</h4>
+                    <ul className="space-y-3 text-sm">
                         <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
                         <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                        <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
                     </ul>
-                </div>
-
-                <div className="lg:col-span-2">
-                    <h4 className="font-bold text-white mb-8 text-sm uppercase tracking-wider">Resources</h4>
-                    <ul className="space-y-4 text-sm font-medium">
-                        <li><Link href="#" className="hover:text-primary transition-colors">Career Tips</Link></li>
-                        <li><Link href="#" className="hover:text-primary transition-colors">Resume Builder</Link></li>
-                        <li><Link href="#" className="hover:text-primary transition-colors">Interview Guide</Link></li>
-                        <li><Link href="#" className="hover:text-primary transition-colors">Help Center</Link></li>
-                    </ul>
-                </div>
-
-                <div className="lg:col-span-3">
-                    <h4 className="font-bold text-white mb-8 text-sm uppercase tracking-wider">Newsletter</h4>
-                    <div className="space-y-4">
-                      <p className="text-xs text-gray-400">Get job alerts and career tips straight to your inbox.</p>
-                      <div className="flex flex-col gap-3">
-                          <Input placeholder="Enter email address" className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 h-11 rounded-xl focus:bg-white/10" />
-                          <Button className="w-full h-11 rounded-xl shadow-lg shadow-primary/20 font-bold">Subscribe</Button>
-                      </div>
-                    </div>
                 </div>
             </div>
             
-            <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
-                <p className="text-sm font-medium text-gray-500">
-                    &copy; {new Date().getFullYear()} JobPortal Inc. All rights reserved.
+            <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-6">
+                <p className="text-xs font-medium text-gray-400">
+                    &copy; {new Date().getFullYear()} JobPortal. All rights reserved. Made for professional growth.
                 </p>
-                <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
-                  <span className="flex items-center gap-2 cursor-pointer hover:text-white transition-all">
-                    <Globe className="w-4 h-4" /> English (US) <X className="w-3 h-3 rotate-45" />
-                  </span>
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                    <Star className="w-3 h-3 text-accent fill-accent" /> 4.8/5 Rating on App Store
                 </div>
             </div>
         </div>

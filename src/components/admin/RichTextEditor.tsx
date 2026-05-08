@@ -289,7 +289,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
           margin-bottom: 1rem !important;
         }
         .tiptap-content a {
-          color: #4F46E5 !important;
+          color: #4f46e5 !important;
           text-decoration: underline !important;
         }
         .tiptap-content table {

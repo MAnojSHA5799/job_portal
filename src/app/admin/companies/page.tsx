@@ -138,6 +138,21 @@ export default function CompaniesManagement() {
     }
   };
 
+  const handleUpdateLogo = async (id: string, logoUrl: string) => {
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({ logo_url: logoUrl })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setCompanies(prev => prev.map(c => c.id === id ? { ...c, logo_url: logoUrl } : c));
+    } catch (error: any) {
+      alert('Error updating logo: ' + error.message);
+    }
+  };
+
   const filteredCompanies = companies.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.industry?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -281,7 +296,16 @@ export default function CompaniesManagement() {
                           </div>
                       </div>
 
-                      <div className="pt-4 border-t border-gray-50">
+                      <div className="pt-4 border-t border-gray-50 space-y-3">
+                        <div>
+                          <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Logo URL</label>
+                          <Input 
+                            defaultValue={company.logo_url || ''} 
+                            onBlur={(e) => handleUpdateLogo(company.id, e.target.value)}
+                            className="h-8 text-[10px] font-bold border-gray-100 bg-gray-50/50 rounded-lg focus:bg-white transition-all"
+                            placeholder="https://..."
+                          />
+                        </div>
                         <p className="text-[10px] text-gray-400 leading-relaxed line-clamp-2 font-medium">
                           {company.description || "Edit profile to add a synopsis of mission."}
                         </p>
