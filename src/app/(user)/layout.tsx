@@ -20,13 +20,18 @@ import {
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
-
+import { supabase } from '@/lib/supabase';
 import { Banner } from '@/components/Banner';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
+  const [navData, setNavData] = useState<{ cities: string[], categories: string[], types: string[] }>({ 
+    cities: ['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'], 
+    categories: ['IT', 'Sales', 'Marketing', 'Accounting', 'Production'],
+    types: ['Full Time', 'Part Time', 'Contract', 'Remote', 'Freshers']
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -38,6 +43,40 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         console.error("Failed to parse user from local storage", e);
       }
     }
+
+    const fetchNavData = async () => {
+      try {
+        const { data } = await supabase
+          .from('jobs')
+          .select('location, category, job_type')
+          .eq('is_approved', true)
+          .limit(300);
+
+        if (data && data.length > 0) {
+          const uniqueCities = Array.from(new Set(data.map(j => j.location?.split(',')[0].trim())))
+            .filter(Boolean)
+            .slice(0, 6);
+          
+          const uniqueCats = Array.from(new Set(data.map(j => j.category)))
+            .filter(Boolean)
+            .slice(0, 6);
+
+          const uniqueTypes = Array.from(new Set(data.map(j => j.job_type)))
+            .filter(Boolean)
+            .slice(0, 6);
+
+          setNavData({
+            cities: uniqueCities.length > 0 ? uniqueCities : navData.cities,
+            categories: uniqueCats.length > 0 ? uniqueCats : navData.categories,
+            types: uniqueTypes.length > 0 ? uniqueTypes : navData.types
+          });
+        }
+      } catch (error) {
+        console.error("Navigation data fetch error:", error);
+      }
+    };
+
+    fetchNavData();
   }, []);
 
   const handleLogout = () => {
@@ -49,28 +88,21 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const navigation = [
     { name: 'Find Jobs', href: '/jobs', hasDropdown: true },
     { name: 'Companies', href: '/companies' },
-    { name: 'Salary Intel', href: '/salary' },
+    // { name: 'Salary Intel', href: '/salary' },
     { name: 'ATS Score', href: '/ats-score' },
     { name: 'Blog', href: '/blog' },
     { name: 'Contact', href: '/contact' },
   ];
 
   const jobsDropdownItems = {
-    left: [
-      { name: 'Work From Home Jobs', href: '/jobs/wfh' },
-      { name: 'Part Time Jobs', href: '/jobs/part-time' },
-      { name: 'Freshers Jobs', href: '/jobs/freshers' },
-      { name: 'Jobs for women', href: '/jobs/women' },
-      { name: 'Full Time Jobs', href: '/jobs/full-time' },
-      { name: 'Night Shift Jobs', href: '/jobs/night-shift' },
-    ],
-    right: [
-      { name: 'Jobs By City', href: '/jobs/city' },
-      { name: 'Jobs By Department', href: '/jobs/department' },
-      { name: 'Jobs By Company', href: '/jobs/company' },
-      { name: 'Jobs By Qualification', href: '/jobs/qualification' },
-      { name: 'Others', href: '/jobs/others' },
-    ]
+    left: navData.types.map(type => ({
+      name: `${type} Jobs`,
+      href: `/jobs/${type.toLowerCase().replace(/\s+/g, '-')}`
+    })),
+    right: navData.categories.map(cat => ({
+      name: `Jobs in ${cat}`,
+      href: `/jobs/${cat.toLowerCase().replace(/\s+/g, '-')}`
+    }))
   };
 
   return (
@@ -284,8 +316,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <div className="lg:col-span-2">
                     <h4 className="font-bold text-gray-900 mb-6 text-sm">Jobs by City</h4>
                     <ul className="space-y-3 text-sm">
-                        {['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'].map(city => (
-                          <li key={city}><Link href={`/jobs-in/${city.toLowerCase().replace(' ', '-')}`} className="hover:text-primary transition-colors">Jobs in {city}</Link></li>
+                        {navData.cities.map(city => (
+                          <li key={city}><Link href={`/jobs-in/${city.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-primary transition-colors">Jobs in {city}</Link></li>
                         ))}
                     </ul>
                 </div>
@@ -293,8 +325,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <div className="lg:col-span-2">
                     <h4 className="font-bold text-gray-900 mb-6 text-sm">Popular Jobs</h4>
                     <ul className="space-y-3 text-sm">
-                        {['Work From Home', 'Part Time', 'Freshers', 'Full Time', 'Night Shift'].map(type => (
-                          <li key={type}><Link href={`/jobs/${type.toLowerCase().replace(' ', '-')}`} className="hover:text-primary transition-colors">{type} Jobs</Link></li>
+                        {navData.categories.map(cat => (
+                          <li key={cat}><Link href={`/jobs/${cat.toLowerCase().replace(/\s+/g, '-')}`} className="hover:text-primary transition-colors">{cat} Jobs</Link></li>
                         ))}
                     </ul>
                 </div>

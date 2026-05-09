@@ -154,41 +154,61 @@ export default function CompaniesDirectory() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
                   >
-                      <Card className="p-8 hover:shadow-2xl hover:shadow-primary/5 border-0 shadow-sm transition-all group group overflow-hidden bg-white">
-                          <div className="flex justify-between items-start mb-8">
-                              <Link href={`/company/${company.url_slug || company.id}`} className="w-16 h-16 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-primary p-2 group-hover:bg-primary group-hover:text-white transition-all transform group-hover:rotate-6 overflow-hidden">
-                                  {company.logo_url ? (
-                                    <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    company.name[0]
-                                  )}
-                              </Link>
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-accent/5 text-accent border border-accent/10">
-                                  <Star className="h-3.5 w-3.5 fill-accent" /> <span className="font-bold text-xs">{company.rating || '4.5'}</span>
+                      <Card className="p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group rounded-[32px] bg-white overflow-hidden relative">
+                          {/* Rating Badge Top Right */}
+                          <div className="absolute top-6 right-6 z-10">
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
+                                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> 
+                                  <span className="font-bold text-xs">{company.rating || '4.5'}</span>
                               </div>
                           </div>
 
-                          <Link href={`/company/${company.url_slug || company.id}`}>
-                              <h3 className="text-2xl font-black text-gray-900 mb-2 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer">
-                                  {company.name}
-                              </h3>
-                          </Link>
-                          <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-8">{company.industry}</p>
-                          
-                          <div className="space-y-4 mb-10 pb-10 border-b border-gray-50 font-medium">
-                              <div className="flex items-center text-gray-500 gap-3 text-sm">
-                                  <MapPin className="h-4 w-4" /> {company.location || 'Remote'}
+                          <div className="flex flex-col h-full">
+                              {/* Logo Section */}
+                              <div className="mb-6">
+                                  <div className="w-20 h-20 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100 flex items-center justify-center p-2 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                                      {company.logo_url ? (
+                                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center font-black text-primary text-3xl bg-indigo-50">
+                                            {company.name[0]}
+                                        </div>
+                                      )}
+                                  </div>
                               </div>
-                              <div className="flex items-center text-gray-500 gap-3 text-sm">
-                                  <Briefcase className="h-4 w-4" /> {company.jobs?.[0]?.count || 0} Active Jobs
+
+                              {/* Info Section */}
+                              <div className="flex-grow space-y-4">
+                                  <div>
+                                      <Link href={`/company/${company.url_slug || company.id}`}>
+                                          <h3 className="text-2xl font-black text-gray-900 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer inline-flex items-center gap-2">
+                                              {company.name}
+                                          </h3>
+                                      </Link>
+                                      <p className="text-sm font-bold text-gray-400 mt-1 flex items-center gap-2 italic">
+                                         <Briefcase className="w-3.5 h-3.5" /> {company.industry}
+                                      </p>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-4 py-4 border-t border-gray-50 mt-4">
+                                      <div className="flex items-center text-gray-500 gap-2 text-xs font-bold bg-gray-50 px-3 py-2 rounded-xl">
+                                          <MapPin className="h-4 w-4 text-primary/60" /> {company.location || 'Remote'}
+                                      </div>
+                                      <div className="flex items-center text-primary gap-2 text-xs font-black bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
+                                          <TrendingUp className="h-4 w-4" /> {company.jobs?.[0]?.count || 0} Openings
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {/* Footer Action */}
+                              <div className="mt-6">
+                                  <Link href={`/company/${company.url_slug || company.id}`}>
+                                      <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl bg-white border-2 border-gray-100 text-gray-900 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
+                                          Explore Careers <ArrowRight className="h-4 w-4" />
+                                      </Button>
+                                  </Link>
                               </div>
                           </div>
-
-                          <Link href={`/company/${company.url_slug || company.id}`}>
-                              <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl group-hover:shadow-lg transition-all group-hover:shadow-primary/20">
-                                  View Careers <ArrowRight className="h-4 w-4 ml-2" />
-                              </Button>
-                          </Link>
                       </Card>
                   </motion.div>
               ))}

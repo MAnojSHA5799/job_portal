@@ -15,11 +15,11 @@ export interface SEOCheck {
 
 export const POWER_WORDS = [
   'Urgent', 'Immediate', 'Certified', 'Top', 'Genuine', 'Verified', 
-  'Leading', 'Exclusive', 'Direct', 'Rewarding', 'Promising', 'Fast-Track'
+  'Leading', 'Direct', 'Rewarding'
 ];
 
 export const SENTIMENT_WORDS = [
-  'Best', 'Exciting', 'Rewarding', 'Proven', 'Amazing', 'Great', 'Easy'
+  'Best', 'Exciting', 'Rewarding', 'Proven', 'Amazing', 'Great', 'Easy', 'Top', 'Urgent'
 ];
 
 export function calculateSEOScore(job: any): SEOResult {
@@ -50,13 +50,13 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: false
   });
 
-  const keywordInTitleStart = hasKeyword && title.toLowerCase().split(/\s+/).slice(0, 3).some((w: string) => focusKeyword.toLowerCase().includes(w.toLowerCase()));
+  const keywordInTitleStart = hasKeyword && title.toLowerCase().startsWith(focusKeyword.toLowerCase().split(' ')[0]);
   checks.push({
     id: 2,
-    name: 'Keyword in SEO Title (first 3 words)',
+    name: 'Keyword in SEO Title (Starts with Keyword)',
     points: 5,
     passed: keywordInTitleStart,
-    message: keywordInTitleStart ? 'Keyword is at the start of title.' : 'Keyword not in title start. Click Fix to regenerate title.',
+    message: keywordInTitleStart ? 'Title starts with focus keyword.' : 'Keyword is not at the start of title. Click Fix.',
     category: 'title',
     autoFixAvailable: true
   });
@@ -233,10 +233,10 @@ export function calculateSEOScore(job: any): SEOResult {
   // 5. Content Rules (35 pts)
   checks.push({
     id: 21,
-    name: 'Word count 600-2,500',
+    name: 'Word count 900-1,200',
     points: 9,
-    passed: wordCount >= 600 && wordCount <= 2500,
-    message: `Content is ${wordCount} words. Target 600-2,500.`,
+    passed: wordCount >= 900 && wordCount <= 1200,
+    message: `Content is ${wordCount} words. Target 900-1,200.`,
     category: 'content',
     autoFixAvailable: true
   });
@@ -253,12 +253,18 @@ export function calculateSEOScore(job: any): SEOResult {
   });
 
   const h2Count = (content.match(/<h2/g) || []).length;
+  const hasHeadingHierarchy = content.includes('Key Responsibilities') && 
+                             content.includes('Required Skills') && 
+                             content.includes('Salary Range') && 
+                             content.includes('Qualifications & Experience') &&
+                             content.includes('Frequently Asked Questions');
+  
   checks.push({
     id: 23,
-    name: 'H2 structure present (min 3)',
+    name: 'Standard Heading Hierarchy',
     points: 3,
-    passed: h2Count >= 3,
-    message: h2Count >= 3 ? `${h2Count} H2 headings found.` : `Less than 3 H2 headings found. Click Fix.`,
+    passed: h2Count >= 5 && hasHeadingHierarchy,
+    message: hasHeadingHierarchy ? 'Heading structure matches standards.' : 'Heading structure does not match the required hierarchy. Click Fix.',
     category: 'content',
     autoFixAvailable: true
   });
@@ -318,13 +324,19 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasFAQ = content.toLowerCase().includes('faq') || content.toLowerCase().includes('frequently asked questions');
+  const faqCount = (content.match(/<h3[^>]*>.*?<\/h3>/gi) || []).filter((h: string) => 
+    h.toLowerCase().includes('?') || 
+    h.toLowerCase().includes('what') || 
+    h.toLowerCase().includes('how') || 
+    h.toLowerCase().includes('why')
+  ).length;
+
   checks.push({
     id: 28,
-    name: 'FAQ section present (min 2)',
+    name: 'FAQ section present (min 4 questions)',
     points: 3,
-    passed: hasFAQ,
-    message: hasFAQ ? 'FAQ section found.' : 'No FAQ section. Click Fix to generate FAQ from content.',
+    passed: faqCount >= 4,
+    message: faqCount >= 4 ? `${faqCount} FAQ questions found.` : `Found ${faqCount} FAQs. Target is 4+ questions. Click Fix.`,
     category: 'content',
     autoFixAvailable: true
   });

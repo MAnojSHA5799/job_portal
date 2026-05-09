@@ -145,7 +145,7 @@ export default async function LocationPage({ params }: Props) {
                    {jobs.map((job) => (
                      <Card key={job.id} className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white group rounded-[32px] overflow-hidden">
                        <div className="flex flex-col md:flex-row gap-8">
-                         <div className="w-20 h-20 rounded-3xl bg-gray-50 flex items-center justify-center text-3xl font-black text-indigo-600 border border-gray-100 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0 overflow-hidden shadow-sm">
+                         <div className="w-20 h-20 rounded-3xl bg-white flex items-center justify-center text-3xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 overflow-hidden shadow-sm p-2">
                            {job.companies?.logo_url ? (
                              <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
                            ) : (

@@ -11,6 +11,10 @@ import {
   ChevronDown, 
   Star, 
   Clock, 
+  Banknote,
+  Bike,
+  Languages,
+  ChevronRight,
   DollarSign,
   Grid,
   List,
@@ -30,6 +34,7 @@ interface Job {
   category: string;
   created_at: string;
   apply_link: string;
+  experience_level?: string;
   companies: {
     id: string;
     name: string;
@@ -233,79 +238,68 @@ export default function JobListingPage() {
                 <p className="text-gray-500">Try adjusting your filters or search terms.</p>
               </div>
             ) : (
-              <div className={viewMode === 'list' ? 'space-y-6' : 'grid grid-cols-1 md:grid-cols-2 gap-6'}>
+              <div className={viewMode === 'list' ? 'space-y-4 max-w-4xl' : 'grid grid-cols-1 md:grid-cols-2 gap-6'}>
                 {jobs.map((job) => (
                   <motion.div
                     key={job.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                   >
-                    <Card className={`p-6 border-0 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group overflow-hidden bg-white ${viewMode === 'list' ? 'flex flex-col md:flex-row md:items-center justify-between gap-6' : ''}`}>
-                      <div className="flex items-start gap-6">
-                          <Link href={`/jobs/${job.url_slug || job.id}`} className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-xl font-black text-gray-900 border border-gray-100 group-hover:bg-primary group-hover:text-white transition-all shadow-sm shrink-0 overflow-hidden">
-                              {job.companies?.logo_url ? (
-                                <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-cover" />
-                              ) : (
-                                job.companies?.name?.charAt(0) || 'J'
-                              )}
-                          </Link>
-                          <div className="space-y-2">
-                             <div className="flex flex-wrap items-center gap-2">
-                                <Link href={`/jobs/${job.url_slug || job.id}`}>
-                                    <h3 className="text-lg md:text-xl font-black text-gray-900 group-hover:text-primary transition-colors cursor-pointer">
-                                        {job.title}
-                                    </h3>
-                                </Link>
-                                {new Date(job.created_at) > new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) && (
-                                  <Badge variant="success" className="h-5 text-[10px]">NEW</Badge>
+                    <Link href={`/jobs/${job.url_slug || job.id}`}>
+                      <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white relative group cursor-pointer">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0">
+                                {job.companies?.logo_url ? (
+                                    <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center font-bold text-primary text-xl bg-indigo-50">
+                                        {job.companies?.name?.charAt(0) || 'J'}
+                                    </div>
                                 )}
-                             </div>
-                             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
-                                <Link href={`/company/${job.companies?.url_slug || job.companies?.id}`} className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                                   <Briefcase className="w-4 h-4" /> {job.companies?.name}
-                                </Link>
-                                <span className="flex items-center gap-1.5">
-                                   <MapPin className="w-4 h-4" /> {job.location}
-                                </span>
-                                {job.salary_range && (
-                                  <span className="flex items-center gap-1.5 text-primary">
-                                     <Star className="w-4 h-4 fill-primary" /> {job.salary_range}
-                                  </span>
-                                )}
-                             </div>
-                             <div className="flex flex-wrap gap-2 pt-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-                                   {job.category}
-                                </span>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-0.5 rounded border border-gray-100">
-                                   {job.job_type}
-                                </span>
-                             </div>
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight">
+                                    {job.title}
+                                </h3>
+                                <p className="text-sm text-gray-500 font-semibold">{job.companies?.name}</p>
+                            </div>
                           </div>
-                      </div>
+                          <ChevronRight className="w-6 h-6 text-[#006d5b] shrink-0" />
+                        </div>
 
-                      <div className={`flex items-center justify-between gap-6 pt-6 md:pt-0 border-t md:border-t-0 border-gray-50 ${viewMode === 'list' ? 'md:flex-col md:items-end md:justify-center' : ''}`}>
-                          <div className="flex flex-col md:items-end gap-1">
-                              <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> {new Date(job.created_at).toLocaleDateString()}
-                              </span>
-                              <span className="text-[10px] font-black text-secondary tracking-widest uppercase">Verified Employer</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <Link href={`/jobs/${job.url_slug || job.id}`}>
-                                <Button variant="outline" className="font-bold border-2 rounded-xl h-10 px-4">View</Button>
-                            </Link>
-                            <ApplyButton 
-                              jobId={job.id}
-                              jobTitle={job.title}
-                              companyId={job.companies?.id}
-                              companyName={job.companies?.name}
-                              applyLink={job.apply_link || '#'}
-                              className="h-10 text-xs px-8 rounded-xl"
-                            />
-                          </div>
-                      </div>
-                    </Card>
+                        <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-gray-500">
+                                <MapPin className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-semibold">{job.location || 'India'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-gray-500">
+                                <Banknote className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-semibold">{job.salary_range || 'Not disclosed'}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 pt-2">
+                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                               <Bike className="w-3.5 h-3.5 text-gray-400" /> Field Job
+                           </div>
+                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                               <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">P</div>
+                               Part Time
+                           </div>
+                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                               <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">F</div>
+                               Full Time
+                           </div>
+                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                               <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {job.experience_level || 'Any experience'}
+                           </div>
+                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                               <Languages className="w-3.5 h-3.5 text-gray-400" /> No English R
+                           </div>
+                        </div>
+                      </Card>
+                    </Link>
                   </motion.div>
                 ))}
               </div>

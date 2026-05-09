@@ -1,5 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { Card, Badge, Button } from '@/components/ui';
 import { 
@@ -11,12 +12,21 @@ import {
   ChevronRight, 
   Zap, 
   Star,
-  Building2,
-  ExternalLink,
+  HandshakeIcon,
+  Flame,
+  CheckCircle2,
+  Users2,
+  ShieldCheck,
+  GraduationCap,
+  Users,
+  Smartphone,
+  Bike,
+  Languages,
+  Banknote,
+  Search,
   Info,
-  HelpCircle,
-  TrendingUp,
-  HandshakeIcon
+  Building2,
+  TrendingUp
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
@@ -36,6 +46,7 @@ async function getData(slug: string) {
       .from('jobs')
       .select('*, companies(*)')
       .eq('id', decodedSlug)
+      .eq('is_approved', true)
       .single();
     if (job) return { type: 'job', data: job };
   }
@@ -45,6 +56,7 @@ async function getData(slug: string) {
     .from('jobs')
     .select('*, companies(*)')
     .eq('url_slug', decodedSlug)
+    .eq('is_approved', true)
     .single();
 
   if (jobBySlug) return { type: 'job', data: jobBySlug };
@@ -55,21 +67,23 @@ async function getData(slug: string) {
       .from('jobs')
       .select('*, companies(*)')
       .eq('url_slug', slug)
+      .eq('is_approved', true)
       .single();
     if (jobByOriginalSlug) return { type: 'job', data: jobByOriginalSlug };
   }
 
-  // 3. Try to find by Category
-  const categoryName = decodedSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const { data: categoryJobs } = await supabase
+  // 3. Try to find by Category or Job Type
+  const searchName = decodedSlug.replace(/-/g, ' ');
+  const { data: matchedJobs } = await supabase
     .from('jobs')
     .select('*, companies(*)')
-    .ilike('category', `%${categoryName}%`)
+    .or(`category.ilike.%${searchName}%,job_type.ilike.%${searchName}%,category.ilike.%${decodedSlug}%,job_type.ilike.%${decodedSlug}%`)
     .eq('is_approved', true)
     .limit(20);
 
-  if (categoryJobs && categoryJobs.length > 0) {
-    return { type: 'category', data: categoryJobs, name: categoryName, slug: decodedSlug };
+  if (matchedJobs && matchedJobs.length > 0) {
+    const displayName = searchName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return { type: 'category', data: matchedJobs, name: displayName, slug: decodedSlug };
   }
 
   return null;
@@ -156,158 +170,247 @@ export default async function SlugPage({ params }: Props) {
     };
 
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-[#f8f9fa] min-h-screen pb-12">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-          <a href="/" className="hover:text-primary">Home</a>
+        {/* Simplified Breadcrumb */}
+        <nav className="max-w-3xl mx-auto px-4 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <a href="/" className="hover:text-primary transition-colors">Home</a>
           <ChevronRight className="w-3 h-3" />
-          <a href="/jobs" className="hover:text-primary">Jobs</a>
+          <a href="/jobs" className="hover:text-primary transition-colors">Jobs</a>
           <ChevronRight className="w-3 h-3" />
           <span className="text-gray-900 truncate">{job.title}</span>
         </nav>
 
-        <div className="h-40 bg-gradient-to-r from-indigo-600 to-indigo-900 relative">
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 pb-24 relative z-10">
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="flex-1 space-y-8">
-              <Card className="p-8 md:p-12 border-0 shadow-2xl shadow-gray-200 bg-white rounded-3xl">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                      <div className="flex items-center gap-6">
-                          <div className="w-20 h-20 rounded-[24px] bg-white border border-gray-100 shadow-xl shadow-gray-100 flex items-center justify-center text-3xl font-black text-indigo-600 p-2 overflow-hidden">
-                              {job.companies?.logo_url ? (
-                                  <img 
-                                    src={job.companies.logo_url} 
-                                    alt={`${job.companies.name} ${city} Jobs`} 
-                                    className="w-full h-full object-contain" 
-                                  />
-                              ) : (
-                                  job.companies?.name?.charAt(0) || 'G'
-                              )}
-                          </div>
-                          <div className="space-y-1">
-                              <h1 className="text-3xl font-black text-gray-900 tracking-tighter">
-                                {job.title} Jobs in {city} | {job.companies?.name} Hiring {year}
-                              </h1>
-                              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
-                                  <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> 
-                                    <a href={`/company/${job.companies?.id}`} className="hover:text-indigo-600 underline decoration-indigo-200 decoration-2 underline-offset-4">{job.companies?.name}</a>
-                                  </span>
-                                  <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
-                                  {job.salary_range && (
-                                      <span className="flex items-center gap-1.5 text-indigo-600"><Star className="w-4 h-4 fill-indigo-600" /> {job.salary_range}</span>
-                                  )}
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8 overflow-x-auto whitespace-nowrap">
-                      <Badge className="px-4 py-1.5 font-black text-[10px] bg-emerald-50 text-emerald-600 border-emerald-100">{job.job_type?.toUpperCase() || 'FULL-TIME'}</Badge>
-                      <Badge className="px-4 py-1.5 font-black text-[10px] bg-indigo-50 text-indigo-600 border-indigo-100">{job.experience_level?.toUpperCase() || 'EXPERIENCED'}</Badge>
-                      <Badge className="px-4 py-1.5 font-black text-[10px] bg-amber-50 text-amber-600 border-amber-100">URGENT</Badge>
-                      <span className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Posted {new Date(job.created_at).toLocaleDateString()}
-                      </span>
-                  </div>
-
-                  <div className="prose prose-slate max-w-none space-y-12">
-                      <section>
-                        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-4">
-                            <Info className="w-6 h-6 text-indigo-600" /> Job Description
-                        </h2>
-                        <div 
-                            className="text-gray-600 leading-relaxed font-medium whitespace-pre-wrap html-content"
-                            dangerouslySetInnerHTML={{ __html: job.description }}
-                        />
-                      </section>
-
-                      {job.salary_range && (
-                        <section className="bg-indigo-50 p-8 rounded-3xl border border-indigo-100">
-                            <h2 className="text-xl font-black text-gray-900 flex items-center gap-2 mb-4">
-                                <TrendingUp className="w-6 h-6 text-indigo-600" /> Salary & Benefits
-                            </h2>
-                            <p className="text-gray-700 font-medium">
-                                This position at {job.companies?.name} offers a salary of <strong>{job.salary_range}</strong>. Candidates will also be eligible for standard statutory benefits as per company policy.
-                            </p>
-                        </section>
-                      )}
-
-                      <section>
-                        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-4">
-                            <Building2 className="w-6 h-6 text-indigo-600" /> About the Company
-                        </h2>
-                        <div className="text-gray-600 leading-relaxed font-medium">
-                            {job.companies?.description || `${job.companies?.name} is a verified employer in the ${job.companies?.industry || 'Manufacturing'} sector located in ${job.companies?.location || city}.`}
+        <div className="max-w-3xl mx-auto px-4 space-y-4">
+          {/* Main Summary Card */}
+          <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden">
+             <div className="flex items-start gap-4 mb-4">
+                <div className="w-14 h-14 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0">
+                    {job.companies?.logo_url ? (
+                        <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center font-bold text-primary text-2xl">
+                            {job.companies?.name?.charAt(0) || 'J'}
                         </div>
-                      </section>
+                    )}
+                </div>
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{job.title}</h1>
+                    <p className="text-sm text-gray-500 font-semibold">{job.companies?.name}</p>
+                </div>
+             </div>
 
-                      <section>
-                        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-2 mb-6">
-                            <HelpCircle className="w-6 h-6 text-indigo-600" /> FAQs for {job.title}
-                        </h2>
-                        <div className="space-y-4">
-                            <div className="p-6 bg-gray-50 rounded-2xl">
-                                <h4 className="font-black text-gray-900 mb-2">Where is this job located?</h4>
-                                <p className="text-sm text-gray-600 font-medium">This {job.title} role is based in {job.location}.</p>
-                            </div>
-                            <div className="p-6 bg-gray-50 rounded-2xl">
-                                <h4 className="font-black text-gray-900 mb-2">What is the required experience?</h4>
-                                <p className="text-sm text-gray-600 font-medium">The employer is looking for candidates with {job.experience_level} experience.</p>
-                            </div>
+             <div className="space-y-2 mb-6">
+                <div className="flex items-center gap-2 text-gray-500">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-semibold">{job.location}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-500">
+                    <Banknote className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-semibold">{job.salary_range || 'Not disclosed'}</span>
+                </div>
+             </div>
+
+             {/* Salary Breakdown */}
+             {job.salary_range && (
+                 <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Salary Range</p>
+                            <p className="text-sm font-bold text-gray-700">{job.salary_range}</p>
                         </div>
-                      </section>
-                  </div>
-              </Card>
-
-              {relatedJobs && relatedJobs.length > 0 && (
-                <section className="space-y-6">
-                    <h2 className="text-2xl font-black text-gray-900">More {job.category} Jobs</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {relatedJobs.map((rj) => (
-                            <Card key={rj.id} className="p-6 border-0 shadow-xl shadow-gray-100 bg-white rounded-3xl hover:shadow-indigo-100 transition-all">
-                                <h4 className="font-black text-gray-900 mb-2 line-clamp-1">{rj.title}</h4>
-                                <p className="text-xs text-gray-500 font-bold mb-4">{rj.companies?.name} • {rj.location}</p>
-                                <a href={`/jobs/${rj.url_slug || rj.id}`} className="text-sm font-black text-indigo-600 hover:underline flex items-center gap-1">
-                                    View Job <ChevronRight className="w-4 h-4" />
-                                </a>
-                            </Card>
-                        ))}
+                        <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Employment Type</p>
+                            <p className="text-sm font-bold text-gray-700">{job.job_type || 'Full Time'}</p>
+                        </div>
                     </div>
-                </section>
-              )}
-            </div>
+                 </div>
+             )}
 
-            <aside className="w-full lg:w-[400px] space-y-8">
-                <Card className="p-8 border-0 shadow-2xl shadow-indigo-100 bg-gray-900 text-white sticky top-28 rounded-3xl">
-                    <h3 className="text-lg font-bold mb-2">Apply Now</h3>
-                    <div className="space-y-4 mb-8">
-                       <div className="flex items-center justify-between text-sm py-4 border-b border-white/5 font-bold">
-                          <span className="text-gray-400 flex items-center gap-2">Salary</span>
-                          <span className="text-indigo-400">{job.salary_range || 'As per norms'}</span>
-                       </div>
-                       <div className="flex items-center justify-between text-sm py-4 border-b border-white/5 font-bold">
-                          <span className="text-gray-400 flex items-center gap-2">Type</span>
-                          <span>{job.job_type}</span>
-                       </div>
+             {/* Badges Row */}
+             <div className="flex flex-wrap gap-2 mb-8">
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                    <Bike className="w-3.5 h-3.5 text-gray-400" /> Field Job
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                    <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">P</div>
+                    Part Time
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                    <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">F</div>
+                    Full Time
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                    <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {job.experience_level || 'Any experience'}
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                    <Languages className="w-3.5 h-3.5 text-gray-400" /> No English Req.
+                </div>
+             </div>
+
+             <div className="flex gap-3">
+                <ApplyButton 
+                    jobId={job.id}
+                    jobTitle={job.title}
+                    companyId={job.companies?.id}
+                    companyName={job.companies?.name}
+                    applyLink={job.apply_link || '#'}
+                    className="flex-1 h-12 bg-[#006d5b] hover:bg-[#005a4b] text-white font-bold rounded-xl border-0"
+                />
+                <Button variant="outline" className="h-12 px-6 rounded-xl border-gray-200 text-gray-600 font-bold flex items-center gap-2">
+                    <Share2 className="w-4 h-4" /> Share
+                </Button>
+             </div>
+          </Card>
+
+          {/* Job Highlights Box */}
+          <div className="bg-[#f0f7ff] border border-[#dceaff] rounded-2xl p-6 space-y-6">
+             <h3 className="text-lg font-bold text-gray-900 mb-4">Job highlights</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                <div className="flex items-start gap-3">
+                    <Flame className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-gray-800">Urgently hiring</p>
+                        <p className="text-xs text-gray-500 mt-1">Hiring for immediate joining</p>
                     </div>
-                    
-                    <ApplyButton 
-                      jobId={job.id}
-                      jobTitle={job.title}
-                      companyId={job.companies?.id}
-                      companyName={job.companies?.name}
-                      applyLink={job.apply_link || '#'}
-                    />
-                </Card>
-            </aside>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Zap className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-gray-800">Verified Job</p>
+                        <p className="text-xs text-gray-500 mt-1">Verified by {job.companies?.name}</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-gray-800">Job Benefits</p>
+                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">As per company norms and statutory requirements</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-gray-800">Posted On</p>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(job.created_at).toLocaleDateString()}</p>
+                    </div>
+                </div>
+             </div>
           </div>
+
+          {/* Detailed Sections Card */}
+          <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white space-y-10">
+             {/* Job Description */}
+             <section>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-4">Job Description</h3>
+                <div 
+                    className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: job.description }}
+                />
+             </section>
+
+             {/* Job Role Grid */}
+             <section>
+                <h3 className="text-lg font-bold text-gray-900 mb-6">Job role</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="flex gap-4">
+                        <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Department</p>
+                            <p className="text-sm font-bold text-gray-700">{job.category || 'General'}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <ShieldCheck className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Role / Category</p>
+                            <p className="text-sm font-bold text-gray-700">{job.title}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <Clock className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Employment type</p>
+                            <p className="text-sm font-bold text-gray-700">{job.job_type || 'Full Time'}</p>
+                        </div>
+                    </div>
+                </div>
+             </section>
+
+             {/* Job Requirements Grid */}
+             <section>
+                <h3 className="text-lg font-bold text-gray-900 mb-6">Job requirements</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="flex gap-4">
+                        <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Experience</p>
+                            <p className="text-sm font-bold text-gray-700">{job.experience_level || 'Any experience'}</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <CheckCircle2 className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Education</p>
+                            <p className="text-sm font-bold text-gray-700">Check Job Description</p>
+                        </div>
+                    </div>
+                </div>
+             </section>
+
+             {/* About Company */}
+             <section className="pt-8 border-t border-gray-50">
+                <h3 className="text-lg font-bold text-gray-900 mb-6">About company</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center p-1">
+                            {job.companies?.logo_url ? (
+                                <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                            ) : (
+                                <Building2 className="w-5 h-5 text-gray-400" />
+                            )}
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Name</p>
+                            <p className="text-sm font-bold text-gray-700">{job.companies?.name}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-1" />
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Address</p>
+                            <p className="text-sm font-bold text-gray-700 leading-relaxed">{job.location}, India</p>
+                        </div>
+                    </div>
+                </div>
+             </section>
+
+             <p className="text-xs font-bold text-gray-400 pt-6">Job posted by <span className="text-gray-600">{job.companies?.name}</span></p>
+          </Card>
+
+          {/* Related Jobs - Compact */}
+          {relatedJobs && relatedJobs.length > 0 && (
+            <section className="pt-8 space-y-4">
+                <h3 className="text-lg font-bold text-gray-900 px-1">More {job.category} Jobs</h3>
+                <div className="grid grid-cols-1 gap-4">
+                    {relatedJobs.map((rj) => (
+                        <Link key={rj.id} href={`/jobs/${rj.url_slug || rj.id}`}>
+                            <Card className="p-4 border border-gray-100 shadow-sm bg-white rounded-2xl hover:shadow-md transition-all flex items-center justify-between group">
+                                <div>
+                                    <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{rj.title}</h4>
+                                    <p className="text-xs text-gray-500 font-semibold">{rj.companies?.name} • {rj.location}</p>
+                                </div>
+                                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary" />
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            </section>
+          )}
         </div>
       </div>
     );
@@ -365,7 +468,7 @@ export default async function SlugPage({ params }: Props) {
                         {jobs.map((job: any) => (
                             <Card key={job.id} className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white group rounded-[32px] overflow-hidden">
                                 <div className="flex items-start gap-6">
-                                    <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 p-2">
                                         {job.companies?.logo_url ? (
                                             <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
                                         ) : (

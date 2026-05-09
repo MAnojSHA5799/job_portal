@@ -98,13 +98,25 @@ export default function HomePage() {
     });
   }, [searchQuery, locationQuery, jobs]);
 
-  const popularSearches = [
-    { title: 'Jobs for Freshers', count: categoryCounts['Freshers'] || jobs.filter(j => j.experience?.toLowerCase().includes('fresher')).length, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=256&h=256&fit=crop' },
-    { title: 'Work from home Jobs', count: categoryCounts['Remote'] || jobs.filter(j => j.location?.toLowerCase().includes('remote')).length, image: 'https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=256&h=256&fit=crop' },
-    { title: 'Part time Jobs', count: categoryCounts['Part Time'] || jobs.filter(j => j.type?.toLowerCase().includes('part')).length, image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=256&h=256&fit=crop' },
-    { title: 'Jobs for Women', count: categoryCounts['Women'] || 0, image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=256&h=256&fit=crop' },
-    { title: 'Full time Jobs', count: categoryCounts['Full Time'] || jobs.filter(j => j.type?.toLowerCase().includes('full')).length, image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=256&h=256&fit=crop' },
-  ];
+  const popularCategories = useMemo(() => {
+    // Basic types from job fields
+    const baseTypes = [
+      { title: 'Freshers', count: jobs.filter(j => j.experience?.toLowerCase().includes('fresher')).length, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=256&h=256&fit=crop' },
+      { title: 'Work from home', count: jobs.filter(j => j.location?.toLowerCase().includes('remote')).length, image: 'https://images.unsplash.com/photo-1587560699334-cc4ff634909a?w=256&h=256&fit=crop' },
+      { title: 'Full time', count: jobs.filter(j => j.type?.toLowerCase().includes('full')).length, image: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=256&h=256&fit=crop' },
+    ];
+
+    // Dynamic categories from DB
+    const dbCats = Object.entries(categoryCounts)
+      .filter(([name]) => name !== 'General')
+      .map(([name, count]) => ({
+        title: name,
+        count: count,
+        image: `https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=256&h=256&fit=crop` // Default professional image
+      }));
+
+    return [...baseTypes, ...dbCats].sort((a, b) => b.count - a.count).slice(0, 6);
+  }, [categoryCounts, jobs]);
 
   return (
     <div className="bg-white min-h-screen">
@@ -226,7 +238,7 @@ export default function HomePage() {
                     >
                       <div className="absolute top-0 left-0 w-full h-1 bg-[#4f46e5]" />
                       <p className="text-sm font-bold text-gray-900 mb-6">{job.title}</p>
-                      <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-6 border border-gray-100 overflow-hidden">
+                      <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-6 border border-gray-100 overflow-hidden p-2">
                         {job.companies?.logo_url ? (
                           <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
                         ) : (
@@ -250,19 +262,25 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="flex flex-col lg:flex-row items-start gap-16">
           <div className="w-64 shrink-0 pt-8">
-            <h2 className="text-4xl font-black text-gray-900 leading-tight">Popular Searches on Apna</h2>
+            <h2 className="text-4xl font-black text-gray-900 leading-tight">Popular Job Categories</h2>
+            <p className="text-gray-500 mt-4 font-medium">Explore {totalJobs}+ opportunities by role and type</p>
           </div>
           
           <div className="flex-grow grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularSearches.map((search, i) => (
+            {popularCategories.map((search, i) => (
               <motion.div
                 key={i}
                 whileHover={{ scale: 1.02 }}
-                onClick={() => setSearchQuery(search.title.replace('Jobs for ', '').replace(' Jobs', ''))}
+                onClick={() => setSearchQuery(search.title)}
                 className="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer relative overflow-hidden h-64 flex flex-col justify-between"
               >
                 <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">TRENDING AT #{i+1}</p>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-black text-[#4f46e5] uppercase tracking-widest">TRENDING AT #{i+1}</p>
+                    <span className="px-3 py-1 bg-[#4f46e5]/5 text-[#4f46e5] text-[10px] font-black rounded-full border border-[#4f46e5]/10">
+                      {search.count} JOBS
+                    </span>
+                  </div>
                   <h3 className="text-xl font-bold text-gray-900 max-w-[150px]">{search.title}</h3>
                 </div>
                 
@@ -310,7 +328,7 @@ export default function HomePage() {
                     <Card className="p-6 rounded-2xl hover:shadow-xl transition-all border border-gray-100 bg-white group h-full flex flex-col justify-between">
                         <div>
                             <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 p-2">
+                                <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-100 p-2">
                                     {job.companies?.logo_url ? (
                                         <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
                                     ) : (
@@ -342,18 +360,25 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <div className="pt-4 border-t border-gray-50 flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest shrink-0">
                                 {new Date(job.created_at).toLocaleDateString()}
                             </span>
-                            <ApplyButton 
-                                jobId={job.id}
-                                jobTitle={job.title}
-                                companyId={job.companies?.id}
-                                companyName={job.companies?.name}
-                                applyLink={job.apply_link || '#'}
-                                className="h-9 px-6 rounded-lg font-bold"
-                            />
+                            <div className="flex items-center gap-2">
+                                <Link href={`/jobs/${job.url_slug || job.id}`}>
+                                    <Button variant="outline" className="h-9 px-4 rounded-lg font-bold text-xs border-gray-200 hover:bg-gray-50 transition-colors">
+                                        View
+                                    </Button>
+                                </Link>
+                                <ApplyButton 
+                                    jobId={job.id}
+                                    jobTitle={job.title}
+                                    companyId={job.companies?.id}
+                                    companyName={job.companies?.name}
+                                    applyLink={job.apply_link || '#'}
+                                    className="h-9 px-4 rounded-lg font-bold text-xs"
+                                />
+                            </div>
                         </div>
                     </Card>
                   </motion.div>
