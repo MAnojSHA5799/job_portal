@@ -10,7 +10,12 @@ import {
   Star,
   Coins,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Filter,
+  Globe,
+  Settings2,
+  Languages,
+  Wrench
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,7 +33,12 @@ const BRANDS = [
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
-  const [experienceQuery, setExperienceQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedType, setSelectedType] = useState('');
+  const [selectedSalary, setSelectedSalary] = useState('');
+  const [selectedExperience, setSelectedExperience] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('');
   
   const [jobs, setJobs] = useState<any[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
@@ -94,9 +104,18 @@ export default function HomePage() {
       const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            companyName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLocation = job.location?.toLowerCase().includes(locationQuery.toLowerCase());
-      return matchesSearch && matchesLocation;
+      const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
+      const matchesType = selectedType ? job.job_type === selectedType : true;
+      const matchesExperience = selectedExperience ? job.experience_level === selectedExperience : true;
+      
+      // Salary filter logic (basic string check for now)
+      const matchesSalary = selectedSalary ? (job.salary_range || '').includes(selectedSalary) : true;
+      const matchesSkills = selectedSkills ? (job.description || '').toLowerCase().includes(selectedSkills.toLowerCase()) : true;
+      const matchesLanguage = selectedLanguage ? (job.description || '').toLowerCase().includes(selectedLanguage.toLowerCase()) : true;
+      
+      return matchesSearch && matchesLocation && matchesCategory && matchesType && matchesExperience && matchesSalary && matchesSkills && matchesLanguage;
     });
-  }, [searchQuery, locationQuery, jobs]);
+  }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, jobs]);
 
   const popularCategories = useMemo(() => {
     // Basic types from job fields
@@ -126,58 +145,176 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="max-w-2xl text-left">
               <span className="text-[#4f46e5] font-bold text-xs uppercase tracking-widest mb-4 block">INDIA'S #1 JOB PLATFORM</span>
-              <h1 className="text-5xl md:text-6xl font-black text-gray-900 leading-[1.1] mb-4">
+              <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
                 Your job search <br />ends here
               </h1>
               <p className="text-gray-500 text-lg font-medium mb-10">
                 Discover {totalJobs.toLocaleString()}+ career opportunities
               </p>
 
-              {/* Advanced Search Bar */}
-              <div className="bg-white p-2 rounded-2xl shadow-xl border border-gray-100 flex flex-col md:flex-row items-center gap-2 mb-8">
-                <div className="flex-[2] flex items-center px-4 w-full h-12 border-b md:border-b-0 md:border-r border-gray-100">
-                  <Search className="h-4 w-4 text-gray-400 mr-2 shrink-0" />
+              {/* New Search UI matching image */}
+              <div className="w-full space-y-6">
+                <div className="relative group max-w-4xl">
+                  <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                    <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
+                  </div>
                   <input 
+                    type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search jobs by title..." 
-                    className="border-0 shadow-none h-full w-full text-sm focus:outline-none placeholder:text-gray-400 bg-transparent" 
+                    placeholder="Search Job Title or Company name..."
+                    className="w-full h-16 pl-14 pr-20 bg-white rounded-full shadow-lg border-0 text-base font-medium focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
                   />
+                  <div className="absolute right-2 inset-y-2">
+                    <button className="h-full px-5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all flex items-center justify-center text-gray-900 group/btn">
+                      <Filter className="w-5 h-5 text-[#4a3728]" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 flex items-center px-4 w-full h-12 border-b md:border-b-0 md:border-r border-gray-100">
-                  <Briefcase className="h-4 w-4 text-gray-400 mr-2 shrink-0" />
-                  <input 
-                    value={experienceQuery}
-                    onChange={(e) => setExperienceQuery(e.target.value)}
-                    placeholder="Experience" 
-                    className="border-0 shadow-none h-full w-full text-sm focus:outline-none placeholder:text-gray-400 bg-transparent" 
-                  />
+
+                {/* Filter Pills Grid */}
+                <div className="flex flex-wrap gap-2.5 max-w-5xl">
+                  {/* Job Category */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">📂 Job Category</option>
+                      {Object.keys(categoryCounts).sort().map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Location */}
+                  <div className="relative group">
+                    <select 
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">🌍 Your Location</option>
+                      <option value="Delhi">Delhi NCR</option>
+                      <option value="Bangalore">Bangalore</option>
+                      <option value="Mumbai">Mumbai</option>
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Pune">Pune</option>
+                      <option value="Chennai">Chennai</option>
+                      <option value="Remote">Work From Home</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Experience */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedExperience}
+                      onChange={(e) => setSelectedExperience(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">⭐ Experience</option>
+                      <option value="Fresher">Fresher</option>
+                      <option value="1-3 Years">1-3 Years</option>
+                      <option value="3-5 Years">3-5 Years</option>
+                      <option value="5+ Years">5+ Years</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Employment Type */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">💼 Employment Type</option>
+                      <option value="Full-time">Full-time</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Skills */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedSkills}
+                      onChange={(e) => setSelectedSkills(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">🛠️ Skills</option>
+                      <option value="React">React / Frontend</option>
+                      <option value="Node">Node / Backend</option>
+                      <option value="Python">Python / AI</option>
+                      <option value="Sales">Sales / Business</option>
+                      <option value="Marketing">Marketing / SEO</option>
+                      <option value="Design">UI / UX Design</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Salary */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedSalary}
+                      onChange={(e) => setSelectedSalary(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">💰 Minimum Salary</option>
+                      <option value="10000">₹10k+</option>
+                      <option value="25000">₹25k+</option>
+                      <option value="50000">₹50k+</option>
+                      <option value="100000">₹1L+</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Language */}
+                  <div className="relative group">
+                    <select 
+                      value={selectedLanguage}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                    >
+                      <option value="">🗣️ Language</option>
+                      <option value="English">English</option>
+                      <option value="Hindi">Hindi</option>
+                      <option value="Kannada">Kannada</option>
+                      <option value="Tamil">Tamil</option>
+                      <option value="Telugu">Telugu</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
+                  </div>
+
+                  {/* Clear Filters (Optional but good) */}
+                  {(selectedCategory || locationQuery || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage) && (
+                    <button 
+                      onClick={() => {
+                        setSelectedCategory('');
+                        setLocationQuery('');
+                        setSelectedExperience('');
+                        setSelectedType('');
+                        setSelectedSalary('');
+                        setSelectedSkills('');
+                        setSelectedLanguage('');
+                      }}
+                      className="px-4 py-3.5 text-xs font-black text-red-500 uppercase tracking-widest hover:bg-red-50 rounded-full transition-all"
+                    >
+                      ✕ Clear All
+                    </button>
+                  )}
                 </div>
-                <div className="flex-1 flex items-center px-4 w-full h-12">
-                  <MapPin className="h-4 w-4 text-gray-400 mr-2 shrink-0" />
-                  <input 
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="City / Location" 
-                    className="border-0 shadow-none h-full w-full text-sm focus:outline-none placeholder:text-gray-400 bg-transparent" 
-                  />
-                </div>
-                <Button onClick={fetchData} className="bg-[#4f46e5] hover:bg-[#4338ca] text-white px-8 h-12 rounded-xl font-bold transition-all whitespace-nowrap">
-                  Search Jobs
-                </Button>
               </div>
 
               <div className="space-y-6">
+               
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Proud to Support</p>
-                  <div className="flex items-center gap-6 transition-all">
-                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/9/95/Digital_India_logo.svg/1200px-Digital_India_logo.svg.png" alt="Digital India" className="h-8" />
-                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/0/0d/Skill_India_logo.svg/1200px-Skill_India_logo.svg.png" alt="Skill India" className="h-8" />
-                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c4/Make_in_India_logo.svg/1200px-Make_in_India_logo.svg.png" alt="Make in India" className="h-8" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Trusted by 1000+ enterprises and 7 lakh+ MSMEs for hiring</p>
+                  <p className="text-[10px] mt-3 font-bold text-gray-400 uppercase tracking-widest mb-3">Trusted by 1000+ enterprises and 7 lakh+ MSMEs for hiring</p>
                   <div className="relative overflow-hidden w-full h-16">
                     <div className="flex items-center gap-12 animate-infinite-scroll whitespace-nowrap absolute left-0 top-0 h-full">
                       {[...dbCompanies, ...dbCompanies, ...dbCompanies].map((company, i) => (
@@ -214,7 +351,7 @@ export default function HomePage() {
       </section>
 
       {/* Job Prep Section */}
-      <section className="bg-gradient-to-r from-[#E6F4F1] to-[#F1F9F7] py-20 overflow-hidden">
+      {/* <section className="bg-gradient-to-r from-[#E6F4F1] to-[#F1F9F7] py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <div className="lg:w-1/3">
@@ -229,15 +366,15 @@ export default function HomePage() {
             </div>
 
             <div className="lg:w-2/3 relative">
-               <div className="flex items-center gap-6 overflow-x-auto pb-8 scrollbar-hide no-scrollbar">
+               <div className="flex items-center gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide no-scrollbar snap-x snap-mandatory">
                   {jobs.slice(0, 5).map((job, i) => (
                     <motion.div 
                       key={job.id}
                       whileHover={{ y: -10 }}
-                      className="min-w-[280px] bg-white rounded-3xl p-8 shadow-xl border border-gray-100 flex flex-col items-center text-center relative overflow-hidden"
+                      className="min-w-[260px] md:min-w-[280px] bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-gray-100 flex flex-col items-center text-center relative overflow-hidden snap-center"
                     >
-                      <div className="absolute top-0 left-0 w-full h-1 bg-[#4f46e5]" />
-                      <p className="text-sm font-bold text-gray-900 mb-6">{job.title}</p>
+                      <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
+                      <p className="text-sm font-bold text-gray-900 mb-6 line-clamp-1">{job.title}</p>
                       <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-6 border border-gray-100 overflow-hidden p-2">
                         {job.companies?.logo_url ? (
                           <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
@@ -245,21 +382,21 @@ export default function HomePage() {
                           <Briefcase className="w-8 h-8 text-gray-300" />
                         )}
                       </div>
-                      <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-8">{job.companies?.name}</p>
-                      <Button variant="outline" className="w-full border-[#4f46e5] text-[#4f46e5] font-bold rounded-xl h-12">Practice Interview</Button>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-8">{job.companies?.name}</p>
+                      <Button variant="outline" className="w-full border-primary text-primary font-bold rounded-xl h-11 md:h-12">Practice Interview</Button>
                       <p className="text-[10px] font-bold text-gray-400 mt-4">5 min AI Interview</p>
                     </motion.div>
                   ))}
                </div>
-               <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer border border-gray-100 group"><ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-[#4f46e5]" /></div>
-               <div className="absolute top-1/2 -right-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer border border-gray-100 group"><ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-[#4f46e5]" /></div>
+               <div className="hidden lg:flex absolute top-1/2 -left-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center cursor-pointer border border-gray-100 group"><ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-primary" /></div>
+               <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center cursor-pointer border border-gray-100 group"><ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary" /></div>
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Popular Searches Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      {/* <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="flex flex-col lg:flex-row items-start gap-16">
           <div className="w-64 shrink-0 pt-8">
             <h2 className="text-4xl font-black text-gray-900 leading-tight">Popular Job Categories</h2>
@@ -297,7 +434,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Job Listings from DB */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-gray-50">
@@ -311,7 +448,7 @@ export default function HomePage() {
             </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <AnimatePresence mode='popLayout'>
               {loading ? (
                 Array(6).fill(0).map((_, i) => (

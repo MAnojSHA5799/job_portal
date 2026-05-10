@@ -170,7 +170,7 @@ export default function BlogPost() {
                         {blog.category}
                     </div>
                     
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter leading-[1.1] mb-8">
+                    <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
                         {blog.title}
                     </h1>
 
@@ -221,13 +221,13 @@ export default function BlogPost() {
                             }
                             .article-content h2, .article-content h3 {
                                 color: #0f172a;
-                                font-weight: 800;
-                                margin-top: 3rem;
-                                margin-bottom: 1.25rem;
-                                letter-spacing: -0.02em;
+                                font-weight: 700;
+                                margin-top: 2.5rem;
+                                margin-bottom: 1rem;
+                                letter-spacing: -0.01em;
                             }
-                            .article-content h2 { font-size: 2rem; }
-                            .article-content h3 { font-size: 1.5rem; }
+                            .article-content h2 { font-size: 1.5rem; }
+                            .article-content h3 { font-size: 1.25rem; }
                             .article-content ul, .article-content ol {
                                 margin-bottom: 1.75rem;
                                 padding-left: 1.25rem;

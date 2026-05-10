@@ -131,7 +131,7 @@ export default async function CompanyPage({ params }: Props) {
               )}
             </div>
             <div className="flex-1 space-y-3 pb-2">
-              <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter">
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
                 {company.name} Jobs — {jobCount} Active Openings
               </h1>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold uppercase tracking-widest">
@@ -153,7 +153,7 @@ export default async function CompanyPage({ params }: Props) {
           <div className="lg:col-span-2 space-y-12">
              <section>
                 <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
-                    <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                         <Award className="w-6 h-6 text-indigo-600" /> Company Overview
                     </h2>
                     {company.description ? (
@@ -171,30 +171,35 @@ export default async function CompanyPage({ params }: Props) {
 
              <section>
                 <div className="flex items-center justify-between mb-8 px-2">
-                  <h2 className="text-2xl font-black text-gray-900">Active Job Openings ({jobCount})</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Active Job Openings ({jobCount})</h2>
                   <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold uppercase text-[10px] px-3 py-1">Verified</Badge>
                 </div>
 
                 {jobs && jobs.length > 0 ? (
                   <div className="space-y-6">
                     {jobs.map((job) => (
-                      <Card key={job.id} className="p-8 border-0 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 transition-all bg-white group rounded-[32px] overflow-hidden">
+                      <Card key={job.id} className="p-6 md:p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-50/50 transition-all bg-white group rounded-3xl overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-1.5 h-0 group-hover:h-full bg-indigo-600 transition-all duration-300" />
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                           <div className="space-y-3">
-                            <h3 className="text-2xl font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
+                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors leading-tight">
                               <a href={`/jobs/${job.url_slug || job.id}`}>{job.title}</a>
                             </h3>
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold uppercase tracking-wider">
-                              <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-indigo-600" /> {job.location}</span>
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors transition-colors">
+                                <MapPin className="w-3.5 h-3.5" /> {job.location}
+                              </span>
                               {job.salary_range && (
-                                <span className="flex items-center gap-1.5 text-indigo-600 font-black"><Star className="w-4 h-4 fill-indigo-600" /> {job.salary_range}</span>
+                                <span className="flex items-center gap-1.5 text-emerald-600 font-black">
+                                  <Badge className="bg-emerald-50 text-emerald-600 border-0 font-bold">{job.salary_range}</Badge>
+                                </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <a href={`/jobs/${job.url_slug || job.id}`}>
-                              <Button variant="outline" className="h-11 px-6 rounded-xl font-bold border-2">
-                                  View Details
+                          <div className="flex items-center gap-3 pt-6 md:pt-0 border-t md:border-t-0 border-gray-50">
+                            <a href={`/jobs/${job.url_slug || job.id}`} className="flex-1 md:flex-none">
+                              <Button variant="outline" className="w-full md:w-auto h-11 px-8 rounded-xl font-bold border-gray-100 hover:border-indigo-600 hover:text-indigo-600 transition-all text-xs">
+                                  Quick View
                               </Button>
                             </a>
                             <ApplyButton 
@@ -203,7 +208,7 @@ export default async function CompanyPage({ params }: Props) {
                               companyId={company.id}
                               companyName={company.name}
                               applyLink={job.apply_link || '#'}
-                              className="h-11 text-xs px-8 rounded-xl"
+                              className="flex-1 md:flex-none h-11 text-xs px-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 font-bold"
                             />
                           </div>
                         </div>

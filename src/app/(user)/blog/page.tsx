@@ -81,7 +81,7 @@ export default function BlogListing() {
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10 mb-8">
                     <Sparkles className="w-3 h-3 fill-primary animate-pulse" /> Fresh Career Insights
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter leading-none mb-8">
+                <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
                     The <span className="text-primary italic">Blog</span>.
                 </h1>
                 <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed mb-12">
@@ -183,7 +183,7 @@ export default function BlogListing() {
                                           <span className="flex items-center gap-1.5"><User className="h-3 w-3" /> {post.author}</span>
                                           <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {new Date(post.created_at).toLocaleDateString()}</span>
                                       </div>
-                                      <h3 className="text-2xl font-black text-gray-900 mb-4 group-hover:text-primary transition-colors cursor-pointer leading-tight tracking-tight">
+                                      <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-primary transition-colors cursor-pointer leading-tight tracking-tight">
                                           {post.title}
                                       </h3>
                                       <p className="text-gray-500 font-medium text-sm leading-relaxed mb-8">

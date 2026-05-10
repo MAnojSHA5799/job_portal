@@ -113,10 +113,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-10">
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="p-1 rounded-lg transition-all">
-                  <img src="/lo.jpeg" alt="JobPortal" className="h-9 w-auto object-contain" />
+                <div className="transition-all flex items-center">
+                  <img src="/lo.png" alt="JobPortal" className="h-20 w-auto object-contain" />
                 </div>
-                <span className="text-xl font-bold text-primary tracking-tight">JobPortal</span>
+                {/* <span className="text-xl font-bold text-primary tracking-tight">JobPortal</span> */}
               </Link>
               
               <div className="hidden lg:flex items-center gap-8">
@@ -230,29 +230,33 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                   </div>
 
                   {item.hasDropdown && jobsDropdownOpen && (
-                    <div className="pl-4 mt-2 space-y-2 border-l-2 border-gray-50">
-                      <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-4">Browse by Type</div>
-                      {jobsDropdownItems.left.map((subItem) => (
-                        <Link 
-                          key={subItem.name} 
-                          href={subItem.href}
-                          className="block py-2 text-sm text-gray-600 hover:text-primary"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {subItem.name}
-                        </Link>
-                      ))}
-                      <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 mt-6">Browse by Category</div>
-                      {jobsDropdownItems.right.map((subItem) => (
-                        <Link 
-                          key={subItem.name} 
-                          href={subItem.href}
-                          className="block py-2 text-sm text-gray-600 hover:text-primary"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {subItem.name}
-                        </Link>
-                      ))}
+                    <div className="pl-4 mt-2 space-y-2 border-l-2 border-primary/10 bg-gray-50/50 rounded-r-xl py-3 px-4">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-2">Browse by Type</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {jobsDropdownItems.left.map((subItem) => (
+                          <Link 
+                            key={subItem.name} 
+                            href={subItem.href}
+                            className="block py-2 text-sm font-semibold text-gray-600 hover:text-primary transition-colors"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {subItem.name}
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 mt-6">Browse by Category</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                        {jobsDropdownItems.right.map((subItem) => (
+                          <Link 
+                            key={subItem.name} 
+                            href={subItem.href}
+                            className="block py-2 text-sm font-semibold text-gray-600 hover:text-primary transition-colors"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {subItem.name}
+                          </Link>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -296,10 +300,9 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-16">
                 
-                <div className="lg:col-span-4 space-y-6">
-                    <Link href="/" className="flex items-center gap-2">
-                        <img src="/lo.jpeg" alt="JobPortal" className="h-10 w-auto object-contain" />
-                        <span className="text-2xl font-bold text-primary tracking-tight">JobPortal</span>
+                <div className="lg:col-span-4 space-y-4">
+                    <Link href="/" className="flex items-center">
+                        <img src="/lo.png" alt="JobPortal" className="h-32 w-auto object-contain -ml-2" />
                     </Link>
                     <p className="text-gray-500 leading-relaxed text-sm max-w-sm">
                         India's leading job portal. Helping millions find their dream jobs and helping companies hire the best talent.

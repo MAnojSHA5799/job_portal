@@ -497,7 +497,7 @@ export default async function SlugPage({ params }: Props) {
             <aside className="space-y-8">
               {citiesInCat.length > 0 && (
                 <Card className="p-8 border-0 shadow-2xl shadow-indigo-100/20 bg-white rounded-[40px]">
-                  <h3 className="text-xl font-black text-gray-900 mb-8 tracking-tight">Cities with {categoryName} Jobs</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-8 tracking-tight">Cities with {categoryName} Jobs</h3>
                   <div className="space-y-3">
                       {(citiesInCat as string[]).map((city: string) => (
                           <a 
@@ -514,7 +514,7 @@ export default async function SlugPage({ params }: Props) {
 
               <Card className="p-8 border-0 shadow-2xl shadow-indigo-100 bg-indigo-600 text-white rounded-[40px]">
                   <TrendingUp className="w-10 h-10 mb-4 fill-white animate-pulse" />
-                  <h3 className="text-xl font-black mb-2 leading-tight">Apply for {categoryName} Jobs</h3>
+                  <h3 className="text-lg font-bold mb-2 leading-tight">Apply for {categoryName} Jobs</h3>
                   <p className="text-sm font-medium opacity-80 mb-6">Stay updated with the latest industrial career opportunities.</p>
                   <Button className="w-full h-12 rounded-2xl bg-white text-indigo-600 font-black hover:bg-gray-100 border-0">Get Alerts</Button>
               </Card>

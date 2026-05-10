@@ -90,7 +90,7 @@ export default function CompaniesDirectory() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10 mb-8">
                     <Building2 className="w-3 h-3 fill-primary" /> Verified Partners
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter leading-none mb-8">
+                <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
                     Top <span className="text-primary italic">Hiring</span> Partners.
                 </h1>
                 <p className="text-xl text-gray-500 font-medium max-w-2xl leading-relaxed mb-12">
@@ -180,11 +180,11 @@ export default function CompaniesDirectory() {
                               {/* Info Section */}
                               <div className="flex-grow space-y-4">
                                   <div>
-                                      <Link href={`/company/${company.url_slug || company.id}`}>
-                                          <h3 className="text-2xl font-black text-gray-900 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer inline-flex items-center gap-2">
-                                              {company.name}
-                                          </h3>
-                                      </Link>
+                                       <Link href={`/company/${company.url_slug || company.id}`}>
+                                           <h3 className="text-xl font-bold text-gray-900 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer inline-flex items-center gap-2">
+                                               {company.name}
+                                           </h3>
+                                       </Link>
                                       <p className="text-sm font-bold text-gray-400 mt-1 flex items-center gap-2 italic">
                                          <Briefcase className="w-3.5 h-3.5" /> {company.industry}
                                       </p>

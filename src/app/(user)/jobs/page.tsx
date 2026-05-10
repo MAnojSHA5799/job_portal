@@ -131,7 +131,7 @@ export default function JobListingPage() {
       {/* Search Header */}
       <div className="bg-white border-b border-gray-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tighter">Browse Jobs</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-8 tracking-tight">Browse Jobs</h1>
             <form onSubmit={handleSearch} className="bg-white p-2 rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 flex flex-col md:flex-row items-center gap-2 max-w-4xl">
               <div className="relative flex-1 w-full">
                   <Search className="absolute left-4 top-3 h-5 w-5 text-gray-400" />
@@ -164,7 +164,7 @@ export default function JobListingPage() {
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-72 space-y-8 shrink-0">
             <div className="flex items-center justify-between">
-                <h3 className="font-black text-gray-900 flex items-center">
+                <h3 className="font-bold text-gray-900 flex items-center">
                     <Filter className="w-4 h-4 mr-2" /> Filters
                 </h3>
                 <button 
