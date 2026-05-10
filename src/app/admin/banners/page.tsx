@@ -187,6 +187,9 @@ export default function BannersManagement() {
                   <option value="/ats-score">ATS Score (/ats-score)</option>
                   <option value="/blog">Blog (/blog)</option>
                   <option value="/contact">Contact (/contact)</option>
+                  <option value="/about">About Us (/about)</option>
+                  <option value="/privacy">Privacy Policy (/privacy)</option>
+                  <option value="/terms">Terms of Service (/terms)</option>
                 </select>
               </div>
               <div>

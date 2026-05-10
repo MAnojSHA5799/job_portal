@@ -180,25 +180,26 @@ export default async function CompanyPage({ params }: Props) {
                     {jobs.map((job) => (
                       <Card key={job.id} className="p-6 md:p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-50/50 transition-all bg-white group rounded-3xl overflow-hidden relative">
                         <div className="absolute top-0 left-0 w-1.5 h-0 group-hover:h-full bg-indigo-600 transition-all duration-300" />
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                          <div className="space-y-3">
-                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors leading-tight">
+                        <div className="flex flex-col md:flex-row md:items-start gap-6">
+                          <div className="flex-1 space-y-2">
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors leading-tight">
                               <a href={`/jobs/${job.url_slug || job.id}`}>{job.title}</a>
                             </h3>
-                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors transition-colors">
-                                <MapPin className="w-3.5 h-3.5" /> {job.location}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                <MapPin className="w-3 h-3" /> {job.location}
                               </span>
                               {job.salary_range && (
                                 <span className="flex items-center gap-1.5 text-emerald-600 font-black">
-                                  <Badge className="bg-emerald-50 text-emerald-600 border-0 font-bold">{job.salary_range}</Badge>
+                                  <Badge className="bg-emerald-50 text-emerald-600 border-0 font-bold px-2 py-0.5">{job.salary_range}</Badge>
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 pt-6 md:pt-0 border-t md:border-t-0 border-gray-50">
+                          
+                          <div className="flex items-center gap-3 pt-4 md:pt-1 border-t md:border-t-0 border-gray-50">
                             <a href={`/jobs/${job.url_slug || job.id}`} className="flex-1 md:flex-none">
-                              <Button variant="outline" className="w-full md:w-auto h-11 px-8 rounded-xl font-bold border-gray-100 hover:border-indigo-600 hover:text-indigo-600 transition-all text-xs">
+                              <Button variant="outline" className="w-full md:w-auto h-10 px-6 rounded-xl font-bold border-gray-100 hover:border-indigo-600 hover:text-indigo-600 transition-all text-[10px] uppercase tracking-widest">
                                   Quick View
                               </Button>
                             </a>
@@ -208,7 +209,7 @@ export default async function CompanyPage({ params }: Props) {
                               companyId={company.id}
                               companyName={company.name}
                               applyLink={job.apply_link || '#'}
-                              className="flex-1 md:flex-none h-11 text-xs px-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 font-bold"
+                              className="flex-1 md:flex-none h-10 text-[10px] px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 font-bold uppercase tracking-widest"
                             />
                           </div>
                         </div>
