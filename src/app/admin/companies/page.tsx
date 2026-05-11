@@ -19,7 +19,8 @@ import {
   Trash2,
   ExternalLink,
   Edit3,
-  Eye
+  Eye,
+  Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -34,7 +35,9 @@ interface Company {
   website: string | null;
   career_page_url?: string | null;
   description: string | null;
+  url_slug: string | null;
   active_jobs?: number;
+  team_size?: string | null;
 }
 
 const INDUSTRY_COLORS: Record<string, { bg: string, text: string, border: string, icon: string }> = {
@@ -230,11 +233,11 @@ export default function CompaniesManagement() {
                   <div className="relative z-10 overflow-hidden">
                       <div className="flex justify-between items-start mb-4">
                           <div className={cn(
-                            "w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white shadow-lg transition-all duration-500 group-hover:rotate-6",
+                            "w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white shadow-xl transition-all duration-500 group-hover:scale-110 bg-white p-1",
                             styles.bg
                           )}>
                               {company.logo_url ? (
-                                <img src={company.logo_url} alt={company.name} className="w-full h-full object-cover" />
+                                <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
                               ) : (
                                 <span className={cn("text-3xl font-black", styles.text)}>
                                   {company.name.charAt(0).toUpperCase()}
@@ -294,6 +297,14 @@ export default function CompaniesManagement() {
                               </div>
                               <span className="text-gray-900 font-black">{company.active_jobs}</span> Active Positions
                           </div>
+                          {company.team_size && (
+                            <div className="flex items-center text-[10px] font-bold text-gray-400 gap-2.5">
+                                <div className="p-1.5 rounded-lg bg-gray-50 text-gray-400 group-hover:bg-white group-hover:shadow-sm group-hover:text-indigo-500 transition-all">
+                                  <Users className="h-3 w-3" />
+                                </div>
+                                <span>{company.team_size} Employees</span>
+                            </div>
+                          )}
                       </div>
 
                       <div className="pt-4 border-t border-gray-50 space-y-3">
@@ -322,10 +333,10 @@ export default function CompaniesManagement() {
                        </Button>
                        <Button 
                          variant="outline" 
-                         className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm"
-                         onClick={() => router.push(`/admin/companies/${company.id}`)}
+                         className="flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest border-indigo-100 bg-indigo-50/30 text-indigo-600 hover:bg-white hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-100 transition-all shadow-sm"
+                         onClick={() => window.open(`/company/${company.id}`, '_blank')}
                        >
-                         View Jobs
+                         <ExternalLink className="h-3 w-3 mr-2" /> Live Preview
                        </Button>
                   </div>
                 </Card>

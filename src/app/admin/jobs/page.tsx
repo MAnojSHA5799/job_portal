@@ -55,6 +55,7 @@ interface Job {
   company_id: string;
   is_approved: boolean;
   date_posted: string | null;
+  valid_through: string | null;
   created_at: string;
   seo_score?: number;
   companies: {
@@ -74,6 +75,12 @@ export default function JobsQueue() {
   const [enhancingProgress, setEnhancingProgress] = useState({ current: 0, total: 0 });
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'approved' | 'pending'>('all');
+  const [selectedValidity, setSelectedValidity] = useState<'all' | 'valid' | 'expired'>('all');
+  const [dateRange, setDateRange] = useState({
+    start: '',
+    end: ''
+  });
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,7 +120,28 @@ export default function JobsQueue() {
         query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
       }
 
+      if (selectedStatus !== 'all') {
+        query = query.eq('is_approved', selectedStatus === 'approved');
+      }
+
+      if (dateRange.start) {
+        query = query.gte('created_at', `${dateRange.start}T00:00:00`);
+      }
+      if (dateRange.end) {
+        query = query.lte('created_at', `${dateRange.end}T23:59:59`);
+      }
+
+      if (selectedValidity !== 'all') {
+        const today = new Date().toISOString().split('T')[0];
+        if (selectedValidity === 'valid') {
+          query = query.gte('valid_through', today);
+        } else {
+          query = query.lt('valid_through', today);
+        }
+      }
+
       const { data, error, count } = await query;
+      console.log('Fetched Jobs Data:', data);
       if (error) throw error;
       
       setJobs(data || []);
@@ -145,6 +173,7 @@ export default function JobsQueue() {
         approved: approved || 0,
         failed: failed || 0
       });
+      console.log('Fetched Stats:', { total, pending, approved, failed });
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -158,6 +187,7 @@ export default function JobsQueue() {
         .order('name');
       if (error) throw error;
       setCompanies(data || []);
+      console.log('Fetched Companies:', data);
     } catch (error) {
       console.error('Error fetching companies:', error);
     }
@@ -166,7 +196,7 @@ export default function JobsQueue() {
   useEffect(() => {
     fetchJobs();
     fetchStats();
-  }, [currentPage, itemsPerPage, selectedCompanyId]);
+  }, [currentPage, itemsPerPage, selectedCompanyId, selectedStatus, selectedValidity, dateRange]);
 
   useEffect(() => {
     fetchCompanies();
@@ -238,6 +268,7 @@ export default function JobsQueue() {
         await Promise.all(batch.map(async (job) => {
           try {
             const enhancedData = await enhanceJobSEO(job, job.companies?.name || 'Gethyrd');
+            console.log(`Enhanced data for job ${job.id}:`, enhancedData);
             
             const { error } = await supabase
               .from('jobs')
@@ -379,6 +410,54 @@ export default function JobsQueue() {
               </select>
               <select 
                 className="h-12 pl-4 pr-10 rounded-2xl bg-white border-0 shadow-sm text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 outline-none"
+                value={selectedStatus}
+                onChange={e => {
+                  setSelectedStatus(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="approved">Approved</option>
+                <option value="pending">Audit Needed</option>
+              </select>
+
+              <select 
+                className="h-12 pl-4 pr-10 rounded-2xl bg-white border-0 shadow-sm text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 outline-none"
+                value={selectedValidity}
+                onChange={e => {
+                  setSelectedValidity(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">All Validity</option>
+                <option value="valid">Valid Jobs</option>
+                <option value="expired">Expired Jobs</option>
+              </select>
+
+              {/* <div className="flex items-center gap-2 bg-white px-4 h-12 rounded-2xl shadow-sm border-0">
+                <Input 
+                  type="date" 
+                  value={dateRange.start}
+                  onChange={(e) => {
+                    setDateRange(prev => ({ ...prev, start: e.target.value }));
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 border-0 bg-transparent text-[10px] font-bold focus:ring-0 w-32 p-0"
+                />
+                <span className="text-gray-300 font-bold text-xs">-</span>
+                <Input 
+                  type="date" 
+                  value={dateRange.end}
+                  onChange={(e) => {
+                    setDateRange(prev => ({ ...prev, end: e.target.value }));
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 border-0 bg-transparent text-[10px] font-bold focus:ring-0 w-32 p-0"
+                />
+              </div> */}
+
+              <select 
+                className="h-12 pl-4 pr-10 rounded-2xl bg-white border-0 shadow-sm text-xs font-bold text-gray-700 focus:ring-2 focus:ring-indigo-100 outline-none"
                 value={itemsPerPage}
                 onChange={e => setItemsPerPage(Number(e.target.value))}
               >
@@ -386,8 +465,19 @@ export default function JobsQueue() {
                 <option value={20}>20 Per Page</option>
                 <option value={50}>50 Per Page</option>
               </select>
-              <Button variant="outline" className="h-12 w-12 p-0 border-0 bg-white shadow-sm hover:bg-gray-50 rounded-2xl">
-                <Filter className="h-4 w-4 text-gray-600" />
+              <Button 
+                variant="outline" 
+                className="h-12 w-12 p-0 border-0 bg-white shadow-sm hover:bg-gray-50 rounded-2xl"
+                onClick={() => {
+                  setSelectedCompanyId('all');
+                  setSelectedStatus('all');
+                  setSelectedValidity('all');
+                  setDateRange({ start: '', end: '' });
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+              >
+                <RefreshCcw className="h-4 w-4 text-gray-600" />
               </Button>
             </div>
           </div>

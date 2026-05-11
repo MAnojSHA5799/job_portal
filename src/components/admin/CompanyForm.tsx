@@ -36,6 +36,7 @@ interface Company {
   focus_keyword?: string;
   url_slug?: string;
   seo_score?: number;
+  team_size?: string;
 }
 
 interface CompanyFormProps {
@@ -68,6 +69,7 @@ export function CompanyForm({
     focus_keyword: '',
     url_slug: '',
     seo_score: 0,
+    team_size: '',
     ...initialData
   });
 
@@ -312,6 +314,26 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
                 </datalist>
               </div>
               <div>
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Team Size</label>
+                <Input 
+                  className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  placeholder="e.g. 10-50, 100+, 5000+" 
+                  value={currentCompany.team_size}
+                  onChange={e => setCurrentCompany({...currentCompany, team_size: e.target.value})}
+                  list="teamsize-options"
+                />
+                <datalist id="teamsize-options">
+                  <option value="1-10" />
+                  <option value="11-50" />
+                  <option value="51-200" />
+                  <option value="201-500" />
+                  <option value="501-1000" />
+                  <option value="1000+" />
+                  <option value="5000+" />
+                  <option value="10000+" />
+                </datalist>
+              </div>
+              <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Location</label>
                 <div className="relative">
                   <MapPin className="absolute left-4 top-4 h-4 w-4 text-indigo-400" />
@@ -353,9 +375,9 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company Logo</label>
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-16 h-16 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm p-1">
                     {currentCompany.logo_url ? (
-                      <img src={currentCompany.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                      <img src={currentCompany.logo_url} alt="Logo" className="w-full h-full object-contain" />
                     ) : (
                       <Building2 className="h-6 w-6 text-gray-300" />
                     )}

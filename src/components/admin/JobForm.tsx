@@ -139,7 +139,7 @@ export function JobForm({
             messages: [
               {
                 role: 'system',
-                content: `Rewrite this SEO title for Gethyrd.in.
+                content: `Rewrite this SEO title for http://www.hiringstores.com.
 MANDATORY RULES:
 1. Length MUST BE BETWEEN 50 AND 60 CHARACTERS. (VERY IMPORTANT)
 2. Must start with the focus keyword.
@@ -167,11 +167,11 @@ Return ONLY the string. No quotes.`
             messages: [
               {
                 role: 'system',
-                content: `Rewrite this meta description for Gethyrd.in so that:
+                content: `Rewrite this meta description for http://www.hiringstores.com so that:
 1. Total length is EXACTLY 130-160 characters (count carefully)
 2. Focus keyword appears naturally once
 3. Mentions salary if provided
-4. Ends EXACTLY with: 'Apply now on Gethyrd.in.'
+4. Ends EXACTLY with: 'Apply now on http://www.hiringstores.com.'
 Return ONLY the new description string. No quotes or explanation.`
               },
               {
@@ -889,6 +889,16 @@ Instructions:
               <h4 className="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-widest whitespace-nowrap">
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" /> SEO Checklist
               </h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleFixAllChecklist}
+                disabled={isFixingAll}
+                className="h-8 px-3 text-[10px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg uppercase tracking-wider"
+              >
+                {isFixingAll ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-2" />}
+                AI ENHANCE
+              </Button>
             </div>
             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {seoReport.checks.map((check) => (

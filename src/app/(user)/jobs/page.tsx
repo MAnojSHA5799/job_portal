@@ -19,7 +19,8 @@ import {
   Grid,
   List,
   ArrowRight,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -43,9 +44,9 @@ interface Job {
   };
 }
 
-const filterCategories = [
-  { id: 'category', name: 'Category', options: ['Engineering', 'Design', 'Marketing', 'Product Manager', 'Sales', 'Data Science'] },
-  { id: 'job_type', name: 'Job Type', options: ['Full-time', 'Part-time', 'Contract', 'Internship', 'Remote'] },
+const defaultFilters = [
+  { id: 'category', name: 'Category', options: ['Production', 'Quality', 'Maintenance', 'Store', 'HR', 'Accountant'] },
+  { id: 'job_type', name: 'Job Type', options: ['Full-time', 'Part-time', 'Contract', 'Remote'] },
 ];
 
 import { ApplyButton } from '@/components/ApplyButton';
@@ -56,6 +57,7 @@ export default function JobListingPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [filterCategories, setFilterCategories] = useState(defaultFilters);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
     category: [],
     job_type: [],
@@ -79,7 +81,7 @@ export default function JobListingPage() {
         .order('created_at', { ascending: false });
 
       if (searchQuery) {
-        query = query.ilike('title', `%${searchQuery}%`);
+        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
       }
 
       if (locationQuery) {
@@ -96,10 +98,30 @@ export default function JobListingPage() {
         query = query.in('job_type', selectedFilters.job_type);
       }
 
+      console.log('Fetching jobs with filters:', selectedFilters, 'Search:', searchQuery, 'Location:', locationQuery);
       const { data, error } = await query;
 
-      if (error) throw error;
-      setJobs((data as any) || []);
+      if (error) {
+        console.error('Supabase Query Error:', error);
+        throw error;
+      }
+      
+      const fetchedJobs = (data as any) || [];
+      console.log('Fetched Jobs Count:', fetchedJobs.length);
+      console.log('Fetched Jobs Data (first 2):', fetchedJobs.slice(0, 2));
+      
+      setJobs(fetchedJobs);
+
+      // Dynamically update filter options based on what's available in DB
+      if (fetchedJobs.length > 0) {
+        const uniqueCats = Array.from(new Set(fetchedJobs.map((j: any) => j.category))).filter(Boolean) as string[];
+        const uniqueTypes = Array.from(new Set(fetchedJobs.map((j: any) => j.job_type))).filter(Boolean) as string[];
+        
+        setFilterCategories([
+          { id: 'category', name: 'Category', options: uniqueCats.length > 0 ? uniqueCats : defaultFilters[0].options },
+          { id: 'job_type', name: 'Job Type', options: uniqueTypes.length > 0 ? uniqueTypes : defaultFilters[1].options },
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -280,22 +302,23 @@ export default function JobListingPage() {
                         </div>
 
                         <div className="flex flex-wrap gap-2 pt-2">
+                           {job.job_type && (
+                             <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-indigo-600 border border-indigo-100/50">
+                                 <Clock className="w-3.5 h-3.5" /> {job.job_type}
+                             </div>
+                           )}
+                           {job.category && (
+                             <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-emerald-600 border border-emerald-100/50">
+                                 <Zap className="w-3.5 h-3.5" /> {job.category}
+                             </div>
+                           )}
+                           {job.experience_level && (
+                             <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-amber-600 border border-amber-100/50">
+                                 <Briefcase className="w-3.5 h-3.5" /> {job.experience_level}
+                             </div>
+                           )}
                            <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                               <Bike className="w-3.5 h-3.5 text-gray-400" /> Field Job
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                               <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">P</div>
-                               Part Time
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                               <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">F</div>
-                               Full Time
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                               <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {job.experience_level || 'Any experience'}
-                           </div>
-                           <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                               <Languages className="w-3.5 h-3.5 text-gray-400" /> No English R
+                               <MapPin className="w-3.5 h-3.5 text-gray-400" /> {job.location?.split(',')[0] || 'India'}
                            </div>
                         </div>
                       </Card>

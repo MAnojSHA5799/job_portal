@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Card, Badge, Button } from '@/components/ui';
+import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Users, 
   Briefcase, 
@@ -46,6 +46,10 @@ export default function AdminDashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState({
+    start: new Date().toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -55,6 +59,16 @@ export default function AdminDashboard() {
         const getCount = async (table: string, filter?: object) => {
             let query = supabase.from(table).select('*', { count: 'exact', head: true });
             if (filter) query = query.match(filter);
+            
+            // Apply date filter
+            const start = new Date(dateRange.start);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(dateRange.end);
+            end.setHours(23, 59, 59, 999);
+            
+            query = query.gte('created_at', start.toISOString())
+                         .lte('created_at', end.toISOString());
+            
             const { count } = await query;
             return count || 0;
         };
@@ -124,7 +138,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   if (!mounted) return null;
 
@@ -145,9 +159,37 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
           <p className="text-gray-500">Welcome back, Admin! Here's what's happening today.</p>
         </div>
-        <Button size="sm" className="hidden sm:flex">
-          <ArrowUpRight className="mr-2 h-4 w-4" /> Export Report
-        </Button>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex items-center px-3 py-1.5 border-r border-gray-100">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">From</span>
+              <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                className="text-sm font-semibold bg-transparent outline-none text-gray-900"
+              />
+            </div>
+            <div className="flex items-center px-3 py-1.5">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">To</span>
+              <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                className="text-sm font-semibold bg-transparent outline-none text-gray-900"
+              />
+            </div>
+          </div>
+          <Button size="sm" className="hidden sm:flex" onClick={() => setDateRange({
+            start: new Date().toISOString().split('T')[0],
+            end: new Date().toISOString().split('T')[0]
+          })}>
+            Today
+          </Button>
+          <Button size="sm" variant="outline" className="hidden sm:flex">
+            <ArrowUpRight className="mr-2 h-4 w-4" /> Export
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}

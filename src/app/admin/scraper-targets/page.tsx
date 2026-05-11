@@ -15,7 +15,10 @@ import {
   Play,
   ChevronDown,
   Filter,
-  Search
+  Search,
+  Edit2,
+  Save,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -63,6 +66,12 @@ export default function ScraperTargetsManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [urlLogs, setUrlLogs] = useState<Record<string, string>>({});
+
+  // Edit States
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
 
   // Scraper Trigger States
@@ -136,7 +145,10 @@ export default function ScraperTargetsManagement() {
     try {
       const { error } = await supabase
         .from('scraper_urls')
-        .insert([{ url: singleUrl.trim() }]);
+        .insert([{ 
+          url: singleUrl.trim(),
+          company_name: singleName.trim()
+        }]);
 
       if (error) {
         if (error.code === '23505') alert('This URL already exists!');
@@ -144,6 +156,7 @@ export default function ScraperTargetsManagement() {
       } else {
         const addedUrl = singleUrl.trim();
         setSingleUrl('');
+        setSingleName('');
         fetchUrls();
         
         // Auto-trigger scraper for this newly added URL specifically
@@ -251,7 +264,6 @@ export default function ScraperTargetsManagement() {
       setLoading(false);
     }
   };
-
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     setLoading(true);
     try {
@@ -263,6 +275,43 @@ export default function ScraperTargetsManagement() {
     } catch (err) {
       console.error(err);
       setLoading(false);
+    }
+  };
+  
+  const handleStartEdit = (target: ScraperUrl) => {
+    setEditingId(target.id);
+    setEditName(target.company_name || '');
+    setEditUrl(target.url);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditUrl('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    if (!editUrl.trim()) return;
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('scraper_urls')
+        .update({
+          company_name: editName.trim(),
+          url: editUrl.trim()
+        })
+        .eq('id', editingId);
+
+      if (error) throw error;
+      
+      setEditingId(null);
+      fetchUrls();
+    } catch (err: any) {
+      alert('Error saving changes: ' + err.message);
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -572,7 +621,16 @@ export default function ScraperTargetsManagement() {
                         <tr key={target.id} className="hover:bg-indigo-50/10 transition-colors group">
                           <td className="px-6 py-5">
                             <div className="flex flex-col gap-1">
-                              <span className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{target.company_name || 'Unknown Company'}</span>
+                              {editingId === target.id ? (
+                                <Input 
+                                  value={editName}
+                                  onChange={(e) => setEditName(e.target.value)}
+                                  className="h-8 text-xs font-bold"
+                                  placeholder="Company Name"
+                                />
+                              ) : (
+                                <span className="text-sm font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{target.company_name || 'Unknown Company'}</span>
+                              )}
                               <div className="flex items-center gap-2">
                                 <Badge className={cn("text-[8px] px-1.5 py-0 font-black uppercase tracking-tighter", target.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400")}>
                                   {target.is_active ? 'Discovery Active' : 'Pipeline Disabled'}
@@ -594,9 +652,18 @@ export default function ScraperTargetsManagement() {
                           </td>
                           <td className="px-6 py-5">
                             <div className="flex flex-col gap-1 max-w-[300px]">
-                              <a href={target.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-indigo-500 truncate hover:underline">
-                                {target.url}
-                              </a>
+                              {editingId === target.id ? (
+                                <Input 
+                                  value={editUrl}
+                                  onChange={(e) => setEditUrl(e.target.value)}
+                                  className="h-8 text-[11px] font-medium text-indigo-600"
+                                  placeholder="Discovery URL"
+                                />
+                              ) : (
+                                <a href={target.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-indigo-500 truncate hover:underline">
+                                  {target.url}
+                                </a>
+                              )}
                               <span className="text-[9px] text-gray-400 font-medium">Added {new Date(target.created_at).toLocaleDateString()}</span>
                             </div>
                           </td>
@@ -616,30 +683,63 @@ export default function ScraperTargetsManagement() {
                           </td>
                           <td className="px-6 py-5 text-right">
                             <div className="flex items-center justify-end gap-1.5">
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className="h-8 px-3 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                onClick={() => handleTriggerSingleScraper(target.url)}
-                              >
-                                <Play className="h-3 w-3 mr-1.5" /> RUN
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
-                                className={cn("h-8 px-3 text-[10px] font-black rounded-lg", target.is_active ? "text-orange-600 hover:bg-orange-50" : "text-emerald-600 hover:bg-emerald-50")}
-                                onClick={() => toggleStatus(target.id, target.is_active)}
-                              >
-                                {target.is_active ? 'DISABLE' : 'ENABLE'}
-                              </Button>
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                className="h-8 w-8 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                                onClick={() => handleDelete(target.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {editingId === target.id ? (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 px-3 text-[10px] font-black text-emerald-600 hover:bg-emerald-50 rounded-lg"
+                                    onClick={handleSaveEdit}
+                                    loading={savingEdit}
+                                  >
+                                    <Save className="h-3 w-3 mr-1.5" /> SAVE
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 px-3 text-[10px] font-black text-gray-400 hover:bg-gray-50 rounded-lg"
+                                    onClick={handleCancelEdit}
+                                    disabled={savingEdit}
+                                  >
+                                    <X className="h-3 w-3 mr-1.5" /> CANCEL
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 px-3 text-[10px] font-black text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                    onClick={() => handleTriggerSingleScraper(target.url)}
+                                  >
+                                    <Play className="h-3 w-3 mr-1.5" /> RUN
+                                  </Button>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-8 w-8 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                    onClick={() => handleStartEdit(target)}
+                                  >
+                                    <Edit2 className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className={cn("h-8 px-3 text-[10px] font-black rounded-lg", target.is_active ? "text-orange-600 hover:bg-orange-50" : "text-emerald-600 hover:bg-emerald-50")}
+                                    onClick={() => toggleStatus(target.id, target.is_active)}
+                                  >
+                                    {target.is_active ? 'DISABLE' : 'ENABLE'}
+                                  </Button>
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-8 w-8 text-gray-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                                    onClick={() => handleDelete(target.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

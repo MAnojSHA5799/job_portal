@@ -29,6 +29,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { ApplyButton } from '@/components/ApplyButton';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -38,55 +39,99 @@ interface Props {
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 async function getData(slug: string) {
-  const decodedSlug = decodeURIComponent(slug);
+  try {
+    const decodedSlug = decodeURIComponent(slug);
+    const searchName = decodedSlug.replace(/-/g, ' ');
 
-  // 1. Try to find by ID
-  if (isUUID(decodedSlug)) {
-    const { data: job } = await supabase
+    const { count: totalInDB } = await supabase.from('jobs').select('id', { count: 'exact', head: true });
+
+    console.log('--- getData DEEP DEBUG ---');
+    console.log('Total jobs visible to server:', totalInDB);
+    console.log('Searching for Slug:', decodedSlug);
+
+    // 1. Try to find by ID
+    if (isUUID(decodedSlug)) {
+      console.log('Step 1: Searching by ID...');
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('*, companies(*)')
+        .eq('id', decodedSlug)
+        .maybeSingle();
+      if (job) {
+        console.log('Step 1 SUCCESS: Found job by ID');
+        return { type: 'job', data: job };
+      }
+    }
+
+    // 2. Try to find by url_slug (Extremely Verbose)
+    console.log('Step 2: Searching for url_slug =', decodedSlug);
+    const response = await supabase
       .from('jobs')
       .select('*, companies(*)')
-      .eq('id', decodedSlug)
-      .eq('is_approved', true)
-      .single();
-    if (job) return { type: 'job', data: job };
-  }
+      .eq('url_slug', decodedSlug);
 
-  // 2. Try to find by url_slug
-  const { data: jobBySlug } = await supabase
-    .from('jobs')
-    .select('*, companies(*)')
-    .eq('url_slug', decodedSlug)
-    .eq('is_approved', true)
-    .single();
+    console.log('Step 2 Raw Response:', { 
+      count: response.data?.length || 0, 
+      error: response.error,
+      firstJobSlug: response.data?.[0]?.url_slug 
+    });
 
-  if (jobBySlug) return { type: 'job', data: jobBySlug };
+    if (response.data && response.data.length > 0) {
+      console.log('Step 2 SUCCESS: Found job');
+      return { type: 'job', data: response.data[0] };
+    }
 
-  // Try original slug just in case
-  if (decodedSlug !== slug) {
-    const { data: jobByOriginalSlug } = await supabase
+    // 3. Try to find by title match (Improved Fuzzy)
+    const fuzzyTitle = `%${searchName.split(/\s+/).join('%')}%`;
+    console.log('Step 3: Searching by fuzzy title match:', fuzzyTitle);
+    const { data: jobByTitle } = await supabase
       .from('jobs')
       .select('*, companies(*)')
-      .eq('url_slug', slug)
+      .ilike('title', fuzzyTitle)
+      .maybeSingle();
+    
+    if (jobByTitle) {
+      console.log('Step 3 SUCCESS: Found job by fuzzy title match');
+      return { type: 'job', data: jobByTitle };
+    }
+
+    // Try original slug just in case
+    if (decodedSlug !== slug) {
+      console.log('Step 3.5: Searching by original slug...');
+      const { data: jobByOriginalSlug } = await supabase
+        .from('jobs')
+        .select('*, companies(*)')
+        .eq('url_slug', slug)
+        .maybeSingle();
+      if (jobByOriginalSlug) {
+        console.log('Step 3.5 SUCCESS: Found job by original slug');
+        return { type: 'job', data: jobByOriginalSlug };
+      }
+    }
+
+    // 4. Try to find by Category or Job Type
+    console.log('Step 4: Searching by category/job_type...');
+    const { data: matchedJobs } = await supabase
+      .from('jobs')
+      .select('*, companies(*)')
+      .or(`category.ilike.%${searchName}%,job_type.ilike.%${searchName}%,category.ilike.%${decodedSlug}%,job_type.ilike.%${decodedSlug}%`)
       .eq('is_approved', true)
-      .single();
-    if (jobByOriginalSlug) return { type: 'job', data: jobByOriginalSlug };
+      .limit(20);
+
+    if (matchedJobs && matchedJobs.length > 0) {
+      console.log('Step 4 SUCCESS: Found category matches:', matchedJobs.length);
+      const displayName = searchName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { type: 'category', data: matchedJobs, name: displayName, slug: decodedSlug };
+    }
+
+    console.log('Step 4 FAILED: No matches found at all');
+    console.log('--- getData DEBUG END ---');
+
+    return null;
+  } catch (err) {
+    console.error('Error in getData:', err);
+    return null;
   }
-
-  // 3. Try to find by Category or Job Type
-  const searchName = decodedSlug.replace(/-/g, ' ');
-  const { data: matchedJobs } = await supabase
-    .from('jobs')
-    .select('*, companies(*)')
-    .or(`category.ilike.%${searchName}%,job_type.ilike.%${searchName}%,category.ilike.%${decodedSlug}%,job_type.ilike.%${decodedSlug}%`)
-    .eq('is_approved', true)
-    .limit(20);
-
-  if (matchedJobs && matchedJobs.length > 0) {
-    const displayName = searchName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    return { type: 'category', data: matchedJobs, name: displayName, slug: decodedSlug };
-  }
-
-  return null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -110,7 +155,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-import { ApplyButton } from '@/components/ApplyButton';
 
 export default async function SlugPage({ params }: Props) {
   const slug = (await params).slug;
@@ -122,6 +166,28 @@ export default async function SlugPage({ params }: Props) {
 
   if (result.type === 'job') {
     const job = result.data;
+
+    // Handle Unapproved Jobs UI
+    if (!job.is_approved) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white p-8 rounded-[32px] border border-amber-100 shadow-xl shadow-amber-500/5 text-center">
+            <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <ShieldCheck className="w-10 h-10 text-amber-500" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 mb-2">Pending Approval</h1>
+            <p className="text-gray-500 text-sm font-medium mb-8">
+              This job posting for <span className="text-gray-900 font-bold">{job.title}</span> has been successfully scraped but is currently waiting for admin review.
+            </p>
+            <Link href="/admin/jobs">
+              <Button className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg">
+                GO TO ADMIN TO APPROVE
+              </Button>
+            </Link>
+          </div>
+        </div>
+      );
+    }
     const city = job.location?.split(',')[0] || 'India';
     const year = new Date().getFullYear();
 
@@ -138,21 +204,21 @@ export default async function SlugPage({ params }: Props) {
     const jsonLd = {
       "@context": "https://schema.org/",
       "@type": "JobPosting",
-      "title": job.title,
-      "description": job.description,
+      "title": job.title || 'Job Opening',
+      "description": job.description || 'Job details',
       "datePosted": job.created_at,
       "validThrough": job.valid_through || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       "hiringOrganization": {
         "@type": "Organization",
-        "name": job.companies?.name,
-        "sameAs": job.companies?.website,
-        "logo": job.companies?.logo_url
+        "name": job.companies?.name || 'Verified Employer',
+        "sameAs": job.companies?.website || 'https://www.hiringstores.com',
+        "logo": job.companies?.logo_url || 'https://www.hiringstores.com/logo.png'
       },
       "jobLocation": {
         "@type": "Place",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": job.location,
+          "streetAddress": job.location || 'India',
           "addressLocality": city,
           "addressCountry": "IN"
         }
@@ -427,7 +493,7 @@ export default async function SlugPage({ params }: Props) {
         "itemListElement": jobs.slice(0, 10).map((job: any, index: number) => ({
             "@type": "ListItem",
             "position": index + 1,
-            "url": `https://gethyrd.in/jobs/${job.url_slug || job.id}`,
+            "url": `https://www.hiringstores.com/jobs/${job.url_slug || job.id}`,
             "name": job.title
         }))
     };

@@ -17,7 +17,9 @@ import {
   Edit3,
   Eye,
   Star,
-  X
+  X,
+  ChevronRight,
+  Users
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -45,6 +47,7 @@ interface Company {
   name: string;
   industry: string;
   career_page_url?: string;
+  team_size?: string;
 }
 
 export default function CompanyJobsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,12 +58,17 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingJob, setViewingJob] = useState<Job | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [companyStats, setCompanyStats] = useState({ total: 0, approved: 0, pending: 0 });
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchCompanyData();
-  }, [resolvedParams.id]);
+  }, [resolvedParams.id, currentPage, searchQuery]);
 
   const fetchCompanyData = async () => {
+    if (!resolvedParams.id) return;
     setLoading(true);
     try {
       // Fetch Company
@@ -73,15 +81,43 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
       if (companyError) throw companyError;
       setCompany(companyData);
 
-      // Fetch Jobs for Company
-      const { data: jobsData, error: jobsError } = await supabase
+      // Prepare Jobs Query
+      let query = supabase
         .from('jobs')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('company_id', resolvedParams.id)
         .order('created_at', { ascending: false });
 
+      // Apply Search
+      if (searchQuery) {
+        query = query.or(`title.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`);
+      }
+
+      // Apply Pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data: jobsData, error: jobsError, count } = await query;
+
       if (jobsError) throw jobsError;
       setJobs(jobsData || []);
+      setTotalCount(count || 0);
+
+      // Fetch global stats for this company (not paginated)
+      const [
+        { count: globalTotal },
+        { count: globalApproved }
+      ] = await Promise.all([
+        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', resolvedParams.id),
+        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('company_id', resolvedParams.id).eq('is_approved', true)
+      ]);
+
+      setCompanyStats({
+        total: globalTotal || 0,
+        approved: globalApproved || 0,
+        pending: (globalTotal || 0) - (globalApproved || 0)
+      });
     } catch (error) {
       console.error('Error fetching data:', error);
       alert('Error fetching company details');
@@ -90,10 +126,7 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const filteredJobs = jobs.filter(job => 
-    job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    job.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredJobs = jobs; // Server-side filtered now
 
   const approvedCount = jobs.filter(j => j.is_approved).length;
   const pendingCount = jobs.length - approvedCount;
@@ -118,8 +151,11 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
               <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
                 {company?.name || 'Loading Company...'}
               </h1>
-              <p className="text-gray-500 mt-1 text-sm font-medium flex items-center gap-2">
-                <Briefcase className="w-4 h-4" /> Company Jobs Overview
+              <p className="text-gray-500 mt-1 text-sm font-medium flex flex-wrap items-center gap-4">
+                <span className="flex items-center gap-2"><Briefcase className="w-4 h-4 text-indigo-500" /> Company Jobs Overview</span>
+                {company?.team_size && (
+                  <span className="flex items-center gap-2"><Users className="w-4 h-4 text-indigo-500" /> {company.team_size} Employees</span>
+                )}
               </p>
             </div>
           </div>
@@ -147,7 +183,7 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
                 <span className="text-sm font-semibold text-gray-500">Total Scraped Jobs</span>
               </div>
               <div className="flex items-baseline gap-3">
-                <h3 className="text-3xl font-bold text-gray-900 leading-none">{jobs.length}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 leading-none">{companyStats.total}</h3>
               </div>
             </div>
           </div>
@@ -163,7 +199,7 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
                 <span className="text-sm font-semibold text-gray-500">Approved Jobs</span>
               </div>
               <div className="flex items-baseline gap-3">
-                <h3 className="text-3xl font-bold text-gray-900 leading-none">{approvedCount}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 leading-none">{companyStats.approved}</h3>
               </div>
             </div>
           </div>
@@ -179,7 +215,7 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
                 <span className="text-sm font-semibold text-gray-500">Pending Review</span>
               </div>
               <div className="flex items-baseline gap-3">
-                <h3 className="text-3xl font-bold text-gray-900 leading-none">{pendingCount}</h3>
+                <h3 className="text-3xl font-bold text-gray-900 leading-none">{companyStats.pending}</h3>
               </div>
             </div>
           </div>
@@ -196,7 +232,10 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
                   placeholder="Search jobs by title or location..." 
                   className="pl-11 h-11 bg-white border-none shadow-sm shadow-gray-200/50 focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-medium" 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
             </div>
         </div>
@@ -313,6 +352,48 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
               </table>
             )}
           </div>
+
+          {!loading && filteredJobs.length > 0 && (
+            <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Showing {jobs.length} of {totalCount} records
+              </p>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1 || loading}
+                  className="h-9 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.ceil(totalCount / itemsPerPage) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={cn(
+                        "h-9 w-9 rounded-xl text-xs font-black transition-all",
+                        currentPage === i + 1 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-white text-gray-400 hover:bg-gray-50"
+                      )}
+                    >
+                      {i + 1}
+                    </button>
+                  )).slice(Math.max(0, currentPage - 3), Math.min(Math.ceil(totalCount / itemsPerPage), currentPage + 2))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / itemsPerPage), prev + 1))}
+                  disabled={currentPage === Math.ceil(totalCount / itemsPerPage) || loading}
+                  className="h-9 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
 
           {!loading && filteredJobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">

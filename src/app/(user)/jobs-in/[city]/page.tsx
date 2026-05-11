@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!cityParam) return { title: 'Jobs' };
   
   const city = cityParam.charAt(0).toUpperCase() + cityParam.slice(1);
-  const title = `Manufacturing Jobs in ${city} — Hiring Now | Gethyrd.in`;
+  const title = `Manufacturing Jobs in ${city} — Hiring Now | http://www.hiringstores.com`;
   const description = `Discover top manufacturing and industrial jobs in ${city}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${city}.`;
 
   return {
@@ -75,7 +75,7 @@ export default async function LocationPage({ params }: Props) {
     "itemListElement": jobs?.slice(0, 10).map((job: any, index: number) => ({
         "@type": "ListItem",
         "position": index + 1,
-        "url": `https://gethyrd.in/jobs/${job.url_slug || job.id}`,
+        "url": `https://http://www.hiringstores.com/jobs/${job.url_slug || job.id}`,
         "name": job.title
     }))
   };

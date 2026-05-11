@@ -80,6 +80,11 @@ export default function ScraperManager() {
   const [companiesPage, setCompaniesPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [dateRange, setDateRange] = useState({
+    start: new Date().toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+
   // Scraper Filters
   const [showFilters, setShowFilters] = useState(false);
   const [scrapeFilters, setScrapeFilters] = useState({
@@ -92,10 +97,17 @@ export default function ScraperManager() {
     try {
       setLoading(true);
       // Fetch Logs
-      const { data: logsData } = await supabase
-        .from('scraper_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let logsQuery = supabase.from('scraper_logs').select('*');
+      
+      const start = new Date(dateRange.start);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.end);
+      end.setHours(23, 59, 59, 999);
+
+      logsQuery = logsQuery.gte('created_at', start.toISOString())
+                           .lte('created_at', end.toISOString());
+      
+      const { data: logsData } = await logsQuery.order('created_at', { ascending: false });
 
       if (logsData) setLogs(logsData);
 
@@ -104,9 +116,12 @@ export default function ScraperManager() {
         .from('companies')
         .select('id, name, website');
 
-      const { data: jobsData } = await supabase
-        .from('jobs')
-        .select('company_id, created_at');
+      let jobsQuery = supabase.from('jobs').select('company_id, created_at');
+      
+      jobsQuery = jobsQuery.gte('created_at', start.toISOString())
+                           .lte('created_at', end.toISOString());
+      
+      const { data: jobsData } = await jobsQuery;
 
       if (companiesData && jobsData) {
         const jobCounts = jobsData.reduce((acc: any, job: any) => {
@@ -141,7 +156,7 @@ export default function ScraperManager() {
     fetchData();
     const interval = setInterval(fetchData, 10000); 
     return () => clearInterval(interval);
-  }, []);
+  }, [dateRange]);
 
   // Calculate Statistics
   const stats = useMemo(() => {
@@ -287,6 +302,58 @@ export default function ScraperManager() {
           </div>
         </div>
         
+        <div className="flex gap-2">
+          <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+            <div className="flex items-center px-3 py-1.5 border-r border-gray-100">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">From</span>
+              <input 
+                type="date" 
+                value={dateRange.start}
+                onChange={(e) => {
+                  setDateRange(prev => ({ ...prev, start: e.target.value }));
+                  setLogsPage(1);
+                  setCompaniesPage(1);
+                }}
+                className="text-sm font-semibold bg-transparent outline-none text-gray-900"
+              />
+            </div>
+            <div className="flex items-center px-3 py-1.5">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">To</span>
+              <input 
+                type="date" 
+                value={dateRange.end}
+                onChange={(e) => {
+                  setDateRange(prev => ({ ...prev, end: e.target.value }));
+                  setLogsPage(1);
+                  setCompaniesPage(1);
+                }}
+                className="text-sm font-semibold bg-transparent outline-none text-gray-900"
+              />
+            </div>
+          </div>
+          <Button size="sm" className="hidden sm:flex" onClick={() => {
+            setDateRange({
+              start: new Date().toISOString().split('T')[0],
+              end: new Date().toISOString().split('T')[0]
+            });
+            setLogsPage(1);
+            setCompaniesPage(1);
+          }}>
+            Today
+          </Button>
+          <Button size="sm" variant="outline" className="hidden sm:flex" onClick={() => {
+            const last7 = new Date();
+            last7.setDate(last7.getDate() - 7);
+            setDateRange({
+              start: last7.toISOString().split('T')[0],
+              end: new Date().toISOString().split('T')[0]
+            });
+            setLogsPage(1);
+            setCompaniesPage(1);
+          }}>
+            Last 7 Days
+          </Button>
+        </div>
       </div>
 
       {stats.inProgress > 0 && (

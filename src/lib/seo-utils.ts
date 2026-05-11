@@ -302,7 +302,7 @@ export function calculateSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).filter((l: string) => !l.includes('gethyrd.in')).length >= 1;
+  const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).filter((l: string) => !l.includes('http://www.hiringstores.com')).length >= 1;
   checks.push({
     id: 26,
     name: 'External DoFollow link present',

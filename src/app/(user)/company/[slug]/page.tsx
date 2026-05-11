@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { ApplyButton } from '@/components/ApplyButton';
+const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -26,23 +27,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const slug = (await params).slug;
   const decodedSlug = decodeURIComponent(slug);
   
-  const { data: company } = await supabase
-    .from('companies')
-    .select('name')
-    .or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`)
-    .single();
+  let query = supabase.from('companies').select('name');
+  
+  if (isUUID(decodedSlug)) {
+    query = query.or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`);
+  } else {
+    query = query.eq('url_slug', decodedSlug);
+  }
+
+  const { data: company } = await query.maybeSingle();
 
   if (!company && decodedSlug !== slug) {
     // Fallback to try original slug
-    const { data: fallbackCompany } = await supabase
-      .from('companies')
-      .select('name')
-      .or(`id.eq.${slug},url_slug.eq.${slug}`)
-      .single();
+    let fallbackQuery = supabase.from('companies').select('name');
+    if (isUUID(slug)) {
+      fallbackQuery = fallbackQuery.or(`id.eq.${slug},url_slug.eq.${slug}`);
+    } else {
+      fallbackQuery = fallbackQuery.eq('url_slug', slug);
+    }
+    const { data: fallbackCompany } = await fallbackQuery.maybeSingle();
     
     if (fallbackCompany) {
       return {
-        title: `${fallbackCompany.name} Jobs — Active Openings Hiring Now | Gethyrd.in`,
+        title: `${fallbackCompany.name} Jobs — Active Openings Hiring Now | http://www.hiringstores.com`,
         description: `Explore latest career opportunities at ${fallbackCompany.name}. View all active openings and company info. Verified manufacturing jobs at ${fallbackCompany.name}.`
       };
     }
@@ -50,7 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!company) return { title: 'Company Not Found' };
 
-  const title = `${company.name} Jobs — Active Openings Hiring Now | Gethyrd.in`;
+  const title = `${company.name} Jobs — Active Openings Hiring Now | http://www.hiringstores.com`;
   const description = `Explore latest career opportunities at ${company.name}. View all active openings and company info. Verified manufacturing jobs at ${company.name}.`;
 
   return { title, description };
@@ -60,18 +67,23 @@ export default async function CompanyPage({ params }: Props) {
   const slug = (await params).slug;
   const decodedSlug = decodeURIComponent(slug);
 
-  let { data: company, error: companyError } = await supabase
-    .from('companies')
-    .select('*')
-    .or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`)
-    .single();
+  let query = supabase.from('companies').select('*');
+  if (isUUID(decodedSlug)) {
+    query = query.or(`id.eq.${decodedSlug},url_slug.eq.${decodedSlug}`);
+  } else {
+    query = query.eq('url_slug', decodedSlug);
+  }
+
+  let { data: company, error: companyError } = await query.maybeSingle();
 
   if ((companyError || !company) && decodedSlug !== slug) {
-    const { data: fallbackCompany, error: fallbackError } = await supabase
-      .from('companies')
-      .select('*')
-      .or(`id.eq.${slug},url_slug.eq.${slug}`)
-      .single();
+    let fallbackQuery = supabase.from('companies').select('*');
+    if (isUUID(slug)) {
+      fallbackQuery = fallbackQuery.or(`id.eq.${slug},url_slug.eq.${slug}`);
+    } else {
+      fallbackQuery = fallbackQuery.eq('url_slug', slug);
+    }
+    const { data: fallbackCompany, error: fallbackError } = await fallbackQuery.maybeSingle();
     company = fallbackCompany;
     companyError = fallbackError;
   }
@@ -84,7 +96,6 @@ export default async function CompanyPage({ params }: Props) {
     .from('jobs')
     .select('*')
     .eq('company_id', company.id)
-    .eq('is_approved', true)
     .order('created_at', { ascending: false });
 
   const jobCount = jobs?.length || 0;
@@ -95,7 +106,7 @@ export default async function CompanyPage({ params }: Props) {
       {
         "@type": "Organization",
         "name": company.name,
-        "url": `https://gethyrd.in/company/${company.url_slug || company.id}`,
+        "url": `https://www.hiringstores.com/company/${company.url_slug || company.id}`,
         "logo": company.logo_url,
         "sameAs": [company.website, company.linkedin_url].filter(Boolean)
       },
@@ -105,7 +116,7 @@ export default async function CompanyPage({ params }: Props) {
         "itemListElement": jobs?.slice(0, 10).map((job: any, index: number) => ({
           "@type": "ListItem",
           "position": index + 1,
-          "url": `https://gethyrd.in/jobs/${job.url_slug || job.id}`,
+          "url": `https://www.hiringstores.com/jobs/${job.url_slug || job.id}`,
           "name": job.title
         }))
       }
@@ -186,6 +197,9 @@ export default async function CompanyPage({ params }: Props) {
                               <a href={`/jobs/${job.url_slug || job.id}`}>{job.title}</a>
                             </h3>
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                              {!job.is_approved && (
+                                <Badge className="bg-amber-500 text-white border-0 font-black px-2 py-0.5">PENDING REVIEW</Badge>
+                              )}
                               <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
                                 <MapPin className="w-3 h-3" /> {job.location}
                               </span>
@@ -232,7 +246,7 @@ export default async function CompanyPage({ params }: Props) {
                       <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600"><Users className="w-6 h-6" /></div>
                       <div>
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Team Size</span>
-                        <span className="font-bold text-gray-900">{company.headcount || 'N/A'}</span>
+                        <span className="font-bold text-gray-900">{company.team_size || 'N/A'}</span>
                       </div>
                    </div>
                    <div className="flex items-center gap-4">

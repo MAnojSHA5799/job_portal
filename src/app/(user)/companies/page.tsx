@@ -26,7 +26,8 @@ interface Company {
   location: string;
   logo_url: string;
   rating?: number;
-  jobs: { count: number }[];
+  jobs: { id: string }[];
+  team_size?: string;
 }
 
 export default function CompaniesDirectory() {
@@ -43,7 +44,7 @@ export default function CompaniesDirectory() {
         .from('companies')
         .select(`
           *,
-          jobs:jobs(count)
+          jobs(id)
         `);
 
       if (searchQuery) {
@@ -195,8 +196,13 @@ export default function CompaniesDirectory() {
                                           <MapPin className="h-4 w-4 text-primary/60" /> {company.location || 'Remote'}
                                       </div>
                                       <div className="flex items-center text-primary gap-2 text-xs font-black bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
-                                          <TrendingUp className="h-4 w-4" /> {company.jobs?.[0]?.count || 0} Openings
+                                          <TrendingUp className="h-4 w-4" /> {company.jobs?.length || 0} Openings
                                       </div>
+                                      {company.team_size && (
+                                        <div className="flex items-center text-gray-500 gap-2 text-xs font-bold bg-gray-50 px-3 py-2 rounded-xl">
+                                            <Users className="h-4 w-4 text-primary/60" /> {company.team_size}
+                                        </div>
+                                      )}
                                   </div>
                               </div>
 
