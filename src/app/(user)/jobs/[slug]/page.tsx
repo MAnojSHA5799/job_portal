@@ -191,6 +191,7 @@ export default async function SlugPage({ params }: Props) {
       "@type": "JobPosting",
       "title": job.title || 'Job Opening',
       "description": job.description || 'Job details',
+      "image": job.media_url || job.companies?.logo_url || 'https://www.hiringstores.com/logo.png',
       "datePosted": job.created_at,
       "validThrough": job.valid_through || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
       "hiringOrganization": {
@@ -221,7 +222,7 @@ export default async function SlugPage({ params }: Props) {
     };
 
     return (
-      <div className="bg-[#f8f9fa] min-h-screen pb-12">
+      <div className="bg-white min-h-screen pb-12">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -381,20 +382,83 @@ export default async function SlugPage({ params }: Props) {
                         <p className="text-xs text-gray-500 mt-1">{new Date(job.created_at).toLocaleDateString()}</p>
                     </div>
                 </div>
-             </div>
-          </div>
-
-          {/* Detailed Sections Card */}
+              </div>
+           </div>
+ 
+           {/* Detailed Sections Card */}
           <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white space-y-10">
              {/* Job Description */}
              <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-4">Job Description</h3>
-                <div 
-                    className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: job.description }}
-                />
-             </section>
+                
+                <div className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none">
+                  {(() => {
+                    const parts = job.description.split('</ul>');
+                    if (parts.length > 1) {
+                      return (
+                        <>
+                          <div dangerouslySetInnerHTML={{ __html: parts[0] + '</ul>' }} />
+                          
+                          {/* Job Media Display */}
+                          {job.media_url && (
+                            <div className="my-8 rounded-2xl overflow-hidden">
+                              {job.media_type === 'video' ? (
+                                <div className="aspect-video w-full bg-black">
+                                  <video 
+                                    src={job.media_url} 
+                                    className="w-full h-full" 
+                                    controls 
+                                    poster={job.companies?.logo_url}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="relative group cursor-pointer overflow-hidden">
+                                  <img 
+                                    src={job.media_url} 
+                                    alt={job.title} 
+                                    className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
 
+                          <div dangerouslySetInnerHTML={{ __html: parts.slice(1).join('</ul>') }} />
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        {/* Job Media Display (Fallback if no list found) */}
+                        {job.media_url && (
+                          <div className="mb-8 rounded-2xl overflow-hidden">
+                              {job.media_type === 'video' ? (
+                                <div className="aspect-video w-full bg-black flex items-center justify-center">
+                                  <video 
+                                    src={job.media_url} 
+                                    className="w-full h-full" 
+                                    controls 
+                                    poster={job.companies?.logo_url}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="relative group cursor-pointer overflow-hidden">
+                                  <img 
+                                    src={job.media_url} 
+                                    alt={job.title} 
+                                    className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
+                                  />
+                                </div>
+                              )}
+                          </div>
+                        )}
+                        <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                      </>
+                    );
+                  })()}
+                </div>
+             </section>
+             {/* Job Role Grid */}
              {/* Job Role Grid */}
              <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-6">Job role</h3>

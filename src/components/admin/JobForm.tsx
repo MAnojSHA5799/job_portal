@@ -26,10 +26,13 @@ import {
   Eye,
   Star,
   ArrowRight,
-  X
+  X,
+  PlayCircle,
+  Upload
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 import { enhanceJobSEO } from '@/lib/seo-enhancer';
+import { supabase } from '@/lib/supabase';
 
 interface Company {
   id: string;
@@ -59,6 +62,8 @@ interface Job {
   seo_score?: number;
   valid_through?: string;
   is_approved?: boolean;
+  media_url?: string;
+  media_type?: 'image' | 'video';
 }
 
 interface JobFormProps {
@@ -104,7 +109,7 @@ export function JobForm({
 
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFixingAll, setIsFixingAll] = useState(false);
-  const [showSeoDetails, setShowSeoDetails] = useState(true);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [fixingCheckId, setFixingCheckId] = useState<number | null>(null);
   const [savingType, setSavingType] = useState<'draft' | 'publish' | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -609,6 +614,114 @@ Instructions:
               value={currentJob.description || ''}
               onChange={e => setCurrentJob({...currentJob, description: e.target.value})}
             />
+          </div>
+          
+          <div className="space-y-6 pt-10 border-t border-gray-100">
+            <div>
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-2">Job Media (Image/Video)</h3>
+              <p className="text-[10px] text-gray-500 font-bold mb-6">Add an engaging image or video to highlight this job posting.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Media Source</label>
+                    <div className="flex bg-gray-50 p-1 rounded-lg">
+                      <button 
+                        type="button"
+                        onClick={() => setCurrentJob({...currentJob, media_type: 'image'})}
+                        className={cn(
+                          "px-3 py-1 text-[9px] font-black rounded-md transition-all",
+                          currentJob.media_type === 'image' || !currentJob.media_type ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"
+                        )}
+                      >IMAGE</button>
+                      <button 
+                        type="button"
+                        onClick={() => setCurrentJob({...currentJob, media_type: 'video'})}
+                        className={cn(
+                          "px-3 py-1 text-[9px] font-black rounded-md transition-all",
+                          currentJob.media_type === 'video' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"
+                        )}
+                      >VIDEO</button>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <Input 
+                      className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                      placeholder={currentJob.media_type === 'video' ? "Paste Video URL (YouTube/MP4)" : "Paste Image URL or Upload"}
+                      value={currentJob.media_url || ''}
+                      onChange={e => setCurrentJob({...currentJob, media_url: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingMedia(true);
+                        try {
+                          const fileExt = file.name.split('.').pop();
+                          const fileName = `${Math.random()}.${fileExt}`;
+                          const filePath = `job-media/${fileName}`;
+                          
+                          const { error: uploadError } = await supabase.storage
+                            .from('banners')
+                            .upload(filePath, file);
+                          
+                          if (uploadError) throw uploadError;
+                          
+                          const { data } = supabase.storage
+                            .from('banners')
+                            .getPublicUrl(filePath);
+                          
+                          setCurrentJob({ 
+                            ...currentJob, 
+                            media_url: data.publicUrl,
+                            media_type: file.type.startsWith('video/') ? 'video' : 'image'
+                          });
+                        } catch (err: any) {
+                          alert('Upload failed: ' + err.message);
+                        } finally {
+                          setIsUploadingMedia(false);
+                        }
+                      }}
+                      accept="image/*,video/*"
+                      disabled={isUploadingMedia}
+                    />
+                    <Button variant="outline" className="h-12 w-full rounded-xl border-gray-100 bg-gray-50 hover:bg-white transition-all shadow-sm font-bold text-xs" disabled={isUploadingMedia}>
+                      {isUploadingMedia ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2 text-indigo-500" />}
+                      UPLOAD FROM COMPUTER
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-3xl border border-gray-100 overflow-hidden flex items-center justify-center min-h-[160px] relative">
+                  {currentJob.media_url ? (
+                    currentJob.media_type === 'video' ? (
+                      <video src={currentJob.media_url} className="w-full h-full object-cover" controls />
+                    ) : (
+                      <img src={currentJob.media_url} alt="Job Media" className="w-full h-full object-cover" />
+                    )
+                  ) : (
+                    <div className="text-center p-6">
+                      <PlayCircle className="h-10 w-10 text-gray-200 mx-auto mb-2" />
+                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Media Preview</p>
+                    </div>
+                  )}
+                  {currentJob.media_url && (
+                    <button 
+                      onClick={() => setCurrentJob({...currentJob, media_url: '', media_type: 'image'})}
+                      className="absolute top-3 right-3 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8">
