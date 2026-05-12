@@ -16,6 +16,7 @@ import {
   Award
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { Banner } from '@/components/Banner';
 import { ApplyButton } from '@/components/ApplyButton';
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
@@ -130,8 +131,9 @@ export default async function CompanyPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="bg-white border-b border-gray-100 pt-32 pb-16 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-32 bg-indigo-600/10"></div>
+      <Banner />
+
+      <div className="bg-white border-b border-gray-100 pb-16 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col md:flex-row items-end gap-8">
             <div className="w-32 h-32 rounded-[40px] bg-white border border-gray-100 shadow-2xl shadow-indigo-100 flex items-center justify-center p-4 overflow-hidden -mt-16">

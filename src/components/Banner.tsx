@@ -25,12 +25,25 @@ export const Banner = () => {
   useEffect(() => {
     const fetchBanner = async () => {
       setLoading(true);
-      const { data } = await supabase
+      
+      // 1. Try specific path first
+      let { data } = await supabase
         .from('banners')
         .select('*')
         .eq('page_path', pathname)
         .eq('is_active', true)
         .maybeSingle();
+
+      // 2. If not found and we are on a sub-page (like /company/slug), try the parent path
+      if (!data && pathname.startsWith('/company/')) {
+        const { data: parentData } = await supabase
+          .from('banners')
+          .select('*')
+          .eq('page_path', '/company')
+          .eq('is_active', true)
+          .maybeSingle();
+        data = parentData;
+      }
 
       setBanner(data || null);
       setLoading(false);

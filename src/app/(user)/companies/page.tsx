@@ -13,7 +13,8 @@ import {
   Users, 
   ArrowRight,
   TrendingUp,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -30,12 +31,59 @@ interface Company {
   team_size?: string;
 }
 
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const duration = 2000; // 2 seconds
+    const increment = Math.ceil(value / (duration / 16)); // ~60fps
+    
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <>{count}</>;
+};
+
 export default function CompaniesDirectory() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [industryQuery, setIndustryQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [teamSizeQuery, setTeamSizeQuery] = useState('');
+
+  // Suggestion states
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [teamSizes, setTeamSizes] = useState<string[]>([]);
+
+  const fetchFilters = async () => {
+    try {
+      const { data } = await supabase.from('companies').select('industry, location, team_size');
+      if (data) {
+        const uniqueIndustries = Array.from(new Set(data.map(c => c.industry).filter(Boolean)));
+        const uniqueLocations = Array.from(new Set(data.map(c => c.location).filter(Boolean)));
+        const uniqueTeamSizes = Array.from(new Set(data.map(c => c.team_size).filter(Boolean)));
+        
+        setIndustries(uniqueIndustries);
+        setLocations(uniqueLocations);
+        setTeamSizes(uniqueTeamSizes);
+      }
+    } catch (err) {
+      console.error('Error fetching filters:', err);
+    }
+  };
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -47,17 +95,10 @@ export default function CompaniesDirectory() {
           jobs(id)
         `);
 
-      if (searchQuery) {
-        query = query.ilike('name', `%${searchQuery}%`);
-      }
-
-      if (industryQuery) {
-        query = query.ilike('industry', `%${industryQuery}%`);
-      }
-
-      if (locationQuery) {
-        query = query.ilike('location', `%${locationQuery}%`);
-      }
+      if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
+      if (industryQuery) query = query.ilike('industry', `%${industryQuery}%`);
+      if (locationQuery) query = query.ilike('location', `%${locationQuery}%`);
+      if (teamSizeQuery) query = query.eq('team_size', teamSizeQuery);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -70,6 +111,7 @@ export default function CompaniesDirectory() {
   };
 
   useEffect(() => {
+    fetchFilters();
     fetchCompanies();
   }, []);
 
@@ -86,49 +128,70 @@ export default function CompaniesDirectory() {
             <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="max-w-4xl"
+                className="max-w-5xl"
             >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10 mb-8">
-                    <Building2 className="w-3 h-3 fill-primary" /> Verified Partners
-                </div>
+                
                 <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
                     Top <span className="text-primary italic">Hiring</span> Partners.
                 </h1>
-                <p className="text-xl text-gray-500 font-medium max-w-2xl leading-relaxed mb-12">
-                    Discover world-class companies and their culture. Explore high-growth opportunities at industry leaders.
-                </p>
-
-                <form onSubmit={handleSearch} className="max-w-5xl bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col md:flex-row items-center gap-2">
-                    <div className="relative flex-1 w-full">
+                
+                <form onSubmit={handleSearch} className="bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col lg:flex-row items-stretch gap-2">
+                    <div className="relative flex-[1.2] min-w-0">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
                         <Input 
                             placeholder="Company Name" 
-                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                            className="border-0 shadow-none pl-12 h-12 focus-visible:ring-0 font-bold w-full" 
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="hidden md:block w-px h-8 bg-gray-100"></div>
-                    <div className="relative flex-1 w-full">
+                    
+                    <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
+                    
+                    <div className="relative flex-1 min-w-0">
                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
-                        <Input 
-                            placeholder="Industry" 
-                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                        <select 
+                            className="w-full border-0 bg-transparent pl-12 pr-10 h-12 focus-visible:ring-0 font-bold text-sm text-gray-600 appearance-none cursor-pointer outline-none"
                             value={industryQuery}
                             onChange={(e) => setIndustryQuery(e.target.value)}
-                        />
+                        >
+                            <option value="">All Industries</option>
+                            {industries.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
-                    <div className="hidden md:block w-px h-8 bg-gray-100"></div>
-                    <div className="relative flex-1 w-full">
+
+                    <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
+
+                    <div className="relative flex-1 min-w-0">
                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
-                        <Input 
-                            placeholder="Location" 
-                            className="border-0 shadow-none pl-12 h-11 focus-visible:ring-0 font-bold" 
+                        <select 
+                            className="w-full border-0 bg-transparent pl-12 pr-10 h-12 focus-visible:ring-0 font-bold text-sm text-gray-600 appearance-none cursor-pointer outline-none"
                             value={locationQuery}
                             onChange={(e) => setLocationQuery(e.target.value)}
-                        />
+                        >
+                            <option value="">All Locations</option>
+                            {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
-                    <Button type="submit" size="lg" className="h-11 w-full md:w-auto font-black px-10 rounded-xl shadow-lg shadow-primary/20 uppercase tracking-widest text-xs">Search</Button>
+
+                    <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
+
+                    <div className="relative flex-1 min-w-0">
+                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
+                        <select 
+                            className="w-full border-0 bg-transparent pl-12 pr-10 h-12 focus-visible:ring-0 font-bold text-sm text-gray-600 appearance-none cursor-pointer outline-none"
+                            value={teamSizeQuery}
+                            onChange={(e) => setTeamSizeQuery(e.target.value)}
+                        >
+                            <option value="">All Team Sizes</option>
+                            {teamSizes.map(size => <option key={size} value={size}>{size}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    </div>
+
+                    <Button type="submit" size="lg" className="h-12 w-full lg:w-auto font-black px-10 rounded-xl shadow-lg shadow-primary/20 uppercase tracking-widest text-xs">Search</Button>
                 </form>
             </motion.div>
         </div>
@@ -147,70 +210,64 @@ export default function CompaniesDirectory() {
             <p className="text-gray-500 max-w-sm mx-auto mt-2 font-medium">We couldn't find any companies matching your search filters. Try adjusting your keywords.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-6">
               {companies.map((company, i) => (
                   <motion.div
                       key={company.id}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
+                      transition={{ delay: i * 0.05 }}
                   >
-                      <Card className="p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all group rounded-[32px] bg-white overflow-hidden relative">
-                          {/* Rating Badge Top Right */}
-                          <div className="absolute top-6 right-6 z-10">
-                              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 shadow-sm">
-                                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" /> 
-                                  <span className="font-bold text-xs">{company.rating || '4.5'}</span>
-                              </div>
-                          </div>
-
-                          <div className="flex flex-col h-full">
-                              {/* Logo Section */}
-                              <div className="mb-6">
-                                  <div className="w-20 h-20 rounded-2xl bg-white border border-gray-100 shadow-lg shadow-gray-100 flex items-center justify-center p-2 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
-                                      {company.logo_url ? (
-                                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center font-black text-primary text-3xl bg-indigo-50">
-                                            {company.name[0]}
-                                        </div>
-                                      )}
-                                  </div>
+                      <Card className="group relative bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-all duration-300">
+                          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                              {/* Left: Logo */}
+                              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-3 shrink-0 group-hover:scale-105 transition-transform">
+                                  {company.logo_url ? (
+                                    <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center font-black text-primary text-3xl bg-indigo-50 rounded-xl">
+                                        {company.name[0]}
+                                    </div>
+                                  )}
                               </div>
 
-                              {/* Info Section */}
-                              <div className="flex-grow space-y-4">
-                                  <div>
-                                       <Link href={`/company/${company.url_slug || company.id}`}>
-                                           <h3 className="text-xl font-bold text-gray-900 leading-tight tracking-tight group-hover:text-primary transition-colors cursor-pointer inline-flex items-center gap-2">
-                                               {company.name}
-                                           </h3>
-                                       </Link>
-                                      <p className="text-sm font-bold text-gray-400 mt-1 flex items-center gap-2 italic">
-                                         <Briefcase className="w-3.5 h-3.5" /> {company.industry}
-                                      </p>
+                              {/* Center: Info */}
+                              <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                                      <Link href={`/company/${company.url_slug || company.id}`}>
+                                          <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight group-hover:text-primary transition-colors truncate">
+                                              {company.name}
+                                          </h3>
+                                      </Link>
+                                      <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">
+                                          <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 
+                                          <span className="font-bold text-[10px]">{company.rating || '4.5'}</span>
+                                      </div>
                                   </div>
 
-                                  <div className="flex flex-wrap items-center gap-4 py-4 border-t border-gray-50 mt-4">
-                                      <div className="flex items-center text-gray-500 gap-2 text-xs font-bold bg-gray-50 px-3 py-2 rounded-xl">
-                                          <MapPin className="h-4 w-4 text-primary/60" /> {company.location || 'Remote'}
-                                      </div>
-                                      <div className="flex items-center text-primary gap-2 text-xs font-black bg-primary/5 px-3 py-2 rounded-xl border border-primary/10">
-                                          <TrendingUp className="h-4 w-4" /> {company.jobs?.length || 0} Openings
-                                      </div>
+                                  <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm font-bold text-gray-400">
+                                      <span className="flex items-center gap-2 italic">
+                                          <Briefcase className="w-4 h-4 text-gray-300" /> {company.industry}
+                                      </span>
+                                      <span className="flex items-center gap-2">
+                                          <MapPin className="w-4 h-4 text-gray-300" /> {company.location || 'Remote'}
+                                      </span>
                                       {company.team_size && (
-                                        <div className="flex items-center text-gray-500 gap-2 text-xs font-bold bg-gray-50 px-3 py-2 rounded-xl">
-                                            <Users className="h-4 w-4 text-primary/60" /> {company.team_size}
-                                        </div>
+                                          <span className="flex items-center gap-2">
+                                              <Users className="w-4 h-4 text-gray-300" /> {company.team_size} Employees
+                                          </span>
                                       )}
+                                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/5 text-primary text-[10px] font-black border border-primary/10">
+                                          <TrendingUp className="w-3 h-3" /> {company.jobs?.length || 0} Openings
+                                      </div>
                                   </div>
                               </div>
 
-                              {/* Footer Action */}
-                              <div className="mt-6">
-                                  <Link href={`/company/${company.url_slug || company.id}`}>
-                                      <Button className="w-full font-black text-xs uppercase tracking-widest h-12 rounded-2xl bg-white border-2 border-gray-100 text-gray-900 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 flex items-center justify-center gap-2 shadow-sm">
-                                          Explore Careers <ArrowRight className="h-4 w-4" />
+                              {/* Right: Action */}
+                              <div className="w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-gray-50">
+                                  <Link href={`/company/${company.url_slug || company.id}`} className="block">
+                                      <Button className="w-full md:w-auto px-10 h-12 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
+                                          View Profile <ArrowRight className="h-4 w-4" />
                                       </Button>
                                   </Link>
                               </div>
@@ -231,25 +288,29 @@ export default function CompaniesDirectory() {
       </div>
 
       {/* Stats section */}
-      <section className="mt-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-900 rounded-[48px] p-12 md:p-20 text-center relative overflow-hidden">
+      <section className="mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gray-900 rounded-[32px] p-8 md:p-12 text-center relative overflow-hidden border border-white/5">
                <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
                    {[
-                       { label: 'Verified Partners', value: '840+', icon: Building2 },
-                       { label: 'Monthly Applications', value: '12K+', icon: TrendingUp },
-                       { label: 'Unique Roles', value: '25K+', icon: Briefcase },
+                       { label: 'Verified Partners', value: 840, suffix: '+', icon: Building2 },
+                       { label: 'Monthly Applications', value: 12, suffix: 'K+', icon: TrendingUp },
+                       { label: 'Unique Roles', value: 25, suffix: 'K+', icon: Briefcase },
                    ].map((stat, i) => (
-                       <div key={i} className="space-y-4">
-                           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-primary mx-auto">
-                               <stat.icon className="h-6 w-6" />
+                       <div key={i} className="space-y-3">
+                           <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-primary mx-auto border border-white/5">
+                               <stat.icon className="h-5 w-5" />
                            </div>
-                           <h4 className="text-4xl font-black text-white leading-none">{stat.value}</h4>
-                           <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none">{stat.label}</p>
+                           <h4 className="text-3xl md:text-4xl font-black text-white leading-none flex items-center justify-center">
+                               <AnimatedNumber value={stat.value} />
+                               <span className="text-primary ml-1">{stat.suffix}</span>
+                           </h4>
+                           <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">{stat.label}</p>
                        </div>
                    ))}
                </div>
                {/* Background glow */}
                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-64 h-64 bg-primary/20 blur-[100px] rounded-full translate-x-[-50%]"></div>
+               <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full translate-y-1/2 translate-x-1/2"></div>
           </div>
       </section>
     </div>

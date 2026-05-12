@@ -56,6 +56,7 @@ interface Job {
   is_approved: boolean;
   date_posted: string | null;
   valid_through: string | null;
+  url_slug: string | null;
   created_at: string;
   seo_score?: number;
   companies: {
@@ -581,14 +582,19 @@ export default function JobsQueue() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <div className="flex items-center justify-end gap-2">
-                             <Button 
-                               variant="ghost" 
-                               size="icon" 
-                               onClick={() => setViewingJob(job)}
-                               className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
+                             <a 
+                               href={`/jobs/${job.url_slug || job.id}`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
                              >
-                               <Eye className="h-4 w-4" />
-                             </Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
+                               >
+                                 <Eye className="h-4 w-4" />
+                               </Button>
+                             </a>
                              <Link href={`/admin/jobs/${job.id}/edit`}>
                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-amber-50 hover:text-amber-600">
                                  <Pencil className="h-4 w-4" />

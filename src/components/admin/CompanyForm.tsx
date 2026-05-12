@@ -16,7 +16,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Wand2,
-  Zap
+  Zap,
+  Star
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 import { supabase } from '@/lib/supabase';
@@ -37,6 +38,7 @@ interface Company {
   url_slug?: string;
   seo_score?: number;
   team_size?: string;
+  rating?: number;
 }
 
 interface CompanyFormProps {
@@ -70,6 +72,7 @@ export function CompanyForm({
     url_slug: '',
     seo_score: 0,
     team_size: '',
+    rating: 4.5,
     ...initialData
   });
 
@@ -342,6 +345,22 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
                     placeholder="e.g. Pune, Maharashtra" 
                     value={currentCompany.location}
                     onChange={e => setCurrentCompany({...currentCompany, location: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Company Rating (0-5)</label>
+                <div className="relative">
+                  <Star className="absolute left-4 top-4 h-4 w-4 text-amber-400 fill-amber-400" />
+                  <Input 
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                    placeholder="e.g. 4.5" 
+                    value={currentCompany.rating}
+                    onChange={e => setCurrentCompany({...currentCompany, rating: parseFloat(e.target.value)})}
                   />
                 </div>
               </div>

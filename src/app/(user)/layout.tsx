@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   Search, 
   Menu, 
@@ -37,6 +38,7 @@ const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
@@ -266,8 +268,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         )}
       </nav>
 
-      {/* Banner Section */}
-      <Banner />
+      {/* Banner Section - Show on all pages EXCEPT Home Page */}
+      {pathname !== '/' && <Banner />}
 
       {/* Main Content */}
       <main className="flex-grow">

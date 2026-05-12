@@ -15,11 +15,16 @@ import {
   Globe,
   Settings2,
   Languages,
-  Wrench
+  Wrench,
+  Building2,
+  Users,
+  Clock,
+  Newspaper
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApplyButton } from '@/components/ApplyButton';
+import { Banner } from '@/components/Banner';
 import Link from 'next/link';
 
 const BRANDS = [
@@ -43,6 +48,8 @@ export default function HomePage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
+  const [popularCompanies, setPopularCompanies] = useState<any[]>([]);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
@@ -82,6 +89,28 @@ export default function HomePage() {
       
       setDbCompanies(compData || []);
 
+      // Fetch Popular Companies (sorted by team size if possible, or just limit)
+      const { data: popCompData } = await supabase
+        .from('companies')
+        .select(`
+          *,
+          jobs(id)
+        `)
+        .not('logo_url', 'is', null)
+        .limit(10);
+      
+      setPopularCompanies(popCompData || []);
+
+      // Fetch Latest Blogs
+      const { data: blogData } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      setBlogs(blogData || []);
+
       // Process Category Counts
       const counts: Record<string, number> = {};
       data?.forEach(job => {
@@ -117,6 +146,10 @@ export default function HomePage() {
     });
   }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, jobs]);
 
+  const shuffledJobs = useMemo(() => {
+    return [...filteredJobs].sort(() => Math.random() - 0.5);
+  }, [filteredJobs]);
+
   const popularCategories = useMemo(() => {
     // Basic types from job fields
     const baseTypes = [
@@ -140,7 +173,7 @@ export default function HomePage() {
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
-      <section className="relative pt-16 pb-20 bg-[#F8F9FE] overflow-hidden">
+      <section className="relative pt-16 pb-0 bg-[#F8F9FE] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="max-w-2xl text-left">
@@ -339,6 +372,11 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* New ATS Score Section from Image */}
+                <div className="mt-12 group">
+                  
+                </div>
               </div>
             </div>
 
@@ -350,112 +388,55 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Job Prep Section */}
-      {/* <section className="bg-gradient-to-r from-[#E6F4F1] to-[#F1F9F7] py-20 overflow-hidden">
+      {/* ATS Score Section - Compact Version */}
+      <section className="bg-gray-50/50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="lg:w-1/3">
-              <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-center mb-6">
-                <div className="text-[#4f46e5] font-black text-2xl italic">ai</div>
-              </div>
-              <h2 className="text-4xl font-black text-gray-900 mb-4">Job Prep</h2>
-              <p className="text-gray-600 text-lg font-medium mb-8">Practice interviews with Free AI Interview Coach</p>
-              <Button className="bg-[#4f46e5] hover:bg-[#4338ca] text-white px-8 h-12 rounded-lg font-bold">
-                View all preps <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
+          <div className="bg-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg shadow-gray-100 border border-gray-100">
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-2 tracking-tight">
+                Check Your <span className="text-primary">ATS Score</span> For Free
+              </h2>
+              <p className="text-gray-500 text-sm font-medium max-w-xl">
+                Upload your resume & instantly get your ATS score.
+              </p>
             </div>
-
-            <div className="lg:w-2/3 relative">
-               <div className="flex items-center gap-4 md:gap-6 overflow-x-auto pb-8 scrollbar-hide no-scrollbar snap-x snap-mandatory">
-                  {jobs.slice(0, 5).map((job, i) => (
-                    <motion.div 
-                      key={job.id}
-                      whileHover={{ y: -10 }}
-                      className="min-w-[260px] md:min-w-[280px] bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-gray-100 flex flex-col items-center text-center relative overflow-hidden snap-center"
-                    >
-                      <div className="absolute top-0 left-0 w-full h-1 bg-primary" />
-                      <p className="text-sm font-bold text-gray-900 mb-6 line-clamp-1">{job.title}</p>
-                      <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-6 border border-gray-100 overflow-hidden p-2">
-                        {job.companies?.logo_url ? (
-                          <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                        ) : (
-                          <Briefcase className="w-8 h-8 text-gray-300" />
-                        )}
-                      </div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-8">{job.companies?.name}</p>
-                      <Button variant="outline" className="w-full border-primary text-primary font-bold rounded-xl h-11 md:h-12">Practice Interview</Button>
-                      <p className="text-[10px] font-bold text-gray-400 mt-4">5 min AI Interview</p>
-                    </motion.div>
-                  ))}
-               </div>
-               <div className="hidden lg:flex absolute top-1/2 -left-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center cursor-pointer border border-gray-100 group"><ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-primary" /></div>
-               <div className="hidden lg:flex absolute top-1/2 -right-4 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg items-center justify-center cursor-pointer border border-gray-100 group"><ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary" /></div>
+            <div className="shrink-0">
+              <Link href="/ats-score">
+                <button className="group px-8 py-4 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-xl shadow-primary/25 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 text-xs uppercase tracking-widest">
+                  Upload Resume & Check Free
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
+              </Link>
             </div>
           </div>
         </div>
-      </section> */}
+      </section>
 
-      {/* Popular Searches Section */}
-      {/* <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="flex flex-col lg:flex-row items-start gap-16">
-          <div className="w-64 shrink-0 pt-8">
-            <h2 className="text-4xl font-black text-gray-900 leading-tight">Popular Job Categories</h2>
-            <p className="text-gray-500 mt-4 font-medium">Explore {totalJobs}+ opportunities by role and type</p>
-          </div>
-          
-          <div className="flex-grow grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularCategories.map((search, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.02 }}
-                onClick={() => setSearchQuery(search.title)}
-                className="group bg-white rounded-3xl p-8 border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer relative overflow-hidden h-64 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[10px] font-black text-[#4f46e5] uppercase tracking-widest">TRENDING AT #{i+1}</p>
-                    <span className="px-3 py-1 bg-[#4f46e5]/5 text-[#4f46e5] text-[10px] font-black rounded-full border border-[#4f46e5]/10">
-                      {search.count} JOBS
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 max-w-[150px]">{search.title}</h3>
-                </div>
-                
-                <div className="flex items-center text-xs font-bold text-[#4f46e5] group-hover:gap-2 transition-all">
-                  View All <ArrowRight className="w-4 h-4 ml-1" />
-                </div>
+      <Banner />
 
-                <div className="absolute bottom-4 right-4 w-32 h-32 opacity-80 group-hover:opacity-100 transition-opacity">
-                  <div className="w-full h-full bg-gray-50 rounded-full flex items-center justify-center border border-gray-100 overflow-hidden">
-                    <img src={search.image} alt={search.title} className="w-full h-full object-cover" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section> */}
 
-      {/* Job Listings from DB */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-gray-50">
+      {/* Recent Jobs Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-gray-50">
         <div className="flex items-center justify-between mb-12">
             <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Recommended for You</h2>
-                <p className="text-gray-500 font-medium">Real-time opportunities matching your interests</p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Recent Jobs</h2>
+                <p className="text-gray-500 font-medium">Explore the latest opportunities across all categories</p>
             </div>
-            <Link href="/jobs">
-                <Button variant="ghost" className="text-[#4f46e5] font-bold">View all jobs <ArrowRight className="ml-2 w-4 h-4" /></Button>
+            <Link href="/jobs" className="hidden sm:block">
+                <Button variant="ghost" className="text-primary font-bold">View all jobs <ArrowRight className="ml-2 w-4 h-4" /></Button>
             </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <AnimatePresence mode='popLayout'>
               {loading ? (
-                Array(6).fill(0).map((_, i) => (
+                Array(9).fill(0).map((_, i) => (
                     <div key={i} className="h-[220px] rounded-2xl bg-gray-50 animate-pulse"></div>
                 ))
-              ) : filteredJobs.length > 0 ? (
-                filteredJobs.map((job) => (
+              ) : shuffledJobs.length > 0 ? (
+                shuffledJobs
+                  .slice(0, 9) // Show 9 jobs
+                  .map((job) => (
                   <motion.div
                     layout
                     initial={{ opacity: 0 }}
@@ -469,7 +450,7 @@ export default function HomePage() {
                                     {job.companies?.logo_url ? (
                                         <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center font-bold text-[#4f46e5] text-lg">
+                                        <div className="w-full h-full flex items-center justify-center font-bold text-primary text-lg">
                                             {(job.companies?.name || 'J').charAt(0)}
                                         </div>
                                     )}
@@ -479,7 +460,7 @@ export default function HomePage() {
                                 </div>
                             </div>
                             
-                            <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-[#4f46e5] transition-colors line-clamp-1">
+                            <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-primary transition-colors line-clamp-1">
                                 {job.title}
                             </h3>
                             <p className="text-sm font-semibold text-gray-500 mb-4">{job.companies?.name}</p>
@@ -526,6 +507,115 @@ export default function HomePage() {
                 </div>
               )}
             </AnimatePresence>
+        </div>
+
+        {/* Bottom See More Button */}
+        {!loading && filteredJobs.length > 9 && (
+          <div className="mt-12 text-center">
+            <Link href="/jobs">
+              <Button size="lg" className="px-12 h-14 bg-white border-2 border-primary/10 text-primary hover:bg-primary hover:text-white font-black rounded-2xl shadow-xl shadow-gray-100 transition-all group">
+                See More Jobs
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-2 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+        )}
+      </section>
+
+
+
+      {/* Popular Companies Section - Minimalist Image-Based Design */}
+      <section className="bg-white py-12 border-t border-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight">Popular <span className="text-primary italic">Companies</span></h2>
+              <p className="text-gray-500 font-medium text-sm">Top hiring partners and industry leaders</p>
+            </div>
+            <Link href="/companies" className="text-primary font-bold text-sm hover:underline">View All</Link>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
+            {popularCompanies.map((company) => (
+              <Link key={company.id} href={`/company/${company.url_slug || company.id}`} className="snap-start">
+                <motion.div
+                  whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                  className="w-[180px] h-[200px] bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center"
+                >
+                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3">
+                    {company.logo_url ? (
+                      <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-emerald-600 font-bold text-xl">{company.name[0]}</div>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{company.name}</h3>
+                  <p className="text-xs font-medium text-gray-400">{company.jobs?.length || 0} Jobs</p>
+                </motion.div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+      {/* Blog Section */}
+      <section className="bg-gray-50 py-12 border-t border-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+            <div>
+             
+              <h2 className="text-4xl font-black text-gray-900 tracking-tight">Expert <span className="text-primary italic">Insights</span></h2>
+              <p className="text-gray-500 mt-3 font-medium text-lg">Tips, trends, and career advice from our expert team</p>
+            </div>
+            <Link href="/blog">
+              <Button size="lg" className="bg-white border-2 border-primary/10 text-primary hover:bg-primary hover:text-white font-black rounded-2xl shadow-xl shadow-gray-100 transition-all group px-8 h-12 text-sm">
+                See All Articles
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {blogs.map((post) => (
+              <motion.div
+                key={post.id}
+                whileHover={{ y: -10 }}
+                className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col group"
+              >
+                <div className="h-60 bg-gray-100 relative overflow-hidden">
+                  {post.image_url ? (
+                    <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
+                      <Newspaper className="w-12 h-12 text-primary/20" />
+                    </div>
+                  )}
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
+                      {post.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-8 flex flex-col flex-1">
+                  <div className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                    <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {new Date(post.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                    {post.title}
+                  </h3>
+                  {/* <p className="text-gray-500 font-medium text-sm leading-relaxed mb-8 line-clamp-3">
+                    {post.excerpt}
+                  </p> */}
+                  <div className="mt-auto">
+                    <Link href={`/blog/${post.slug || post.id}`}>
+                      <Button variant="ghost" className="text-primary font-black text-xs uppercase tracking-widest px-0 hover:bg-transparent group/btn">
+                        Read More <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
     </div>

@@ -602,15 +602,27 @@ Instructions:
           </div>
 
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8">
-             <Button 
-               variant="outline"
-               type="button"
-               onClick={() => setShowPreview(true)}
-               className="h-11 px-5 border-2 border-indigo-100 bg-white text-indigo-600 font-bold rounded-xl transition-all w-full sm:w-auto hover:bg-indigo-50 text-xs"
+             <a 
+               href={currentJob.id ? `/jobs/${currentJob.url_slug || currentJob.id}` : '#'} 
+               target={currentJob.id ? "_blank" : "_self"}
+               rel="noopener noreferrer"
+               className="w-full sm:w-auto"
+               onClick={(e) => {
+                 if (!currentJob.id) {
+                   e.preventDefault();
+                   setShowPreview(true);
+                 }
+               }}
              >
-               <Eye className="h-4 w-4 mr-2" />
-               PREVIEW
-             </Button>
+               <Button 
+                 variant="outline"
+                 type="button"
+                 className="h-11 px-5 border-2 border-indigo-100 bg-white text-indigo-600 font-bold rounded-xl transition-all w-full hover:bg-indigo-50 text-xs"
+               >
+                 <Eye className="h-4 w-4 mr-2" />
+                 {currentJob.id ? 'VIEW LIVE' : 'PREVIEW'}
+               </Button>
+             </a>
              <Button 
                variant="outline"
                onClick={() => internalOnSave(false)} 

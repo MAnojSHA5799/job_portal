@@ -28,7 +28,7 @@ import {
   Building2,
   TrendingUp
 } from 'lucide-react';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { ApplyButton } from '@/components/ApplyButton';
 
 interface Props {
@@ -167,12 +167,27 @@ export default async function SlugPage({ params }: Props) {
   if (result.type === 'job') {
     const job = result.data;
 
-    // --- PERMANENT SLUG SOLUTION: Canonical Redirect ---
-    const canonicalSlug = job.url_slug || job.id;
-    if (slug !== canonicalSlug && decodeURIComponent(slug) !== canonicalSlug) {
-      redirect(`/jobs/${canonicalSlug}`);
+    // Handle Unapproved Jobs UI
+    if (!job.is_approved) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white p-8 rounded-[32px] border border-amber-100 shadow-xl shadow-amber-500/5 text-center">
+            <div className="w-20 h-20 bg-amber-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <ShieldCheck className="w-10 h-10 text-amber-500" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900 mb-2">Pending Approval</h1>
+            <p className="text-gray-500 text-sm font-medium mb-8">
+              This job posting for <span className="text-gray-900 font-bold">{job.title}</span> has been successfully scraped but is currently waiting for admin review.
+            </p>
+            <Link href="/admin/jobs">
+              <Button className="w-full h-12 bg-gray-900 hover:bg-black text-white font-bold rounded-xl shadow-lg">
+                GO TO ADMIN TO APPROVE
+              </Button>
+            </Link>
+          </div>
+        </div>
+      );
     }
-
     const city = job.location?.split(',')[0] || 'India';
     const year = new Date().getFullYear();
 
@@ -227,37 +242,6 @@ export default async function SlugPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         
-        {/* Admin Preview Banner (Only shows if unapproved) */}
-        {!job.is_approved && (
-          <div className="bg-amber-600 text-white py-3 px-4 sticky top-0 z-[100] shadow-lg flex items-center justify-between animate-in fade-in slide-in-from-top duration-500">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-widest leading-none">Admin Preview Mode</p>
-                <p className="text-xs font-bold opacity-90">This job is currently <span className="underline italic">Pending Review</span></p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-               <Link href={`/admin/jobs/${job.id}/edit`}>
-                 <Button className="h-8 px-4 bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold text-[10px] rounded-lg">
-                   EDIT CONTENT
-                 </Button>
-               </Link>
-               <ApplyButton 
-                  jobId={job.id} 
-                  jobTitle={job.title} 
-                  companyId={job.company_id}
-                  companyName={job.companies?.name || ''}
-                  applyLink={job.apply_link || ''}
-                  approveOnly={true}
-                  className="h-8 px-4 bg-white text-amber-600 hover:bg-gray-100 font-black text-[10px] rounded-lg border-0 shadow-sm"
-               />
-            </div>
-          </div>
-        )}
-
         {/* Simplified Breadcrumb */}
         <nav className="max-w-3xl mx-auto px-4 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
           <a href="/" className="hover:text-primary transition-colors">Home</a>

@@ -30,6 +30,8 @@ const CATEGORIES = [
   { id: 'contact', name: 'Contact Information', icon: Search, weight: 10 },
 ];
 
+import { supabase } from '@/lib/supabase';
+
 export default function ATSScorePage() {
   const [file, setFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
@@ -73,15 +75,50 @@ export default function ATSScorePage() {
     
     const progressInterval = setInterval(() => {
       setScanProgress((prev) => {
-        if (prev >= 90) {
+        if (prev >= 80) {
           clearInterval(progressInterval);
-          return 90;
+          return 80;
         }
         return prev + 5;
       });
     }, 100);
 
     try {
+      // 1. Upload file if exists
+      let fileUrl = "";
+      if (file) {
+        // Sanitize filename: remove spaces and special characters
+        const cleanName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+        const fileName = `${Date.now()}_${cleanName}`;
+        const filePath = fileName; // No folder prefix to avoid path issues
+
+        const { error: uploadError } = await supabase.storage
+          .from('resumes')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error("Upload error details:", uploadError);
+          // If bucket doesn't exist, warn the user but we might continue if we have text
+          if (uploadError.message.includes("not found")) {
+            console.warn("Storage bucket 'resumes' not found. Please create it in Supabase dashboard.");
+          }
+        } else {
+          const { data } = supabase.storage
+            .from('resumes')
+            .getPublicUrl(filePath);
+          
+          if (data?.publicUrl) {
+            fileUrl = data.publicUrl;
+            console.log("File uploaded successfully:", fileUrl);
+          }
+        }
+      }
+
+      setScanProgress(85);
+
       const systemPrompt = `You are a professional ATS (Applicant Tracking System) Expert. 
       Analyze the provided resume content and provide a detailed score and feedback.
       Output your response ONLY in the following JSON format:
@@ -122,6 +159,15 @@ export default function ATSScorePage() {
       if (result.error) throw new Error(result.error);
       
       const parsedContent = JSON.parse(result.choices[0].message.content);
+      
+      // 2. Save scan result to database
+      await supabase.from('resume_scans').insert({
+        file_url: fileUrl,
+        resume_text: resumeText || file?.name,
+        ats_score: parsedContent.overallScore,
+        analysis_result: parsedContent
+      });
+
       setAnalysis(parsedContent);
       setScanProgress(100);
       

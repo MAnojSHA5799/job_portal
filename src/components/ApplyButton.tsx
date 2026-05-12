@@ -16,9 +16,10 @@ interface ApplyButtonProps {
   companyName: string;
   applyLink: string;
   className?: string;
+  approveOnly?: boolean;
 }
 
-export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink, className }: ApplyButtonProps) {
+export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink, className, approveOnly }: ApplyButtonProps) {
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tracking, setTracking] = useState(false);
@@ -71,7 +72,27 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
     }
   };
 
-  const handleApplyClick = () => {
+  const handleApplyClick = async () => {
+    if (approveOnly) {
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from('jobs')
+          .update({ is_approved: true })
+          .eq('id', jobId);
+        
+        if (error) throw error;
+        alert('Job Approved Successfully!');
+        window.location.reload();
+      } catch (err) {
+        console.error('Error approving job:', err);
+        alert('Failed to approve job');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!user) {
       alert("Please login first to apply for this job.");
       router.push('/login');
@@ -200,7 +221,11 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
         {loading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
-          <>APPLY NOW <Zap className="w-4 h-4 fill-white" /></>
+          approveOnly ? (
+            <>✓ APPROVE NOW</>
+          ) : (
+            <>APPLY NOW <Zap className="w-4 h-4 fill-white" /></>
+          )
         )}
       </Button>
 
