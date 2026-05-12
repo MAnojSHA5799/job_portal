@@ -176,17 +176,29 @@ export default function HomePage() {
       <section className="relative pt-16 pb-0 bg-[#F8F9FE] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-            <div className="max-w-2xl text-left">
-              <span className="text-[#4f46e5] font-bold text-xs uppercase tracking-widest mb-4 block">INDIA'S #1 JOB PLATFORM</span>
-              <h1 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4 tracking-tight">
+            <div 
+              className="max-w-2xl text-left"
+            >
+              <span 
+                className="text-[#4f46e5] font-bold text-xs uppercase tracking-widest mb-4 block"
+              >
+                INDIA'S #1 JOB PLATFORM
+              </span>
+              <h1 
+                className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4 tracking-tight"
+              >
                 Your job search <br />ends here
               </h1>
-              <p className="text-gray-500 text-lg font-medium mb-10">
+              <p 
+                className="text-gray-500 text-lg font-medium mb-10"
+              >
                 Discover {totalJobs.toLocaleString()}+ career opportunities
               </p>
 
-              {/* New Search UI matching image */}
-              <div className="w-full space-y-6">
+              {/* Search UI matching image */}
+              <div 
+                className="w-full space-y-6"
+              >
                 <div className="relative group max-w-4xl">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
@@ -206,7 +218,9 @@ export default function HomePage() {
                 </div>
 
                 {/* Filter Pills Grid */}
-                <div className="flex flex-wrap gap-2.5 max-w-5xl">
+                <div 
+                  className="flex flex-wrap gap-2.5 max-w-5xl"
+                >
                   {/* Job Category */}
                   <div className="relative group">
                     <select 
@@ -344,8 +358,9 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="space-y-6">
-               
+              <div 
+                className="space-y-6"
+              >
                 <div>
                   <p className="text-[10px] mt-3 font-bold text-gray-400 uppercase tracking-widest mb-3">Trusted by 1000+ enterprises and 7 lakh+ MSMEs for hiring</p>
                   <div className="relative overflow-hidden w-full h-16">
@@ -372,17 +387,16 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-
-                {/* New ATS Score Section from Image */}
-                <div className="mt-12 group">
-                  
-                </div>
               </div>
             </div>
 
-            <div className="hidden lg:block relative w-[500px]">
-               <img src="/assets/hero-3d.png" alt="Professional Growth" className="w-full relative z-10 rounded-[2.5rem] shadow-2xl animate-float" />
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4f46e5]/10 rounded-full blur-[100px] -z-0 animate-pulse"></div>
+            <div 
+              className="hidden lg:block relative w-[500px]"
+            >
+               <img src="/assets/hero-3d.png" alt="Professional Growth" className="w-full relative z-10 rounded-[2.5rem] shadow-2xl" />
+               <div 
+                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4f46e5]/10 rounded-full blur-[100px] -z-0"
+               ></div>
             </div>
           </div>
         </div>
@@ -417,7 +431,9 @@ export default function HomePage() {
 
       {/* Recent Jobs Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-gray-50">
-        <div className="flex items-center justify-between mb-12">
+        <div 
+          className="flex items-center justify-between mb-12"
+        >
             <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Recent Jobs</h2>
                 <p className="text-gray-500 font-medium">Explore the latest opportunities across all categories</p>
@@ -428,7 +444,6 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            <AnimatePresence mode='popLayout'>
               {loading ? (
                 Array(9).fill(0).map((_, i) => (
                     <div key={i} className="h-[220px] rounded-2xl bg-gray-50 animate-pulse"></div>
@@ -437,10 +452,7 @@ export default function HomePage() {
                 shuffledJobs
                   .slice(0, 9) // Show 9 jobs
                   .map((job) => (
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                  <div
                     key={job.id}
                   >
                     <Card className="p-6 rounded-2xl hover:shadow-xl transition-all border border-gray-100 bg-white group h-full flex flex-col justify-between">
@@ -499,14 +511,13 @@ export default function HomePage() {
                             </div>
                         </div>
                     </Card>
-                  </motion.div>
+                  </div>
                 ))
               ) : (
                 <div className="col-span-full py-20 text-center">
                     <p className="text-gray-500 font-bold">No jobs found in your database.</p>
                 </div>
               )}
-            </AnimatePresence>
         </div>
 
         {/* Bottom See More Button */}
@@ -536,22 +547,22 @@ export default function HomePage() {
           </div>
 
           <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
-            {popularCompanies.map((company) => (
+            {popularCompanies.map((company, index) => (
               <Link key={company.id} href={`/company/${company.url_slug || company.id}`} className="snap-start">
-                <motion.div
-                  whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
-                  className="w-[180px] h-[200px] bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center"
+                <div
+                  className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group"
                 >
-                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3">
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
                     {company.logo_url ? (
                       <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
                     ) : (
                       <div className="text-emerald-600 font-bold text-xl">{company.name[0]}</div>
                     )}
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1">{company.name}</h3>
-                  <p className="text-xs font-medium text-gray-400">{company.jobs?.length || 0} Jobs</p>
-                </motion.div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
+                  <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
+                </div>
               </Link>
             ))}
           </div>
@@ -576,9 +587,8 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogs.map((post) => (
-              <motion.div
+              <div
                 key={post.id}
-                whileHover={{ y: -10 }}
                 className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col group"
               >
                 <div className="h-60 bg-gray-100 relative overflow-hidden">
@@ -613,7 +623,7 @@ export default function HomePage() {
                     </Link>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

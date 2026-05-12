@@ -146,16 +146,20 @@ export default function BannersManagement() {
   };
 
   return (
-    <div className="space-y-8">
+    <div 
+      className="space-y-8"
+    >
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Banner Management</h1>
           <p className="text-gray-500">Add dynamic banners to any page on the portal.</p>
         </div>
         {!isEditing && (
-          <Button onClick={() => setIsEditing(true)} className="shadow-lg shadow-primary/20">
-            <Plus className="mr-2 h-4 w-4" /> Add New Banner
-          </Button>
+          <div>
+            <Button onClick={() => setIsEditing(true)} className="shadow-lg shadow-primary/20 font-bold uppercase tracking-widest text-[10px] h-11 px-6 rounded-xl">
+              <Plus className="mr-2 h-4 w-4" /> Add New Banner
+            </Button>
+          </div>
         )}
       </div>
 
@@ -175,14 +179,20 @@ export default function BannersManagement() {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Target Page</label>
                 <select 
-                  className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  value={currentBanner.page_path}
-                  onChange={e => setCurrentBanner({...currentBanner, page_path: e.target.value})}
+                  className="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  value={
+                    ['/', '/jobs', '/companies', '/company', '/salary', '/ats-score', '/blog', '/contact', '/about', '/privacy', '/terms'].includes(currentBanner.page_path || '') 
+                    ? currentBanner.page_path 
+                    : currentBanner.page_path?.startsWith('/company/') ? 'custom' : ''
+                  }
+                  onChange={e => setCurrentBanner({...currentBanner, page_path: e.target.value === 'custom' ? '/company/' : e.target.value})}
                 >
                   <option value="" disabled>Select a page...</option>
                   <option value="/">Home Page (/)</option>
                   <option value="/jobs">Find Jobs (/jobs)</option>
                   <option value="/companies">Companies (/companies)</option>
+                  <option value="/company">Default Company Page (/company)</option>
+                  <option value="custom">Specific Company (Custom Path)</option>
                   <option value="/salary">Salary Intel (/salary)</option>
                   <option value="/ats-score">ATS Score (/ats-score)</option>
                   <option value="/blog">Blog (/blog)</option>
@@ -192,6 +202,20 @@ export default function BannersManagement() {
                   <option value="/terms">Terms of Service (/terms)</option>
                 </select>
               </div>
+              
+              {currentBanner.page_path?.startsWith('/company/') || currentBanner.page_path === 'custom' ? (
+                <div className="animate-in slide-in-from-left-2 duration-300">
+                  <label className="text-xs font-bold text-primary uppercase tracking-widest mb-2 block">Enter Specific Path (e.g. /company/apple)</label>
+                  <Input 
+                    placeholder="/company/company-slug" 
+                    value={currentBanner.page_path === 'custom' ? '' : currentBanner.page_path}
+                    onChange={e => setCurrentBanner({...currentBanner, page_path: e.target.value})}
+                    className="border-primary/30 focus:ring-primary/20"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1 font-medium">Tip: Find the slug in the Company list (e.g., /company/tata-steel)</p>
+                </div>
+              ) : null}
+
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Title (Optional)</label>
                 <Input 
@@ -315,76 +339,80 @@ export default function BannersManagement() {
           <div className="col-span-full h-40 flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : banners.map((banner) => (
-          <Card key={banner.id} className="overflow-hidden group border-0 shadow-sm hover:shadow-xl transition-all h-full flex flex-col">
-            <div className="relative h-48 bg-gray-100 overflow-hidden">
-              {banner.media_type === 'image' ? (
-                <img 
-                  src={banner.media_url} 
-                  alt={banner.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              ) : (
-                <video 
-                  src={banner.media_url} 
-                  className="w-full h-full object-cover"
-                  autoPlay muted loop
-                />
-              )}
-              <div className="absolute top-4 left-4">
-                <Badge variant={banner.is_active ? 'success' : 'default'} className="backdrop-blur-md">
-                  {banner.is_active ? 'Active' : 'Draft'}
-                </Badge>
+        ) : banners.map((banner, i) => (
+          <div
+            key={banner.id}
+          >
+            <Card className="overflow-hidden group border-0 shadow-sm hover:shadow-xl transition-all h-full flex flex-col">
+              <div className="relative h-48 bg-gray-100 overflow-hidden">
+                {banner.media_type === 'image' ? (
+                  <img 
+                    src={banner.media_url} 
+                    alt={banner.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <video 
+                    src={banner.media_url} 
+                    className="w-full h-full object-cover"
+                    autoPlay muted loop
+                  />
+                )}
+                <div className="absolute top-4 left-4">
+                  <Badge variant={banner.is_active ? 'success' : 'default'} className="backdrop-blur-md">
+                    {banner.is_active ? 'Active' : 'Draft'}
+                  </Badge>
+                </div>
+                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    className="h-8 w-8 bg-white/90 backdrop-blur-md border-0"
+                    onClick={() => {
+                      setCurrentBanner(banner);
+                      setIsEditing(true);
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="danger" 
+                    className="h-8 w-8 bg-danger/90 backdrop-blur-md border-0"
+                    onClick={() => handleDelete(banner.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-white" />
+                  </Button>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <p className="text-[10px] font-black text-white/70 uppercase tracking-widest drop-shadow-md">
+                    {banner.page_path}
+                  </p>
+                  <h3 className="text-white font-bold text-lg leading-tight drop-shadow-md truncate">
+                    {banner.title || 'Untitled Banner'}
+                  </h3>
+                </div>
               </div>
-              <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button 
-                  size="icon" 
-                  variant="outline" 
-                  className="h-8 w-8 bg-white/90 backdrop-blur-md border-0"
-                  onClick={() => {
-                    setCurrentBanner(banner);
-                    setIsEditing(true);
-                  }}
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  size="icon" 
-                  variant="danger" 
-                  className="h-8 w-8 bg-danger/90 backdrop-blur-md border-0"
-                  onClick={() => handleDelete(banner.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-white" />
-                </Button>
-              </div>
-              <div className="absolute bottom-4 left-4 right-4">
-                <p className="text-[10px] font-black text-white/70 uppercase tracking-widest drop-shadow-md">
-                  {banner.page_path}
+              <div className="p-6 flex-1 flex flex-col justify-between">
+                <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                  {banner.subtitle || 'No description provided.'}
                 </p>
-                <h3 className="text-white font-bold text-lg leading-tight drop-shadow-md truncate">
-                  {banner.title || 'Untitled Banner'}
-                </h3>
+                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                  <span className="text-xs font-medium text-gray-400">
+                    Created {new Date(banner.created_at).toLocaleDateString()}
+                  </span>
+                  <a 
+                    href={banner.page_path} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline text-xs flex items-center font-bold"
+                  >
+                    View Page <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
+                </div>
               </div>
-            </div>
-            <div className="p-6 flex-1 flex flex-col justify-between">
-              <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                {banner.subtitle || 'No description provided.'}
-              </p>
-              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                <span className="text-xs font-medium text-gray-400">
-                  Created {new Date(banner.created_at).toLocaleDateString()}
-                </span>
-                <a 
-                  href={banner.page_path} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline text-xs flex items-center font-bold"
-                >
-                  View Page <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         ))}
       </div>
     </div>

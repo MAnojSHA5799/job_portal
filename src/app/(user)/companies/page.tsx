@@ -16,7 +16,6 @@ import {
   Loader2,
   ChevronDown
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 
 interface Company {
@@ -30,30 +29,6 @@ interface Company {
   jobs: { id: string }[];
   team_size?: string;
 }
-
-const AnimatedNumber = ({ value }: { value: number }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let start = 0;
-    const duration = 2000; // 2 seconds
-    const increment = Math.ceil(value / (duration / 16)); // ~60fps
-    
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= value) {
-        setCount(value);
-        clearInterval(timer);
-      } else {
-        setCount(start);
-      }
-    }, 16);
-
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return <>{count}</>;
-};
 
 export default function CompaniesDirectory() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -104,7 +79,7 @@ export default function CompaniesDirectory() {
       if (error) throw error;
       setCompanies((data as any) || []);
     } catch (error) {
-      console.error('Error fetching companies:', error);
+      error && console.error('Error fetching companies:', error);
     } finally {
       setLoading(false);
     }
@@ -125,17 +100,20 @@ export default function CompaniesDirectory() {
       {/* Header */}
       <section className="bg-gray-50 border-b border-gray-100 py-24 overflow-hidden relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
+            <div
                 className="max-w-5xl"
             >
                 
-                <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
+                <h1 
+                  className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8"
+                >
                     Top <span className="text-primary italic">Hiring</span> Partners.
                 </h1>
                 
-                <form onSubmit={handleSearch} className="bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col lg:flex-row items-stretch gap-2">
+                <form 
+                  onSubmit={handleSearch} 
+                  className="bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col lg:flex-row items-stretch gap-2"
+                >
                     <div className="relative flex-[1.2] min-w-0">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
                         <Input 
@@ -193,7 +171,7 @@ export default function CompaniesDirectory() {
 
                     <Button type="submit" size="lg" className="h-12 w-full lg:w-auto font-black px-10 rounded-xl shadow-lg shadow-primary/20 uppercase tracking-widest text-xs">Search</Button>
                 </form>
-            </motion.div>
+            </div>
         </div>
         <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[500px] bg-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
       </section>
@@ -212,11 +190,8 @@ export default function CompaniesDirectory() {
         ) : (
           <div className="grid grid-cols-1 gap-6">
               {companies.map((company, i) => (
-                  <motion.div
+                  <div
                       key={company.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
                   >
                       <Card className="group relative bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-all duration-300">
                           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
@@ -273,7 +248,7 @@ export default function CompaniesDirectory() {
                               </div>
                           </div>
                       </Card>
-                  </motion.div>
+                  </div>
               ))}
           </div>
         )}
@@ -288,7 +263,9 @@ export default function CompaniesDirectory() {
       </div>
 
       {/* Stats section */}
-      <section className="mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section 
+        className="mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      >
           <div className="bg-gray-900 rounded-[32px] p-8 md:p-12 text-center relative overflow-hidden border border-white/5">
                <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
                    {[
@@ -301,7 +278,7 @@ export default function CompaniesDirectory() {
                                <stat.icon className="h-5 w-5" />
                            </div>
                            <h4 className="text-3xl md:text-4xl font-black text-white leading-none flex items-center justify-center">
-                               <AnimatedNumber value={stat.value} />
+                               {stat.value}
                                <span className="text-primary ml-1">{stat.suffix}</span>
                            </h4>
                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">{stat.label}</p>
@@ -316,4 +293,3 @@ export default function CompaniesDirectory() {
     </div>
   );
 }
-

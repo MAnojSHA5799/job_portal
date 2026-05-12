@@ -40,7 +40,6 @@ import {
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface ScraperLog {
   id: string;
@@ -293,7 +292,9 @@ export default function ScraperManager() {
   };
 
   return (
-    <div className="space-y-8 pb-12 bg-gray-50/30 min-h-screen p-6">
+    <div 
+      className="space-y-8 pb-12 bg-gray-50/30 min-h-screen p-6"
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Scraper Hub</h1>
@@ -302,7 +303,9 @@ export default function ScraperManager() {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div 
+          className="flex gap-2"
+        >
           <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
             <div className="flex items-center px-3 py-1.5 border-r border-gray-100">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">From</span>
@@ -357,9 +360,7 @@ export default function ScraperManager() {
       </div>
 
       {stats.inProgress > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div 
           className="bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center justify-between shadow-sm shadow-orange-100/20"
         >
           <div className="flex items-center gap-3">
@@ -380,7 +381,7 @@ export default function ScraperManager() {
           >
             Clear Stuck Runs
           </Button>
-        </motion.div>
+        </div>
       )}
 
       {/* Tabs */}
@@ -406,8 +407,10 @@ export default function ScraperManager() {
       </div>
 
       {activeTab === 'companies' ? (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
+        <div className="space-y-6">
+          <div 
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2"
+          >
             <div className="relative max-w-md w-full group">
               <Search className="absolute left-4 top-3.5 h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
               <Input 
@@ -440,18 +443,21 @@ export default function ScraperManager() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 bg-white">
-                    {paginatedCompanies.map((company) => (
-                      <tr key={company.id} className="hover:bg-indigo-50/20 transition-all group">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 flex items-center justify-center text-indigo-600 flex-shrink-0">
-                                <Building2 className="w-5 h-5" />
+                      {paginatedCompanies.map((company, i) => (
+                        <tr 
+                          key={company.id} 
+                          className="hover:bg-indigo-50/20 transition-all group"
+                        >
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 flex items-center justify-center text-indigo-600 flex-shrink-0">
+                                  <Building2 className="w-5 h-5" />
+                              </div>
+                              <span className="text-[14px] font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                {company.name}
+                              </span>
                             </div>
-                            <span className="text-[14px] font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                              {company.name}
-                            </span>
-                          </div>
-                        </td>
+                          </td>
                         <td className="px-8 py-5">
                           <Link href={`/admin/companies/${company.id}`}>
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[13px] font-black tracking-tight cursor-pointer transition-colors">

@@ -116,11 +116,19 @@ export default function AdminResumeScans() {
   return (
     <div className="min-h-screen pb-24">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-          <div>
-           
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10"
+        >
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Resume Intelligence</h1>
             <p className="text-gray-500 font-medium text-sm">Monitor all AI-analyzed resumes and extracted talent data.</p>
-          </div>
+          </motion.div>
           
           <div className="flex flex-col md:flex-row items-center gap-4">
             {/* Date Filters */}
@@ -169,7 +177,7 @@ export default function AdminResumeScans() {
               />
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white rounded-3xl border border-gray-100 shadow-sm">

@@ -309,9 +309,18 @@ Instructions:
 
   return (
     <Card className="p-0 border-0 bg-transparent shadow-none overflow-visible">
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col lg:flex-row gap-8 items-start"
+      >
         {/* Main Job Details Form */}
-        <div className="flex-1 max-w-[650px] bg-white p-6 rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-10">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="flex-1 max-w-[650px] bg-white p-6 md:p-8 rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-10"
+        >
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-2xl font-black text-gray-900 tracking-tight">{title}</h2>
@@ -794,9 +803,14 @@ Instructions:
             </div>
           )}
         </AnimatePresence>
-
+        </motion.div>
         {/* SEO Sidebar */}
-        <aside className="w-full lg:w-[380px] shrink-0 space-y-8 sticky top-10">
+        <motion.aside 
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+          className="w-full lg:w-[380px] shrink-0 space-y-8 sticky top-10"
+        >
           <Card className="p-8 bg-gray-900 text-white rounded-[32px] border-0 shadow-2xl shadow-indigo-100">
             <div className="flex items-center justify-between mb-8">
               <div>

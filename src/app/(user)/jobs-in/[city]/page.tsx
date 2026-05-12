@@ -16,6 +16,8 @@ import {
   Users
 } from 'lucide-react';
 import { ApplyButton } from '@/components/ApplyButton';
+import { CityHero } from '@/components/CityHero';
+import { AnimatedJobList } from '@/components/AnimatedJobList';
 
 interface Props {
   params: Promise<{ city: string }>;
@@ -87,20 +89,12 @@ export default async function LocationPage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }}
       />
 
-      {/* City Hero */}
-      <div className="bg-gray-900 py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/50 to-transparent"></div>
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-white">
-          <Badge className="mb-6 bg-indigo-600 text-white border-0 font-bold px-4 py-1 uppercase tracking-widest">Local Jobs</Badge>
-          <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tight leading-tight">
-            Manufacturing Jobs in {cityName} — {jobCount} Openings Hiring Now
-          </h1>
-          <p className="text-xl text-gray-400 max-w-2xl font-medium leading-relaxed">
-            {cityName} is a key industrial hub. Explore {jobCount} verified career opportunities in {majorIndustry} and other sectors within the city.
-          </p>
-        </div>
-      </div>
+      {/* Animated City Hero */}
+      <CityHero 
+        cityName={cityName} 
+        jobCount={jobCount} 
+        majorIndustry={majorIndustry} 
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
