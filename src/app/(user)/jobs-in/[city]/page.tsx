@@ -100,39 +100,7 @@ export default async function LocationPage({ params }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Main List */}
           <div className="lg:col-span-2 space-y-12">
-            
-            {/* SEO Content: Dynamic Industry Overview */}
-            <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
-                <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                    <Building2 className="w-6 h-6 text-indigo-600" /> Manufacturing Industry in {cityName}
-                </h2>
-                <p className="text-gray-600 font-medium">
-                    With {jobCount} active job openings, {cityName} continues to be a destination for skilled workers in India. The local industry is characterized by a strong presence of {majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-10 not-prose">
-                    <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
-                        <TrendingUp className="w-8 h-8 text-indigo-600 mb-3" />
-                        <h4 className="font-black text-indigo-900 text-sm mb-1">Active Openings</h4>
-                        <p className="text-xs text-indigo-700 font-bold">{jobCount} Live Positions</p>
-                    </div>
-                    <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100">
-                        <Users className="w-8 h-8 text-emerald-600 mb-3" />
-                        <h4 className="font-black text-emerald-900 text-sm mb-1">Top Sector</h4>
-                        <p className="text-xs text-emerald-700 font-bold">{majorIndustry}</p>
-                    </div>
-                    <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
-                        <Landmark className="w-8 h-8 text-amber-600 mb-3" />
-                        <h4 className="font-black text-amber-900 text-sm mb-1">Location</h4>
-                        <p className="text-xs text-amber-700 font-bold">{cityName}, India</p>
-                    </div>
-                </div>
-                <h3 className="text-xl font-black text-gray-900 mb-4">Salary & Benefits in {cityName}</h3>
-                <p className="text-gray-600 font-medium">
-                    Manufacturing companies in {cityName} provide competitive compensation packages. Current listings show a variety of roles with benefits like PF, ESIC, and performance bonuses. Most employers in the area prioritize safety and skill development for their workforce.
-                </p>
-            </Card>
-
-            <div className="space-y-6">
+                       <div className="space-y-6">
                <h2 className="text-2xl font-black text-gray-900 px-2">Job Listings in {cityName}</h2>
                {jobs && jobs.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6">
@@ -196,6 +164,38 @@ export default async function LocationPage({ params }: Props) {
                   </div>
                 )}
             </div>
+
+            {/* SEO Content: Dynamic Industry Overview */}
+            <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
+                <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                    <Building2 className="w-6 h-6 text-indigo-600" /> Manufacturing Industry in {cityName}
+                </h2>
+                <p className="text-gray-600 font-medium">
+                    With {jobCount} active job openings, {cityName} continues to be a destination for skilled workers in India. The local industry is characterized by a strong presence of {majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-10 not-prose">
+                    <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
+                        <TrendingUp className="w-8 h-8 text-indigo-600 mb-3" />
+                        <h4 className="font-black text-indigo-900 text-sm mb-1">Active Openings</h4>
+                        <p className="text-xs text-indigo-700 font-bold">{jobCount} Live Positions</p>
+                    </div>
+                    <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100">
+                        <Users className="w-8 h-8 text-emerald-600 mb-3" />
+                        <h4 className="font-black text-emerald-900 text-sm mb-1">Top Sector</h4>
+                        <p className="text-xs text-emerald-700 font-bold">{majorIndustry}</p>
+                    </div>
+                    <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
+                        <Landmark className="w-8 h-8 text-amber-600 mb-3" />
+                        <h4 className="font-black text-amber-900 text-sm mb-1">Location</h4>
+                        <p className="text-xs text-amber-700 font-bold">{cityName}, India</p>
+                    </div>
+                </div>
+                <h3 className="text-xl font-black text-gray-900 mb-4">Salary & Benefits in {cityName}</h3>
+                <p className="text-gray-600 font-medium">
+                    Manufacturing companies in {cityName} provide competitive compensation packages. Current listings show a variety of roles with benefits like PF, ESIC, and performance bonuses. Most employers in the area prioritize safety and skill development for their workforce.
+                </p>
+            </Card>
+
           </div>
 
           {/* Sidebar */}

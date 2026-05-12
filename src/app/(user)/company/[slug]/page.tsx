@@ -164,24 +164,6 @@ export default async function CompanyPage({ params }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-12">
              <section>
-                <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
-                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Award className="w-6 h-6 text-indigo-600" /> Company Overview
-                    </h2>
-                    {company.description ? (
-                      <div 
-                          className="text-gray-600 font-medium leading-relaxed html-content"
-                          dangerouslySetInnerHTML={{ __html: company.description }}
-                      />
-                    ) : (
-                      <div className="text-gray-600 font-medium leading-relaxed">
-                          {`${company.name} is a company in the ${company.industry || 'Manufacturing'} sector, currently hiring for ${jobCount} positions in ${company.location}.`}
-                      </div>
-                    )}
-                </Card>
-             </section>
-
-             <section>
                 <div className="flex items-center justify-between mb-8 px-2">
                   <h2 className="text-xl font-bold text-gray-900">Active Job Openings ({jobCount})</h2>
                   <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold uppercase text-[10px] px-3 py-1">Verified</Badge>
@@ -236,6 +218,24 @@ export default async function CompanyPage({ params }: Props) {
                     <p className="text-gray-500 font-medium">No active openings at the moment.</p>
                   </div>
                 )}
+             </section>
+
+             <section>
+                <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                        <Award className="w-6 h-6 text-indigo-600" /> Company Overview
+                    </h2>
+                    {company.description ? (
+                      <div 
+                          className="text-gray-600 font-medium leading-relaxed html-content"
+                          dangerouslySetInnerHTML={{ __html: company.description }}
+                      />
+                    ) : (
+                      <div className="text-gray-600 font-medium leading-relaxed">
+                          {`${company.name} is a company in the ${company.industry || 'Manufacturing'} sector, currently hiring for ${jobCount} positions in ${company.location}.`}
+                      </div>
+                    )}
+                </Card>
              </section>
           </div>
 

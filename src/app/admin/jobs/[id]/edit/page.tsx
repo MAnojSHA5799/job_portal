@@ -10,6 +10,7 @@ import { Button } from '@/components/ui';
 interface Company {
   id: string;
   name: string;
+  url_slug: string | null;
 }
 
 export default function EditJobPage() {
@@ -37,10 +38,9 @@ export default function EditJobPage() {
         if (jobError) throw jobError;
         setJob(jobData);
 
-        // Fetch companies
         const { data: companiesData, error: companiesError } = await supabase
           .from('companies')
-          .select('id, name')
+          .select('id, name, url_slug')
           .order('name');
         
         if (companiesError) throw companiesError;

@@ -34,6 +34,7 @@ import { enhanceJobSEO } from '@/lib/seo-enhancer';
 interface Company {
   id: string;
   name: string;
+  url_slug?: string | null;
 }
 
 interface Job {
@@ -658,7 +659,7 @@ Instructions:
                <span className="whitespace-nowrap">PUBLISH JOB</span>
              </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Preview Modal */}
         <AnimatePresence>
@@ -803,7 +804,7 @@ Instructions:
             </div>
           )}
         </AnimatePresence>
-        </motion.div>
+
         {/* SEO Sidebar */}
         <motion.aside 
           initial={{ opacity: 0, x: 20 }}
@@ -959,8 +960,8 @@ Instructions:
             </div>
           </Card>
 
-        </aside>
-      </div>
+        </motion.aside>
+      </motion.div>
     </Card>
   );
 }

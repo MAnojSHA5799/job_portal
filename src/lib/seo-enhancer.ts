@@ -193,7 +193,7 @@ RULE 13 — COMPANY DESCRIPTION:
 ✓ Write 80–120 words about the company in your own words
 ✓ Include: industry sector (correct one, not "Technology"), founded year if known, key products/services, why good employer
 ✓ NEVER call a manufacturing/automotive company a "Technology sector" company
-✓ End with: "View all [Company] jobs on hiringstores.com.in." with internal link
+✓ End with EXACTLY: "<a href="/company/[company_slug]">View all [Company] jobs on hiringstores.com.in.</a>" — substitute [company_slug] with the 'company_slug' value from INPUT VARIABLES. Do NOT invent a slug.
 
 RULE 14 — JSON-LD SCHEMA (JobPosting — all required fields):
 Output complete JSON-LD with:
@@ -274,6 +274,7 @@ employment_type_raw: ${job.job_type || ''}
 experience_raw: ${job.experience_level || ''}
 date_scraped: ${new Date().toISOString()}
 company_website: ${company.website || ''}
+company_slug: ${company.url_slug || (company.name ? company.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'company')}
 raw_description: ${job.description || ''}`
         }
       ]
@@ -302,7 +303,10 @@ raw_description: ${job.description || ''}`
 }
 
 export async function enhanceCompanySEO(company: any): Promise<EnhancedCompanyData> {
-  const prompt = `You are an expert SEO copywriter for http://www.hiringstores.com, a job portal for manufacturing, industrial, and production jobs. You generate complete, SEO-optimised company profile pages that score 95+ on the Gethyrd SEO Scoring System. ════════════════════════════════════════ STEP 1 — COMPUTE FOCUS KEYWORD FIRST ════════════════════════════════════════ Focus Keyword formula: [Company Name] + [City Name] IMPORTANT — CLEAN THE INPUTS: - If city is missing/null, use the headquarters location from description. - Focus keyword must be real, searchable, human-readable. ════════════════════════════════════════ STEP 2 — GENERATE ALL OUTPUT FIELDS ════════════════════════════════════════ RULE 1 — SEO TITLE: Pattern: [Focus Keyword] | Leading [Industry] Company in [City] ✓ Length: 50–60 characters EXACTLY RULE 2 — META DESCRIPTION: ✓ Length: 130–160 characters EXACTLY ✓ Ends with CTA: "Explore careers on http://www.hiringstores.com." RULE 3 — URL SLUG: Pattern: [focus-keyword-hyphenated] RULE 4 — CONTENT STRUCTURE: H2: About [Company Name] H3: Company History & Heritage H3: Core Values & Culture H2: Manufacturing Excellence & Capabilities H3: Key Products & Services H3: Industrial Impact in [City] H2: Career Opportunities at [Company Name] H3: Why Join Our Team H3: Benefits & Growth H2: Frequently Asked Questions RULE 5 — CONTENT LENGTH & KEYWORD DENSITY: ✓ Total word count: 900–1,200 words ✓ Focus keyword density ~1% RULE 6 — FAQ SECTION: ✓ Minimum 4 questions about the company, culture, and hiring. ════════════════════════════════════════ OUTPUT FORMAT — RETURN VALID JSON ONLY ════════════════════════════════════════ { focus_keyword: "string", seo_title: "string", meta_description: "string", url_slug: "string", content_html: "string" }`;
+  const prompt = `You are an expert SEO copywriter for http://www.hiringstores.com, a job portal for manufacturing, industrial, and production jobs. You generate complete, SEO-optimised company profile pages that score 95+ on the Gethyrd SEO Scoring System. ════════════════════════════════════════ STEP 1 — COMPUTE FOCUS KEYWORD FIRST ════════════════════════════════════════ Focus Keyword formula: [Company Name] + [City Name] IMPORTANT — CLEAN THE INPUTS: - If city is missing/null, use the headquarters location from description. - Focus keyword must be real, searchable, human-readable. ════════════════════════════════════════ STEP 2 — GENERATE ALL OUTPUT FIELDS ════════════════════════════════════════ RULE 1 — SEO TITLE: Pattern: [Focus Keyword] | Leading [Industry] Company in [City] ✓ Length: 50–60 characters EXACTLY RULE 2 — META DESCRIPTION: ✓ Length: 130–160 characters EXACTLY ✓ Ends with CTA: "Explore careers on http://www.hiringstores.com." RULE 3 — URL SLUG: Pattern: [focus-keyword-hyphenated] RULE 4 — CONTENT STRUCTURE: H2: About [Company Name] H3: Company History & Heritage H3: Core Values & Culture H2: Manufacturing Excellence & Capabilities H3: Key Products & Services H3: Industrial Impact in [City] H2: Career Opportunities at [Company Name] H3: Why Join Our Team H3: Benefits & Growth H2: Frequently Asked Questions RULE 5 — CONTENT LENGTH & KEYWORD DENSITY: ✓ Total word count: 900–1,200 words ✓ Focus keyword density ~1% RULE 6 — FAQ SECTION: ✓ Minimum 4 questions about the company, culture, and hiring. 
+RULE 7 — INTERNAL LINKING:
+✓ End the "About [Company]" section with: "<a href="/company/[generated-url-slug]">View all [Company] jobs on hiringstores.com.in.</a>" using the 'url_slug' generated in RULE 3.
+════════════════════════════════════════ OUTPUT FORMAT — RETURN VALID JSON ONLY ════════════════════════════════════════ { focus_keyword: "string", seo_title: "string", meta_description: "string", url_slug: "string", content_html: "string" }`;
 
   const response = await fetch('/api/openai', {
     method: 'POST',
@@ -319,6 +323,7 @@ Company Name: ${company.name || ''}
 Industry: ${company.industry || ''}
 Location: ${company.location || ''}
 Website: ${company.website || ''}
+Company Slug: ${company.url_slug || ''}
 Description: ${company.description || ''}`
         }
       ]

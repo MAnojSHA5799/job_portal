@@ -60,6 +60,7 @@ interface Job {
   seo_score?: number;
   companies: {
     name: string;
+    url_slug: string | null;
   };
 }
 
@@ -105,7 +106,8 @@ export default function JobsQueue() {
         .select(`
           *,
           companies (
-            name
+            name,
+            url_slug
           )
         `, { count: 'exact' })
         .order('created_at', { ascending: false });
@@ -183,7 +185,7 @@ export default function JobsQueue() {
     try {
       const { data, error } = await supabase
         .from('companies')
-        .select('id, name')
+        .select('id, name, url_slug')
         .order('name');
       if (error) throw error;
       setCompanies(data || []);
@@ -267,7 +269,7 @@ export default function JobsQueue() {
 
         await Promise.all(batch.map(async (job) => {
           try {
-            const enhancedData = await enhanceJobSEO(job, job.companies?.name || 'Gethyrd');
+            const enhancedData = await enhanceJobSEO(job, job.companies || { name: 'Gethyrd' });
             console.log(`Enhanced data for job ${job.id}:`, enhancedData);
             
             const { error } = await supabase

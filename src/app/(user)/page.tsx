@@ -52,6 +52,8 @@ export default function HomePage() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -100,6 +102,17 @@ export default function HomePage() {
         .limit(10);
       
       setPopularCompanies(popCompData || []);
+      
+      // Fetch all unique company names for suggestions
+      const { data: allCompNames } = await supabase
+        .from('companies')
+        .select('name')
+        .order('name');
+      
+      if (allCompNames) {
+        const uniqueNames = Array.from(new Set(allCompNames.map(c => c.name).filter(Boolean)));
+        setCompanySuggestions(uniqueNames as string[]);
+      }
 
       // Fetch Latest Blogs
       const { data: blogData } = await supabase
@@ -206,10 +219,45 @@ export default function HomePage() {
                   <input 
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowCompanySuggestions(true);
+                    }}
+                    onFocus={() => setShowCompanySuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)}
                     placeholder="Search Job Title or Company name..."
                     className="w-full h-16 pl-14 pr-20 bg-white rounded-full shadow-lg border-0 text-base font-medium focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
                   />
+                  <AnimatePresence>
+                    {showCompanySuggestions && searchQuery && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full left-0 right-0 mt-4 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 overflow-hidden"
+                        >
+                            {companySuggestions
+                                .filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .slice(0, 5)
+                                .map((name, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchQuery(name);
+                                            setShowCompanySuggestions(false);
+                                        }}
+                                        className="w-full px-6 py-4 text-left hover:bg-gray-50 text-sm font-bold text-gray-600 hover:text-primary transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-primary/10">
+                                            <Building2 className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                                        </div>
+                                        {name}
+                                    </button>
+                                ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                   <div className="absolute right-2 inset-y-2">
                     <button className="h-full px-5 bg-gray-50 hover:bg-gray-100 rounded-full transition-all flex items-center justify-center text-gray-900 group/btn">
                       <Filter className="w-5 h-5 text-[#4a3728]" />

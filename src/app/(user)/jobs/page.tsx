@@ -88,6 +88,25 @@ export default function JobListingPage() {
   // Suggestions state
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
+  const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+
+  const fetchCompanyNames = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('name')
+        .order('name');
+      
+      if (error) throw error;
+      if (data) {
+        const uniqueNames = Array.from(new Set(data.map(c => c.name).filter(Boolean)));
+        setCompanySuggestions(uniqueNames as string[]);
+      }
+    } catch (error) {
+      console.error('Error fetching company names:', error);
+    }
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -107,7 +126,8 @@ export default function JobListingPage() {
         .order('created_at', { ascending: false });
 
       if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
+        // Search in title, category, and company name
+        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,companies.name.ilike.%${searchQuery}%`);
       }
 
       if (locationQuery) {
@@ -159,6 +179,10 @@ export default function JobListingPage() {
   };
 
   useEffect(() => {
+    fetchCompanyNames();
+  }, []);
+
+  useEffect(() => {
     fetchJobs();
   }, [searchQuery, locationQuery, selectedFilters]);
 
@@ -197,8 +221,43 @@ export default function JobListingPage() {
                     placeholder="Job title, keywords, or company" 
                     className="border-0 shadow-none pl-12 h-12 focus-visible:ring-0 text-sm font-medium" 
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowCompanySuggestions(true);
+                    }}
+                    onFocus={() => setShowCompanySuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)}
                   />
+                  <AnimatePresence>
+                    {showCompanySuggestions && searchQuery && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full left-0 right-0 mt-4 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 overflow-hidden"
+                        >
+                            {companySuggestions
+                                .filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .slice(0, 5)
+                                .map((name, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => {
+                                            setSearchQuery(name);
+                                            setShowCompanySuggestions(false);
+                                        }}
+                                        className="w-full px-6 py-4 text-left hover:bg-gray-50 text-sm font-bold text-gray-600 hover:text-primary transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-primary/10">
+                                            <Building2 className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                                        </div>
+                                        {name}
+                                    </button>
+                                ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
               </div>
               <div className="hidden md:block w-[1px] h-8 bg-gray-100 mx-2"></div>
               <div className="relative flex-1 w-full">
