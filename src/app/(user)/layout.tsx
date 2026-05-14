@@ -283,15 +283,15 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 mb-20">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-12 gap-x-8 gap-y-12 mb-20">
                 
-                <div className="lg:col-span-4 space-y-6">
+                <div className="col-span-2 md:col-span-3 lg:col-span-4 space-y-6">
                     <Link href="/" className="inline-block -mt-4">
                         <img src="/two.png" alt="JobPortal" className="w-56 md:w-72 h-auto object-contain object-left" />
                     </Link>
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Jobs by City</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         {navData.cities.map(city => (
@@ -305,7 +305,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     </ul>
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Popular Roles</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         {navData.categories.map(cat => (
@@ -319,7 +319,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     </ul>
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Resources</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         <li><Link href="/companies" className="text-slate-400 hover:text-primary transition-all">Companies</Link></li>
@@ -329,7 +329,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     </ul>
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Company</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         <li><Link href="/about" className="text-slate-400 hover:text-primary transition-all">About Us</Link></li>

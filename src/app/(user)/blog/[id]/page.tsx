@@ -164,17 +164,17 @@ export default function BlogPost() {
                 <motion.header
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="max-w-4xl mb-16"
+                    className="max-w-4xl mb-10 md:mb-16"
                 >
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-wider mb-6">
                         {blog.category}
                     </div>
                     
-                    <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-8">
+                    <h1 className="text-2xl md:text-5xl font-black text-gray-900 tracking-tight leading-tight mb-6 md:mb-8">
                         {blog.title}
                     </h1>
 
-                    <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-400 border-b border-gray-100 pb-8">
+                    <div className="flex flex-wrap items-center gap-4 md:gap-6 text-xs md:text-sm font-bold text-gray-400 border-b border-gray-100 pb-8">
                         <div className="flex items-center gap-3 text-gray-900">
                             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200">
                                 <User className="w-5 h-5" />
@@ -201,33 +201,47 @@ export default function BlogPost() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.1, duration: 0.8 }}
-                        className="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl shadow-gray-200 border border-gray-100 bg-gray-50 mb-16"
+                        className="w-full aspect-video rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-gray-200 border border-gray-100 bg-gray-50 mb-10 md:mb-16"
                     >
                         <img src={blog.image_url} alt={blog.title} className="w-full h-full object-cover" />
                     </motion.div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-16">
                     {/* Main Content (8 cols) */}
                     <div className="lg:col-span-8 article-content">
                         <style jsx global>{`
                             .article-content {
                                 color: #334155;
                                 line-height: 1.8;
-                                font-size: 1.125rem;
+                                font-size: 1rem;
+                            }
+                            @media (min-width: 768px) {
+                                .article-content {
+                                    font-size: 1.125rem;
+                                }
                             }
                             .article-content p {
-                                margin-bottom: 1.75rem;
+                                margin-bottom: 1.5rem;
                             }
                             .article-content h2, .article-content h3 {
                                 color: #0f172a;
                                 font-weight: 700;
-                                margin-top: 2.5rem;
+                                margin-top: 2rem;
                                 margin-bottom: 1rem;
                                 letter-spacing: -0.01em;
                             }
-                            .article-content h2 { font-size: 1.5rem; }
-                            .article-content h3 { font-size: 1.25rem; }
+                            @media (min-width: 768px) {
+                                .article-content h2, .article-content h3 {
+                                    margin-top: 2.5rem;
+                                }
+                            }
+                            .article-content h2 { font-size: 1.25rem; }
+                            .article-content h3 { font-size: 1.125rem; }
+                            @media (min-width: 768px) {
+                                .article-content h2 { font-size: 1.5rem; }
+                                .article-content h3 { font-size: 1.25rem; }
+                            }
                             .article-content ul, .article-content ol {
                                 margin-bottom: 1.75rem;
                                 padding-left: 1.25rem;
@@ -337,24 +351,24 @@ export default function BlogPost() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="mt-40 p-12 md:p-20 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-[60px] text-center relative overflow-hidden"
+                className="mt-24 md:mt-40 p-8 md:p-20 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-[40px] md:rounded-[60px] text-center relative overflow-hidden"
             >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-3xl rounded-full -translate-x-1/2 translate-y-1/2" />
                 
                 <div className="relative z-10">
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/20">
-                        <Sparkles className="w-10 h-10 text-indigo-300" />
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-xl rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/20">
+                        <Sparkles className="w-8 h-8 md:w-10 md:h-10 text-indigo-300" />
                     </div>
-                    <h3 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight">Stay updated with career advice</h3>
-                    <p className="text-indigo-200/80 font-bold text-lg mb-12 max-w-lg mx-auto">Get the best interview tips and tech news delivered straight to your inbox weekly.</p>
+                    <h3 className="text-2xl md:text-5xl font-black text-white mb-6 tracking-tight">Stay updated with career advice</h3>
+                    <p className="text-indigo-200/80 font-bold text-base md:text-lg mb-8 md:mb-12 max-w-lg mx-auto">Get the best interview tips and tech news delivered straight to your inbox weekly.</p>
                     <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
                         <input 
                             type="email" 
                             placeholder="your@email.com" 
-                            className="flex-1 h-14 rounded-2xl bg-white/10 border border-white/20 px-6 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" 
+                            className="flex-1 h-14 rounded-xl md:rounded-2xl bg-white/10 border border-white/20 px-6 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-bold" 
                         />
-                        <Button className="h-14 px-10 bg-white hover:bg-indigo-50 text-indigo-900 font-black rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95">
+                        <Button className="h-14 px-10 bg-white hover:bg-indigo-50 text-indigo-900 font-black rounded-xl md:rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95">
                             Subscribe
                         </Button>
                     </div>

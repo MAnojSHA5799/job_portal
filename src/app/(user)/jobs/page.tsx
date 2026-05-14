@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
@@ -65,20 +66,24 @@ interface Job {
 const defaultFilters = [
   { id: 'category', name: 'Category', options: ['Production', 'Quality', 'Maintenance', 'Store', 'HR', 'Accountant'] },
   { id: 'job_type', name: 'Job Type', options: ['Full-time', 'Part-time', 'Contract', 'Remote'] },
+  { id: 'experience_level', name: 'Experience Level', options: ['Fresher', '1-3 Years', '3-5 Years', '5+ Years', '5 to 8 years', '8 to 10', '10 to 15', '16+'] },
 ];
 
 import { ApplyButton } from '@/components/ApplyButton';
 
-export default function JobListingPage() {
+function JobListingContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [locationQuery, setLocationQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [locationQuery, setLocationQuery] = useState(searchParams.get('location') || '');
   const [filterCategories, setFilterCategories] = useState(defaultFilters);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({
     category: [],
     job_type: [],
+    experience_level: [],
   });
 
   // Pagination states
@@ -126,8 +131,8 @@ export default function JobListingPage() {
         .order('created_at', { ascending: false });
 
       if (searchQuery) {
-        // Search in title, category, and company name
-        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%,companies.name.ilike.%${searchQuery}%`);
+        // Search in title and category
+        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
       }
 
       if (locationQuery) {
@@ -144,6 +149,11 @@ export default function JobListingPage() {
         query = query.in('job_type', selectedFilters.job_type);
       }
 
+      // Apply experience level filters
+      if (selectedFilters.experience_level.length > 0) {
+        query = query.in('experience_level', selectedFilters.experience_level);
+      }
+
       console.log('Fetching jobs with filters:', selectedFilters, 'Search:', searchQuery, 'Location:', locationQuery);
       const { data, error } = await query;
 
@@ -154,7 +164,6 @@ export default function JobListingPage() {
       
       const fetchedJobs = (data as any) || [];
       console.log('Fetched Jobs Count:', fetchedJobs.length);
-      console.log('Fetched Jobs Data (first 2):', fetchedJobs.slice(0, 2));
       
       setJobs(fetchedJobs);
       setCurrentPage(1); // Reset to page 1 on new search/filter
@@ -205,6 +214,10 @@ export default function JobListingPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (locationQuery) params.set('location', locationQuery);
+    router.push(`/jobs?${params.toString()}`);
     fetchJobs();
   };
 
@@ -304,6 +317,33 @@ export default function JobListingPage() {
                     )}
                 </AnimatePresence>
             </div>
+                <div className="hidden md:block w-[1px] h-8 bg-gray-100 mx-2"></div>
+              <div className="relative flex-1 w-full">
+                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <select 
+                  value={selectedFilters.experience_level[0] || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedFilters(prev => ({
+                      ...prev,
+                      experience_level: val ? [val] : []
+                    }));
+                  }}
+                  className="w-full border-0 bg-transparent pl-12 pr-10 h-12 focus:outline-none text-sm font-medium text-gray-600 appearance-none cursor-pointer"
+                >
+                  <option value="">⭐ Experience</option>
+                  <option value="Fresher">Fresher</option>
+                  <option value="1-3 Years">1-3 Years</option>
+                  <option value="3-5 Years">3-5 Years</option>
+                  <option value="5+ Years">5+ Years</option>
+                  <option value="5 to 8 years">5 to 8 years</option>
+                  <option value="8 to 10">8 to 10</option>
+                  <option value="10 to 15">10 to 15</option>
+                  <option value="16+">16+</option>
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              </div>
+              <div className="hidden md:block w-[1px] h-8 bg-gray-100 mx-2"></div>
               <Button type="submit" className="h-12 w-full md:w-auto px-10 font-black text-xs uppercase tracking-widest rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all">
                   Filter Matches
               </Button>
@@ -320,7 +360,7 @@ export default function JobListingPage() {
                     <Filter className="w-4 h-4 mr-2" /> Filters
                 </h3>
                 <button 
-                  onClick={() => setSelectedFilters({ category: [], job_type: [] })}
+                  onClick={() => setSelectedFilters({ category: [], job_type: [], experience_level: [] })}
                   className="text-xs font-bold text-primary uppercase tracking-widest hover:underline"
                 >
                   Reset All
@@ -401,7 +441,7 @@ export default function JobListingPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                     >
-                      <Link href={`/jobs/${job.url_slug || job.id}`}>
+                      <Link href={`/jobs/${job.url_slug || job.id}`} target="_blank">
                         <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white relative group cursor-pointer">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex items-start gap-4">
@@ -531,4 +571,14 @@ export default function JobListingPage() {
   );
 }
 
-
+export default function JobListingPage() {
+  return (
+    <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+    }>
+      <JobListingContent />
+    </Suspense>
+  );
+}

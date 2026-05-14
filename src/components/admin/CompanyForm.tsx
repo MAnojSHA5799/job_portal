@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   Wand2,
   Zap,
-  Star
+  Star,
+  Eye,
+  FileText
 } from 'lucide-react';
 import { calculateSEOScore, SEOCheck } from '@/lib/seo-utils';
 import { supabase } from '@/lib/supabase';
@@ -260,13 +262,14 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
   };
 
 
-  const internalOnSave = () => {
+  const internalOnSave = (publish: boolean = true) => {
     if (!currentCompany.name || !currentCompany.description) {
       alert('Please fill in required fields (Name, Description)');
       return;
     }
     const finalCompany = {
       ...currentCompany,
+      is_approved: publish,
       seo_score: seoReport.score
     };
     onSave(finalCompany);
@@ -441,10 +444,33 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
             />
           </div>
 
-          <div className="flex justify-end pt-8">
-             <Button onClick={internalOnSave} disabled={loading} className="h-14 px-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-100">
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8">
+             <Button 
+               variant="outline"
+               onClick={() => window.open(`/company/${currentCompany.url_slug || currentCompany.id}`, '_blank')}
+               className="h-14 px-8 border-2 border-indigo-100 bg-white text-indigo-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-indigo-50"
+             >
+               <Eye className="h-5 w-5 mr-2" />
+               PREVIEW
+             </Button>
+
+             <Button 
+               variant="outline"
+               onClick={() => internalOnSave(false)}
+               disabled={loading}
+               className="h-14 px-8 border-2 border-gray-100 bg-white text-gray-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-gray-50"
+             >
+               <FileText className="h-5 w-5 mr-2" />
+               SAVE AS DRAFT
+             </Button>
+
+             <Button 
+               onClick={() => internalOnSave(true)} 
+               disabled={loading} 
+               className="h-14 px-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 w-full sm:w-auto"
+             >
                {loading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
-               SAVE COMPANY PROFILE
+               PUBLISH COMPANY
              </Button>
           </div>
         </div>
@@ -498,7 +524,13 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
                     className="h-12 pl-11 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:ring-indigo-500/50"
                     placeholder="acme-corp-pune"
                     value={currentCompany.url_slug}
-                    onChange={e => setCurrentCompany({...currentCompany, url_slug: e.target.value})}
+                    onChange={e => {
+                        const val = e.target.value.toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric except space and hyphen
+                            .replace(/\s+/g, '-')       // Replace spaces with hyphens
+                            .replace(/-+/g, '-');       // Replace multiple hyphens with single hyphen
+                        setCurrentCompany({...currentCompany, url_slug: val});
+                    }}
                   />
                 </div>
               </div>

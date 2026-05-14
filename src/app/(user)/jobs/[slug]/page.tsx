@@ -56,6 +56,7 @@ async function getData(slug: string) {
         .from('jobs')
         .select('*, companies(*)')
         .eq('id', decodedSlug)
+        .eq('is_approved', true)
         .maybeSingle();
       if (job) {
         console.log('Step 1 SUCCESS: Found job by ID');
@@ -68,7 +69,8 @@ async function getData(slug: string) {
     const response = await supabase
       .from('jobs')
       .select('*, companies(*)')
-      .eq('url_slug', decodedSlug);
+      .eq('url_slug', decodedSlug)
+      .eq('is_approved', true);
 
     console.log('Step 2 Raw Response:', { 
       count: response.data?.length || 0, 
@@ -88,6 +90,7 @@ async function getData(slug: string) {
       .from('jobs')
       .select('*, companies(*)')
       .ilike('title', fuzzyTitle)
+      .eq('is_approved', true)
       .maybeSingle();
     
     if (jobByTitle) {

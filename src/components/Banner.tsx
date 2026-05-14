@@ -113,7 +113,7 @@ export const Banner = () => {
           <div 
             className="flex flex-wrap gap-4 pt-4"
           >
-            <Link href="/jobs">
+            {/* <Link href="/jobs">
               <button className="group px-8 h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl flex items-center gap-3 shadow-xl shadow-primary/25">
                 Explore Jobs
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1" />
@@ -123,7 +123,7 @@ export const Banner = () => {
               <button className="px-8 h-14 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 text-white font-bold rounded-2xl">
                 Post a Job
               </button>
-            </Link>
+            </Link> */}
           </div>
 
         

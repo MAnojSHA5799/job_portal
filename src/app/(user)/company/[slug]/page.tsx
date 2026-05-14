@@ -13,11 +13,14 @@ import {
   ExternalLink,
   ShieldCheck,
   TrendingUp,
-  Award
+  Award,
+  ArrowRight
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Banner } from '@/components/Banner';
 import { ApplyButton } from '@/components/ApplyButton';
+import Link from 'next/link';
+
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 interface Props {
@@ -97,6 +100,7 @@ export default async function CompanyPage({ params }: Props) {
     .from('jobs')
     .select('*')
     .eq('company_id', company.id)
+    .eq('is_approved', true)
     .order('created_at', { ascending: false });
 
   const jobCount = jobs?.length || 0;
@@ -172,45 +176,47 @@ export default async function CompanyPage({ params }: Props) {
                 {jobs && jobs.length > 0 ? (
                   <div className="space-y-6">
                     {jobs.map((job) => (
-                      <Card key={job.id} className="p-6 md:p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-50/50 transition-all bg-white group rounded-3xl overflow-hidden relative">
-                        <div className="absolute top-0 left-0 w-1.5 h-0 group-hover:h-full bg-indigo-600 transition-all duration-300" />
-                        <div className="flex flex-col md:flex-row md:items-start gap-6">
-                          <div className="flex-1 space-y-2">
-                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-indigo-600 transition-colors leading-tight">
-                              <a href={`/jobs/${job.url_slug || job.id}`}>{job.title}</a>
-                            </h3>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
-                              {!job.is_approved && (
-                                <Badge className="bg-amber-500 text-white border-0 font-black px-2 py-0.5">PENDING REVIEW</Badge>
-                              )}
-                              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                                <MapPin className="w-3 h-3" /> {job.location}
-                              </span>
-                              {job.salary_range && (
-                                <span className="flex items-center gap-1.5 text-emerald-600 font-black">
-                                  <Badge className="bg-emerald-50 text-emerald-600 border-0 font-bold px-2 py-0.5">{job.salary_range}</Badge>
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                      <Link 
+                        key={job.id} 
+                        href={`/jobs/${job.url_slug || job.id}`}
+                        target="_blank"
+                        className="block group/job-card"
+                      >
+                        <Card className="p-6 md:p-8 border border-gray-100 shadow-sm group-hover/job-card:shadow-2xl group-hover/job-card:shadow-indigo-50/50 group-hover/job-card:-translate-y-1 transition-all bg-white group rounded-3xl overflow-hidden relative">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover/job-card:opacity-100 transition-opacity" />
+                          <div className="absolute top-0 left-0 w-1.5 h-0 group-hover/job-card:h-full bg-indigo-600 transition-all duration-300" />
                           
-                          <div className="flex items-center gap-3 pt-4 md:pt-1 border-t md:border-t-0 border-gray-50">
-                            <a href={`/jobs/${job.url_slug || job.id}`} className="flex-1 md:flex-none">
-                              <Button variant="outline" className="w-full md:w-auto h-10 px-6 rounded-xl font-bold border-gray-100 hover:border-indigo-600 hover:text-indigo-600 transition-all text-[10px] uppercase tracking-widest">
+                          <div className="flex flex-col md:flex-row md:items-start gap-6 relative z-10">
+                            <div className="flex-1 space-y-2">
+                              <h3 className="text-lg font-bold text-gray-900 group-hover/job-card:text-indigo-600 transition-colors leading-tight">
+                                {job.title}
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">
+                                {!job.is_approved && (
+                                  <Badge className="bg-amber-500 text-white border-0 font-black px-2 py-0.5">PENDING REVIEW</Badge>
+                                )}
+                                <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-full group-hover/job-card:bg-indigo-50 group-hover/job-card:text-indigo-600 transition-colors">
+                                  <MapPin className="w-3 h-3" /> {job.location}
+                                </span>
+                                {job.salary_range && (
+                                  <span className="flex items-center gap-1.5 text-emerald-600 font-black">
+                                    <Badge className="bg-emerald-50 text-emerald-600 border-0 font-bold px-2 py-0.5">{job.salary_range}</Badge>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 pt-4 md:pt-1 border-t md:border-t-0 border-gray-50">
+                              <Button variant="outline" className="w-full md:w-auto h-10 px-6 rounded-xl font-bold border-gray-100 hover:border-indigo-600 hover:text-indigo-600 transition-all text-[10px] uppercase tracking-widest pointer-events-none">
                                   Quick View
                               </Button>
-                            </a>
-                            <ApplyButton 
-                              jobId={job.id}
-                              jobTitle={job.title}
-                              companyId={company.id}
-                              companyName={company.name}
-                              applyLink={job.apply_link || '#'}
-                              className="flex-1 md:flex-none h-10 text-[10px] px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 font-bold uppercase tracking-widest"
-                            />
+                              <Button className="w-full md:w-auto h-10 text-[10px] px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 font-bold uppercase tracking-widest text-white pointer-events-none">
+                                  Apply Now
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </Card>
+                        </Card>
+                      </Link>
                     ))}
                   </div>
                 ) : (

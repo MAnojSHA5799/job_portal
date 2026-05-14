@@ -70,14 +70,21 @@ export default function NewJobPage() {
 
       // Cleanup and insert job
       const { new_company_name, ...payload } = jobData;
-      const { error } = await supabase
+      const { data: createdJob, error } = await supabase
         .from('jobs')
-        .insert([{ ...payload, company_id: finalCompanyId }]);
+        .insert([{ ...payload, company_id: finalCompanyId }])
+        .select('id')
+        .single();
       
       if (error) throw error;
       
-      router.push('/admin/jobs');
-      router.refresh();
+      if (!jobData.is_approved) {
+        alert('Draft saved! Continuing in edit mode...');
+        router.push(`/admin/jobs/${createdJob.id}/edit`);
+      } else {
+        router.push('/admin/jobs');
+        router.refresh();
+      }
     } catch (error: any) {
       alert('Error saving job: ' + error.message);
     } finally {

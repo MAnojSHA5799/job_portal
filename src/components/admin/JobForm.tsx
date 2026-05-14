@@ -972,7 +972,13 @@ Instructions:
                     className="h-12 pl-11 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:ring-indigo-500/50"
                     placeholder="cnc-operator-pune"
                     value={currentJob.url_slug || ''}
-                    onChange={e => setCurrentJob({...currentJob, url_slug: e.target.value})}
+                    onChange={e => {
+                        const val = e.target.value.toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, '') // Remove non-alphanumeric except space and hyphen
+                            .replace(/\s+/g, '-')       // Replace spaces with hyphens
+                            .replace(/-+/g, '-');       // Replace multiple hyphens with single hyphen
+                        setCurrentJob({...currentJob, url_slug: val});
+                    }}
                   />
                 </div>
               </div>

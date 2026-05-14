@@ -68,7 +68,8 @@ export default function CompaniesDirectory() {
         .select(`
           *,
           jobs(id)
-        `);
+        `)
+        .eq('jobs.is_approved', true);
 
       if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
       if (industryQuery) query = query.ilike('industry', `%${industryQuery}%`);
@@ -138,7 +139,7 @@ export default function CompaniesDirectory() {
                         </select>
                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                     </div>
-
+                    
                     <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
 
                     <div className="relative flex-1 min-w-0">
@@ -190,13 +191,18 @@ export default function CompaniesDirectory() {
         ) : (
           <div className="grid grid-cols-1 gap-6">
               {companies.map((company, i) => (
-                  <div
-                      key={company.id}
+                  <Link
+                    key={company.id}
+                    href={`/company/${company.url_slug || company.id}`}
+                    target="_blank"
+                    className="block group/company-card"
                   >
-                      <Card className="group relative bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] transition-all duration-300">
-                          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                      <Card className="group relative bg-white rounded-3xl border border-gray-100 p-6 group-hover/company-card:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] group-hover/company-card:-translate-y-1 transition-all duration-300 overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover/company-card:opacity-100 transition-opacity" />
+                          
+                          <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10">
                               {/* Left: Logo */}
-                              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-3 shrink-0 group-hover:scale-105 transition-transform">
+                              <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-3 shrink-0 group-hover/company-card:scale-105 transition-transform">
                                   {company.logo_url ? (
                                     <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
                                   ) : (
@@ -209,11 +215,9 @@ export default function CompaniesDirectory() {
                               {/* Center: Info */}
                               <div className="flex-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-3 mb-2">
-                                      <Link href={`/company/${company.url_slug || company.id}`}>
-                                          <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight group-hover:text-primary transition-colors truncate">
-                                              {company.name}
-                                          </h3>
-                                      </Link>
+                                      <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight group-hover/company-card:text-primary transition-colors truncate">
+                                          {company.name}
+                                      </h3>
                                       <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">
                                           <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> 
                                           <span className="font-bold text-[10px]">{company.rating || '4.5'}</span>
@@ -240,15 +244,13 @@ export default function CompaniesDirectory() {
 
                               {/* Right: Action */}
                               <div className="w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-gray-50">
-                                  <Link href={`/company/${company.url_slug || company.id}`} className="block">
-                                      <Button className="w-full md:w-auto px-10 h-12 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
-                                          View Profile <ArrowRight className="h-4 w-4" />
-                                      </Button>
-                                  </Link>
+                                  <Button className="w-full md:w-auto px-10 h-12 bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 pointer-events-none">
+                                      View Profile <ArrowRight className="h-4 w-4" />
+                                  </Button>
                               </div>
                           </div>
                       </Card>
-                  </div>
+                  </Link>
               ))}
           </div>
         )}

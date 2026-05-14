@@ -101,8 +101,12 @@ export default function EditJobPage() {
       
       if (error) throw error;
       
-      router.push('/admin/jobs');
-      router.refresh();
+      if (!jobData.is_approved) {
+        alert('Draft saved successfully!');
+      } else {
+        router.push('/admin/jobs');
+        router.refresh();
+      }
     } catch (error: any) {
       alert('Error saving job: ' + error.message);
     } finally {
