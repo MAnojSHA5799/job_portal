@@ -704,7 +704,7 @@ export default function HomePage() {
       </section>
 
       {/* Top Industries Section */}
-      <section className="bg-white py-20 border-t border-gray-50 overflow-hidden">
+      <section className="bg-white py-10 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
@@ -788,7 +788,7 @@ export default function HomePage() {
 
 
       {/* Popular Companies Section - Minimalist Image-Based Design */}
-      <section className="bg-white py-20 border-t border-gray-50 overflow-hidden">
+      <section className="bg-white py-10 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
@@ -875,7 +875,7 @@ export default function HomePage() {
         </div>
       </section>
       {/* Blog Section */}
-      <section className="bg-gray-50 py-20 border-t border-gray-50 overflow-hidden">
+      <section className="bg-gray-50 py-10 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
