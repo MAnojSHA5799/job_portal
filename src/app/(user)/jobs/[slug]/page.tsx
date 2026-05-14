@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { redirect, notFound } from 'next/navigation';
 import { ApplyButton } from '@/components/ApplyButton';
+import { ShareActions } from '@/components/ShareActions';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -347,9 +348,7 @@ export default async function SlugPage({ params }: Props) {
                     applyLink={job.apply_link || '#'}
                     className="flex-1 h-12 bg-[#006d5b] hover:bg-[#005a4b] text-white font-bold rounded-xl border-0"
                 />
-                <Button variant="outline" className="h-12 px-6 rounded-xl border-gray-200 text-gray-600 font-bold flex items-center gap-2">
-                    <Share2 className="w-4 h-4" /> Share
-                </Button>
+                <ShareActions title={job.title} />
              </div>
           </Card>
 
@@ -651,7 +650,7 @@ export default async function SlugPage({ params }: Props) {
                       {(citiesInCat as string[]).map((city: string) => (
                           <a 
                               key={city} 
-                              href={`/jobs-in/${city.toLowerCase()}`}
+                              href={`/jobs-in-${city.toLowerCase().replace(/\s+/g, '-')}`}
                               className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-600 hover:text-white transition-all font-bold text-gray-600"
                           >
                               {city} <ChevronRight className="w-4 h-4" />

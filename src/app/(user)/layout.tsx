@@ -296,7 +296,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     <ul className="space-y-4 text-sm font-medium">
                         {navData.cities.map(city => (
                           <li key={city}>
-                            <Link href={`/jobs-in/${city.toLowerCase().replace(/\s+/g, '-')}`} className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group">
+                            <Link href={`/jobs-in-${city.toLowerCase().replace(/\s+/g, '-')}`} className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group">
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
                               Jobs in {city}
                             </Link>

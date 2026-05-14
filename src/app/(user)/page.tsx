@@ -70,6 +70,19 @@ export default function HomePage() {
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+  
+  // Mobile Slider State for Jobs
+  const [jobPageIndex, setJobPageIndex] = useState(0);
+  const jobsPerSlide = 4;
+
+  const [industryPageIndex, setIndustryPageIndex] = useState(0);
+  const industriesPerSlide = 4;
+
+  const [companyPageIndex, setCompanyPageIndex] = useState(0);
+  const companiesPerSlide = 4;
+
+  const [blogPageIndex, setBlogPageIndex] = useState(0);
+  const blogsPerSlide = 4;
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -298,14 +311,14 @@ export default function HomePage() {
 
                 {/* Filter Pills Grid */}
                 <div 
-                  className="flex flex-wrap gap-2.5 max-w-5xl"
+                  className="grid grid-cols-2 md:flex md:flex-wrap gap-3 max-w-5xl"
                 >
                   {/* Job Category */}
                   <div className="relative group">
                     <select 
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">📂 Job Category</option>
                       {Object.keys(categoryCounts).sort().map(cat => (
@@ -320,7 +333,7 @@ export default function HomePage() {
                     <select 
                       value={locationQuery}
                       onChange={(e) => setLocationQuery(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">🌍 Your Location</option>
                       <option value="Delhi">Delhi NCR</option>
@@ -339,7 +352,7 @@ export default function HomePage() {
                     <select 
                       value={selectedExperience}
                       onChange={(e) => setSelectedExperience(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">⭐ Experience</option>
                       <option value="Fresher">Fresher</option>
@@ -355,7 +368,7 @@ export default function HomePage() {
                     <select 
                       value={selectedType}
                       onChange={(e) => setSelectedType(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">💼 Employment Type</option>
                       <option value="Full-time">Full-time</option>
@@ -371,7 +384,7 @@ export default function HomePage() {
                     <select 
                       value={selectedSkills}
                       onChange={(e) => setSelectedSkills(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">🛠️ Skills</option>
                       <option value="React">React / Frontend</option>
@@ -389,7 +402,7 @@ export default function HomePage() {
                     <select 
                       value={selectedSalary}
                       onChange={(e) => setSelectedSalary(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">💰 Minimum Salary</option>
                       <option value="10000">₹10k+</option>
@@ -405,7 +418,7 @@ export default function HomePage() {
                     <select 
                       value={selectedLanguage}
                       onChange={(e) => setSelectedLanguage(e.target.value)}
-                      className="appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
                     >
                       <option value="">🗣️ Language</option>
                       <option value="English">English</option>
@@ -522,7 +535,8 @@ export default function HomePage() {
             </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Desktop View (Original 3-column grid) */}
+        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {loading ? (
                 Array(9).fill(0).map((_, i) => (
                     <div key={i} className="h-[220px] rounded-2xl bg-gray-50 animate-pulse"></div>
@@ -592,6 +606,90 @@ export default function HomePage() {
               )}
         </div>
 
+        {/* Mobile View Slider (2x2 Grid with pagination) */}
+        <div className="md:hidden space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+                {shuffledJobs
+                  .slice(jobPageIndex * jobsPerSlide, (jobPageIndex + 1) * jobsPerSlide)
+                  .map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.url_slug || job.id}`}
+                      target="_blank"
+                      className="block h-full"
+                    >
+                      <Card className="p-4 rounded-3xl border border-gray-100 bg-white h-full flex flex-col justify-between shadow-sm">
+                          <div className="relative z-10">
+                              <div className="flex justify-between items-start mb-3">
+                                  <div className="w-10 h-10 bg-white rounded-lg overflow-hidden border border-gray-50 p-2">
+                                      {job.companies?.logo_url ? (
+                                          <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                                      ) : (
+                                          <div className="w-full h-full flex items-center justify-center font-bold text-primary text-sm">
+                                              {(job.companies?.name || 'J').charAt(0)}
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                              
+                              <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">
+                                  {job.title}
+                              </h3>
+                              <p className="text-[10px] font-semibold text-gray-400 mb-4 line-clamp-1 uppercase tracking-wider">{job.companies?.name}</p>
+
+                              <div className="space-y-1.5 mb-4">
+                                  <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                                      <MapPin className="w-3 h-3 mr-1.5 text-indigo-400" /> {job.location || 'India'}
+                                  </div>
+                                  <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                                      <Coins className="w-3 h-3 mr-1.5 text-emerald-400" /> {job.salary || 'Not disclosed'}
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-1 relative z-10">
+                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest shrink-0">
+                                  {new Date(job.created_at).toLocaleDateString()}
+                              </span>
+                              <Button className="h-8 px-3 bg-primary text-white font-bold rounded-lg text-[8px] uppercase tracking-widest pointer-events-none">
+                                  Apply
+                              </Button>
+                          </div>
+                      </Card>
+                    </Link>
+                ))}
+            </div>
+
+            {/* Slider Controls */}
+            <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setJobPageIndex(prev => Math.max(0, prev - 1))}
+                        disabled={jobPageIndex === 0}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex gap-1.5">
+                        {Array.from({ length: Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) }).map((_, i) => (
+                            <button 
+                                key={i}
+                                onClick={() => setJobPageIndex(i)}
+                                className={`h-1.5 transition-all duration-300 rounded-full ${i === jobPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                            />
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => setJobPageIndex(prev => Math.min(Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1, prev + 1))}
+                        disabled={jobPageIndex >= Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
         {/* Bottom See More Button */}
         {!loading && filteredJobs.length > 9 && (
           <div className="mt-12 text-center">
@@ -606,24 +704,26 @@ export default function HomePage() {
       </section>
 
       {/* Top Industries Section */}
-      <section className="bg-white py-12 border-t border-gray-50">
+      <section className="bg-white py-20 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">Top <span className="text-primary italic">Industries</span></h2>
               <p className="text-gray-500 font-medium text-sm">Explore jobs by specialized industry sectors</p>
             </div>
-            <Link href="/jobs" className="text-primary font-bold text-sm hover:underline">Browse All</Link>
+            
+
+
+            <Link href="/jobs" className="hidden md:block text-primary font-bold text-sm hover:underline">Browse All</Link>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
+          {/* Desktop View (Original horizontal scroll) */}
+          <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
             {Object.entries(categoryCounts)
-              .sort((a, b) => b[1] - a[1]) // Sort by job count
+              .sort((a, b) => b[1] - a[1])
               .map(([name, count]) => (
               <Link key={name} href={`/jobs?category=${name}`} target="_blank" className="snap-start">
-                <div
-                  className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group"
-                >
+                <div className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
                     {INDUSTRY_ICONS[name] || <Layers className="w-8 h-8 text-gray-400" />}
@@ -634,21 +734,72 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+
+          {/* Mobile View Slider (2x2 Grid) */}
+          <div className="md:hidden space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(categoryCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(industryPageIndex * industriesPerSlide, (industryPageIndex + 1) * industriesPerSlide)
+                .map(([name, count]) => (
+                <Link key={name} href={`/jobs?category=${name}`} target="_blank">
+                  <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden">
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3">
+                      {INDUSTRY_ICONS[name] || <Layers className="w-6 h-6 text-gray-400" />}
+                    </div>
+                    <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">{name}</h3>
+                    <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">{count} Jobs</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Pagination & Controls */}
+            <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setIndustryPageIndex(prev => Math.max(0, prev - 1))}
+                        disabled={industryPageIndex === 0}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex gap-1.5">
+                        {Array.from({ length: Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) }).map((_, i) => (
+                            <button 
+                                key={i}
+                                onClick={() => setIndustryPageIndex(i)}
+                                className={`h-1.5 transition-all duration-300 rounded-full ${i === industryPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                            />
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => setIndustryPageIndex(prev => Math.min(Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) - 1, prev + 1))}
+                        disabled={industryPageIndex >= Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) - 1}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+          </div>
         </div>
       </section>
 
+
       {/* Popular Companies Section - Minimalist Image-Based Design */}
-      <section className="bg-white py-12 border-t border-gray-50">
+      <section className="bg-white py-20 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">Popular <span className="text-primary italic">Companies</span></h2>
               <p className="text-gray-500 font-medium text-sm">Top hiring partners and industry leaders</p>
             </div>
-            <Link href="/companies" className="text-primary font-bold text-sm hover:underline">View All</Link>
+            <Link href="/companies" className="hidden md:block text-primary font-bold text-sm hover:underline">View All</Link>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
+          {/* Desktop View (Original horizontal scroll) */}
+          <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
             {popularCompanies.map((company, index) => (
               <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank" className="snap-start">
                 <div
@@ -668,18 +819,70 @@ export default function HomePage() {
               </Link>
             ))}
           </div>
+
+          {/* Mobile View Slider (2x2 Grid) */}
+          <div className="md:hidden space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+              {popularCompanies
+                .slice(companyPageIndex * companiesPerSlide, (companyPageIndex + 1) * companiesPerSlide)
+                .map((company) => (
+                <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank">
+                  <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden h-full">
+                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10">
+                      {company.logo_url ? (
+                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="text-emerald-600 font-bold text-lg">{company.name[0]}</div>
+                      )}
+                    </div>
+                    <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
+                    <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Pagination & Controls */}
+            <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setCompanyPageIndex(prev => Math.max(0, prev - 1))}
+                        disabled={companyPageIndex === 0}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex gap-1.5">
+                        {Array.from({ length: Math.ceil(popularCompanies.length / companiesPerSlide) }).map((_, i) => (
+                            <button 
+                                key={i}
+                                onClick={() => setCompanyPageIndex(i)}
+                                className={`h-1.5 transition-all duration-300 rounded-full ${i === companyPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                            />
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => setCompanyPageIndex(prev => Math.min(Math.ceil(popularCompanies.length / companiesPerSlide) - 1, prev + 1))}
+                        disabled={companyPageIndex >= Math.ceil(popularCompanies.length / companiesPerSlide) - 1}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+          </div>
         </div>
       </section>
       {/* Blog Section */}
-      <section className="bg-gray-50 py-12 border-t border-gray-50">
+      <section className="bg-gray-50 py-20 border-t border-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
-             
               <h2 className="text-4xl font-black text-gray-900 tracking-tight">Expert <span className="text-primary italic">Insights</span></h2>
               <p className="text-gray-500 mt-3 font-medium text-lg">Tips, trends, and career advice from our expert team</p>
             </div>
-            <Link href="/blog" target="_blank">
+            <Link href="/blog" className="hidden md:block">
               <Button size="lg" className="bg-white border-2 border-primary/10 text-primary hover:bg-primary hover:text-white font-black rounded-2xl shadow-xl shadow-gray-100 transition-all group px-8 h-12 text-sm">
                 See All Articles
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -687,38 +890,37 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Desktop View (Original 3-column grid) */}
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogs.map((post) => (
               <Link 
                 key={post.id} 
                 href={`/blog/${post.slug || post.id}`}
                 target="_blank"
-                className="block group/blog-card"
+                className="block h-full group"
               >
                 <div
-                  className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm group-hover/blog-card:shadow-2xl group-hover/blog-card:-translate-y-2 transition-all flex flex-col h-full relative"
+                  className="bg-white rounded-[32px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary/5 transition-all flex flex-col h-full"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover/blog-card:opacity-100 transition-opacity" />
-                  
                   <div className="h-60 bg-gray-100 relative overflow-hidden">
                     {post.image_url ? (
-                      <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover/blog-card:scale-110 transition-transform duration-700" />
+                      <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
                         <Newspaper className="w-12 h-12 text-primary/20" />
                       </div>
                     )}
-                    <div className="absolute top-4 left-4 z-10">
+                    <div className="absolute top-4 left-4">
                       <span className="px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-primary text-[10px] font-black uppercase tracking-widest border border-primary/10">
                         {post.category}
                       </span>
                     </div>
                   </div>
-                  <div className="p-8 flex flex-col flex-1 relative z-10">
+                  <div className="p-8 flex flex-col flex-1">
                     <div className="flex items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
                       <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {new Date(post.created_at).toLocaleDateString()}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover/blog-card:text-primary transition-colors line-clamp-2 leading-tight">
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                       {post.title}
                     </h3>
                     <div className="mt-auto">
@@ -730,6 +932,78 @@ export default function HomePage() {
                 </div>
               </Link>
             ))}
+          </div>
+
+          {/* Mobile View Slider (2x2 Grid) */}
+          <div className="md:hidden space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+              {blogs
+                .slice(blogPageIndex * blogsPerSlide, (blogPageIndex + 1) * blogsPerSlide)
+                .map((post) => (
+                <Link 
+                  key={post.id} 
+                  href={`/blog/${post.slug || post.id}`}
+                  target="_blank"
+                  className="block h-full group"
+                >
+                  <div
+                    className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full hover:shadow-lg transition-shadow"
+                  >
+                    <div className="h-32 bg-gray-100 relative overflow-hidden">
+                      {post.image_url ? (
+                        <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                          <Newspaper className="w-8 h-8 text-gray-200" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-1">
+                      <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                        {post.category}
+                      </div>
+                      <h3 className="text-[12px] font-bold text-gray-900 mb-4 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                        {post.title}
+                      </h3>
+                      <div className="mt-auto">
+                        <span className="text-primary font-bold text-[10px] uppercase tracking-widest flex items-center">
+                          Read <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Pagination & Controls */}
+            <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setBlogPageIndex(prev => Math.max(0, prev - 1))}
+                        disabled={blogPageIndex === 0}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex gap-1.5">
+                        {Array.from({ length: Math.ceil(blogs.length / blogsPerSlide) }).map((_, i) => (
+                            <button 
+                                key={i}
+                                onClick={() => setBlogPageIndex(i)}
+                                className={`h-1.5 transition-all duration-300 rounded-full ${i === blogPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                            />
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => setBlogPageIndex(prev => Math.min(Math.ceil(blogs.length / blogsPerSlide) - 1, prev + 1))}
+                        disabled={blogPageIndex >= Math.ceil(blogs.length / blogsPerSlide) - 1}
+                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
           </div>
         </div>
       </section>
