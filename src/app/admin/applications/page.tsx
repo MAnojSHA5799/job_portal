@@ -17,7 +17,8 @@ import {
   XCircle,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -220,9 +221,10 @@ export default function ApplicationsPage() {
                           </div>
                           <div>
                             <p className="font-bold text-gray-900">{app.user_name}</p>
-                            <div className="flex items-center gap-3 mt-1">
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                               <span className="flex items-center gap-1 text-[10px] text-gray-400 font-bold"><Mail className="w-3 h-3" /> {app.user_email}</span>
                               {app.user_phone && <span className="flex items-center gap-1 text-[10px] text-gray-400 font-bold"><Phone className="w-3 h-3" /> {app.user_phone}</span>}
+                              {app.user_location && <span className="flex items-center gap-1 text-[10px] text-gray-400 font-bold"><MapPin className="w-3 h-3" /> {app.user_location}</span>}
                             </div>
                           </div>
                         </div>

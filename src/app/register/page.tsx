@@ -11,25 +11,52 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("");
+  const [resume, setResume] = useState<File | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [registerType, setRegisterType] = useState<'user' | 'admin'>('user');
 
+  const handlePasswordChange = (val: string) => {
+    setPassword(val);
+    if (val.length > 0 && val.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+    } else {
+      setPasswordError(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters");
+      return;
+    }
     setLoading(true);
     setError(null);
 
     try {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('fullName', fullName);
+        formData.append('phone', phone);
+        formData.append('location', location);
+        formData.append('role', registerType);
+        if (resume) {
+            formData.append('resume', resume);
+        }
+
         const res = await fetch('/api/auth/register', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, fullName, role: registerType })
+            body: formData
         });
 
         const data = await res.json();
 
         if (!res.ok) {
-            throw new Error(data.error);
+            throw new Error(data.error || 'Registration failed');
         }
 
         router.push('/login');
@@ -49,7 +76,7 @@ export default function RegisterPage() {
 
       {/* Right Side: Form (40% width) */}
       <div className="w-full h-full md:w-[40%] px-8 py-8 md:px-12 xl:px-16 flex flex-col justify-center bg-[#F4F7FB] overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="max-w-[400px] w-full mx-auto">
+        <div className="max-w-[400px] w-full mx-auto py-10">
           <h2 className="text-[28px] font-black text-center mb-6 text-gray-800 tracking-wide uppercase">REGISTER</h2>
           
           {/* User / Admin Slider */}
@@ -102,15 +129,56 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 block px-1">Mobile No.</label>
+                <Input 
+                  type="tel" 
+                  className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 block px-1">Location</label>
+                <Input 
+                  type="text" 
+                  className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm"
+                  required
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {registerType === 'user' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 block px-1">Upload Resume (PDF/DOCX)</label>
+                <div className="relative">
+                  <Input 
+                    type="file" 
+                    accept=".pdf,.doc,.docx"
+                    className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm pt-2"
+                    onChange={(e) => setResume(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-500 block px-1">Password</label>
               <Input 
                 type="password" 
-                className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm"
+                className={`w-full h-[46px] bg-transparent border-2 ${passwordError ? 'border-red-400' : 'border-gray-200'} focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm`}
                 required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => handlePasswordChange(e.target.value)}
               />
+              {passwordError && (
+                <p className="text-[10px] text-red-500 font-bold px-1 animate-pulse">{passwordError}</p>
+              )}
             </div>
 
             <div className="flex items-center justify-center pt-2 pb-2">

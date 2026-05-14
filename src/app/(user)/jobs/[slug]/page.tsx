@@ -614,29 +614,36 @@ export default async function SlugPage({ params }: Props) {
                     <h2 className="text-2xl font-black text-gray-900 px-2">Recent Openings</h2>
                     <div className="grid grid-cols-1 gap-6">
                         {jobs.map((job: any) => (
-                            <Card key={job.id} className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white group rounded-[32px] overflow-hidden">
-                                <div className="flex items-start gap-6">
-                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 p-2">
-                                        {job.companies?.logo_url ? (
-                                            <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                                        ) : (
-                                            job.companies?.name?.charAt(0) || 'J'
-                                        )}
-                                    </div>
-                                    <div className="flex-1 space-y-3">
-                                        <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-600">
-                                            <a href={`/jobs/${job.url_slug || job.id}`}>{job.title}</a>
-                                        </h3>
-                                        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
-                                            <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {job.companies?.name}</span>
-                                            <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
+                            <Link 
+                                key={job.id} 
+                                href={`/jobs/${job.url_slug || job.id}`}
+                                target="_blank"
+                                className="block group"
+                            >
+                                <Card className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white rounded-[32px] overflow-hidden">
+                                    <div className="flex items-start gap-6">
+                                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 p-2 group-hover:scale-105">
+                                            {job.companies?.logo_url ? (
+                                                <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                                            ) : (
+                                                job.companies?.name?.charAt(0) || 'J'
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-3">
+                                            <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                                {job.title}
+                                            </h3>
+                                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
+                                                <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {job.companies?.name}</span>
+                                                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
+                                            </div>
+                                        </div>
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                                            <ChevronRight className="w-6 h-6" />
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="rounded-xl group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                                        <ChevronRight className="w-6 h-6" />
-                                    </Button>
-                                </div>
-                            </Card>
+                                </Card>
+                            </Link>
                         ))}
                     </div>
                 </div>

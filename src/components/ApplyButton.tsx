@@ -48,6 +48,7 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
         user_name: user.fullName || user.name || 'Unknown',
         user_email: user.email || 'Unknown',
         user_phone: user.phone || '',
+        user_location: user.location || '',
         job_title: jobTitle || 'Unknown Job',
         company_name: companyName || 'Unknown Company',
         status: 'pending'
