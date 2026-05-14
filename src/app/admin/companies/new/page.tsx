@@ -11,17 +11,24 @@ export default function NewCompanyPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
-  const handleSave = async (companyData: any) => {
+  const handleSave = async (companyData: any, publish: boolean = true) => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('companies')
-        .insert([companyData]);
+        .insert([companyData])
+        .select()
+        .single();
       
       if (error) throw error;
       
-      router.push('/admin/companies');
-      router.refresh();
+      if (!publish) {
+        alert('Draft saved successfully! Continuing in edit mode...');
+        router.push(`/admin/companies/${data.id}/edit`);
+      } else {
+        router.push('/admin/companies');
+        router.refresh();
+      }
     } catch (error: any) {
       alert('Error creating company: ' + error.message);
     } finally {

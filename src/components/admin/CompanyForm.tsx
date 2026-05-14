@@ -45,7 +45,7 @@ interface Company {
 
 interface CompanyFormProps {
   initialData?: Partial<Company>;
-  onSave: (data: Company) => void;
+  onSave: (data: Company, publish?: boolean) => void;
   onCancel: () => void;
   loading?: boolean;
   title?: string;
@@ -267,12 +267,12 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
       alert('Please fill in required fields (Name, Description)');
       return;
     }
+    const { is_approved, ...companyData } = currentCompany as any;
     const finalCompany = {
-      ...currentCompany,
-      is_approved: publish,
+      ...companyData,
       seo_score: seoReport.score
     };
-    onSave(finalCompany);
+    onSave(finalCompany, publish);
   };
 
   return (
@@ -448,7 +448,7 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
              <Button 
                variant="outline"
                onClick={() => window.open(`/company/${currentCompany.url_slug || currentCompany.id}`, '_blank')}
-               className="h-14 px-8 border-2 border-indigo-100 bg-white text-indigo-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-indigo-50"
+               className="h-14 px-8 border-2 border-indigo-100 bg-white text-indigo-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-indigo-50 flex items-center justify-center whitespace-nowrap shrink-0"
              >
                <Eye className="h-5 w-5 mr-2" />
                PREVIEW
@@ -458,19 +458,19 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
                variant="outline"
                onClick={() => internalOnSave(false)}
                disabled={loading}
-               className="h-14 px-8 border-2 border-gray-100 bg-white text-gray-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-gray-50"
+               className="h-14 px-8 border-2 border-gray-100 bg-white text-gray-600 font-black rounded-2xl transition-all w-full sm:w-auto hover:bg-gray-50 flex items-center justify-center whitespace-nowrap shrink-0"
              >
                <FileText className="h-5 w-5 mr-2" />
-               SAVE AS DRAFT
+               SAVE DRAFT
              </Button>
 
              <Button 
                onClick={() => internalOnSave(true)} 
                disabled={loading} 
-               className="h-14 px-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 w-full sm:w-auto"
+               className="h-14 px-12 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 w-full sm:w-auto flex items-center justify-center whitespace-nowrap shrink-0"
              >
                {loading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Save className="h-5 w-5 mr-2" />}
-               PUBLISH COMPANY
+               PUBLISH
              </Button>
           </div>
         </div>

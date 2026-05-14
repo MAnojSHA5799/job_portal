@@ -44,7 +44,7 @@ export default function EditCompanyPage() {
     }
   }, [id, router]);
 
-  const handleSave = async (companyData: any) => {
+  const handleSave = async (companyData: any, publish: boolean = true) => {
     setSaving(true);
     try {
       const { id: _, created_at, ...updateData } = companyData;
@@ -56,8 +56,13 @@ export default function EditCompanyPage() {
       
       if (error) throw error;
       
-      router.push('/admin/companies');
-      router.refresh();
+      if (!publish) {
+        alert('Changes saved successfully! You can continue editing.');
+        router.refresh();
+      } else {
+        router.push('/admin/companies');
+        router.refresh();
+      }
     } catch (error: any) {
       alert('Error saving company: ' + error.message);
     } finally {
