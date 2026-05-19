@@ -64,6 +64,7 @@ interface Job {
   is_approved?: boolean;
   media_url?: string;
   media_type?: 'image' | 'video';
+  media_link?: string;
 }
 
 interface JobFormProps {
@@ -246,6 +247,13 @@ Instructions:
 
       const enhanced = await enhanceJobSEO(currentJob, companyData);
 
+      let mappedJobType = currentJob.job_type;
+      if (enhanced.employment_type_schema) {
+        if (enhanced.employment_type_schema === 'FULL_TIME') mappedJobType = 'Full-time';
+        else if (enhanced.employment_type_schema === 'INTERN') mappedJobType = 'Full-time';
+        else if (enhanced.employment_type_schema === 'CONTRACT') mappedJobType = 'Contract';
+      }
+
       setCurrentJob(prev => ({
         ...prev,
         focus_keyword: enhanced.focus_keyword,
@@ -254,6 +262,9 @@ Instructions:
         url_slug: enhanced.url_slug,
         description: enhanced.content_html,
         content_html: enhanced.content_html,
+        job_type: mappedJobType,
+        salary_range: enhanced.salary_display || prev.salary_range,
+        experience_level: enhanced.experience_raw || prev.experience_level,
         seo_score: enhanced.seo_score
       }));
     } catch (error) {
@@ -275,6 +286,13 @@ Instructions:
 
       const enhanced = await enhanceJobSEO(currentJob, companyData);
       
+      let mappedJobType = currentJob.job_type;
+      if (enhanced.employment_type_schema) {
+        if (enhanced.employment_type_schema === 'FULL_TIME') mappedJobType = 'Full-time';
+        else if (enhanced.employment_type_schema === 'INTERN') mappedJobType = 'Full-time';
+        else if (enhanced.employment_type_schema === 'CONTRACT') mappedJobType = 'Contract';
+      }
+
       setCurrentJob({ 
         ...currentJob, 
         focus_keyword: enhanced.focus_keyword,
@@ -283,6 +301,9 @@ Instructions:
         url_slug: enhanced.url_slug,
         description: enhanced.content_html,
         content_html: enhanced.content_html,
+        job_type: mappedJobType,
+        salary_range: enhanced.salary_display || currentJob.salary_range,
+        experience_level: enhanced.experience_raw || currentJob.experience_level,
         seo_score: enhanced.seo_score
       });
     } catch (error) {
@@ -654,6 +675,18 @@ Instructions:
                     />
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Media Click Link (Opens in New Tab)</label>
+                    <div className="relative">
+                      <Input 
+                        className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                        placeholder="e.g. https://company.com/promo-target"
+                        value={currentJob.media_link || ''}
+                        onChange={e => setCurrentJob({...currentJob, media_link: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
                   <div className="relative">
                     <input 
                       type="file" 
@@ -701,9 +734,13 @@ Instructions:
                 <div className="bg-gray-50 rounded-3xl border border-gray-100 overflow-hidden flex items-center justify-center min-h-[160px] relative">
                   {currentJob.media_url ? (
                     currentJob.media_type === 'video' ? (
-                      <video src={currentJob.media_url} className="w-full h-full object-cover" controls />
+                      <a href={currentJob.media_link || currentJob.media_url} target="_blank" rel="noopener noreferrer" className="w-full h-full block cursor-pointer">
+                        <video src={currentJob.media_url} className="w-full h-full object-cover pointer-events-none" />
+                      </a>
                     ) : (
-                      <img src={currentJob.media_url} alt="Job Media" className="w-full h-full object-cover" />
+                      <a href={currentJob.media_link || currentJob.media_url} target="_blank" rel="noopener noreferrer" className="w-full h-full block cursor-pointer">
+                        <img src={currentJob.media_url} alt="Job Media" className="w-full h-full object-cover" />
+                      </a>
                     )
                   ) : (
                     <div className="text-center p-6">
@@ -714,7 +751,7 @@ Instructions:
                   {currentJob.media_url && (
                     <button 
                       onClick={() => setCurrentJob({...currentJob, media_url: '', media_type: 'image'})}
-                      className="absolute top-3 right-3 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all"
+                      className="absolute top-3 right-3 z-10 w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-all"
                     >
                       <X className="h-4 w-4" />
                     </button>

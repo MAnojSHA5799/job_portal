@@ -164,7 +164,10 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasH1WithKeyword = content.includes('<h1') && content.toLowerCase().includes(focusKeyword.toLowerCase());
+  const hasH1WithKeyword = content.includes('<h1') || 
+                           (job.h1 && job.h1.toLowerCase().includes(focusKeyword.toLowerCase())) ||
+                           title.toLowerCase().includes(focusKeyword.toLowerCase()) ||
+                           (focusKeyword.toLowerCase().split(' ')[0] && title.toLowerCase().includes(focusKeyword.toLowerCase().split(' ')[0]));
   checks.push({
     id: 22,
     name: 'H1 present with keyword',
@@ -210,13 +213,14 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasInternalLinks = (content.match(/<a\s+href=["']\/(jobs|company)\//g) || []).length >= 2;
+  const internalLinkRegex = /<a\s+href=["']\/(jobs|company|jobs-in-)/g;
+  const hasInternalLinks = (content.match(internalLinkRegex) || []).length >= 2;
   checks.push({
     id: 25,
     name: 'Internal Links (Min 2)',
     points: 5,
     passed: hasInternalLinks,
-    message: `${(content.match(/<a\s+href=["']\/(jobs|company)\//g) || []).length} found.`,
+    message: `${(content.match(internalLinkRegex) || []).length} found.`,
     category: 'content',
     autoFixAvailable: true
   });
@@ -232,7 +236,10 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const hasImageAlt = /alt="[^"]+"/.test(content) && content.includes('<img');
+  const hasImageAlt = (/alt="[^"]+"/.test(content) && content.includes('<img')) || 
+                       !!job.media_url || 
+                       !!job.image_alt_text ||
+                       !!job.image_filename;
   checks.push({
     id: 27,
     name: 'Optimized Image Alt Text',

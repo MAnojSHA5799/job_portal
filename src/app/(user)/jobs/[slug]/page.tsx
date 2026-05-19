@@ -1,6 +1,8 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+
+export const dynamic = 'force-dynamic';
 import { supabase } from '@/lib/supabase';
 import { Card, Badge, Button } from '@/components/ui';
 import { 
@@ -405,22 +407,32 @@ export default async function SlugPage({ params }: Props) {
                           {job.media_url && (
                             <div className="my-8 rounded-2xl overflow-hidden">
                               {job.media_type === 'video' ? (
-                                <div className="aspect-video w-full bg-black">
-                                  <video 
-                                    src={job.media_url} 
-                                    className="w-full h-full" 
-                                    controls 
-                                    poster={job.companies?.logo_url}
-                                  />
-                                </div>
+                                job.media_link ? (
+                                  <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
+                                    <video 
+                                      src={job.media_url} 
+                                      className="w-full h-full object-cover pointer-events-none" 
+                                      poster={job.companies?.logo_url}
+                                    />
+                                  </a>
+                                ) : (
+                                  <div className="aspect-video w-full bg-black">
+                                    <video 
+                                      src={job.media_url} 
+                                      className="w-full h-full" 
+                                      controls 
+                                      poster={job.companies?.logo_url}
+                                    />
+                                  </div>
+                                )
                               ) : (
-                                <div className="relative group cursor-pointer overflow-hidden">
+                                <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
                                   <img 
                                     src={job.media_url} 
                                     alt={job.title} 
                                     className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
                                   />
-                                </div>
+                                </a>
                               )}
                             </div>
                           )}
@@ -435,22 +447,32 @@ export default async function SlugPage({ params }: Props) {
                         {job.media_url && (
                           <div className="mb-8 rounded-2xl overflow-hidden">
                               {job.media_type === 'video' ? (
-                                <div className="aspect-video w-full bg-black flex items-center justify-center">
-                                  <video 
-                                    src={job.media_url} 
-                                    className="w-full h-full" 
-                                    controls 
-                                    poster={job.companies?.logo_url}
-                                  />
-                                </div>
+                                job.media_link ? (
+                                  <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
+                                    <video 
+                                      src={job.media_url} 
+                                      className="w-full h-full object-cover pointer-events-none" 
+                                      poster={job.companies?.logo_url}
+                                    />
+                                  </a>
+                                ) : (
+                                  <div className="aspect-video w-full bg-black flex items-center justify-center">
+                                    <video 
+                                      src={job.media_url} 
+                                      className="w-full h-full" 
+                                      controls 
+                                      poster={job.companies?.logo_url}
+                                    />
+                                  </div>
+                                )
                               ) : (
-                                <div className="relative group cursor-pointer overflow-hidden">
+                                <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
                                   <img 
                                     src={job.media_url} 
                                     alt={job.title} 
                                     className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
                                   />
-                                </div>
+                                </a>
                               )}
                           </div>
                         )}

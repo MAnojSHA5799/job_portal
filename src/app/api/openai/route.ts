@@ -19,11 +19,20 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         model: model || 'gpt-4o-mini',
         messages,
-        response_format
+        response_format,
+        max_tokens: 4096,
       })
     });
 
     const data = await response.json();
+
+    // Log the raw OpenAI response to help with debugging
+    if (data.error) {
+      console.error('❌ OpenAI API Error:', JSON.stringify(data.error, null, 2));
+    } else if (data.choices?.[0]?.finish_reason === 'length') {
+      console.warn('⚠️ OpenAI response was cut off due to token limit.');
+    }
+
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('OpenAI Proxy Error:', error);

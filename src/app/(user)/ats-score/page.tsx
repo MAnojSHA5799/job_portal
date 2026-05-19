@@ -18,7 +18,14 @@ import {
   ShieldCheck,
   Layout,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  Phone,
+  Mail,
+  MapPin,
+  User
 } from 'lucide-react';
 import { Button, Card, Badge } from '@/components/ui';
 
@@ -43,6 +50,9 @@ export default function ATSScorePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<'original' | 'enhancv'>('enhancv');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>('content');
+  const [isParsing, setIsParsing] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -50,12 +60,33 @@ export default function ATSScorePage() {
       setFile(selectedFile);
       setError(null);
       
-      // Try to read as text for .txt files
       if (selectedFile.type === 'text/plain') {
         const text = await selectedFile.text();
         setResumeText(text);
+        setIsManualEntry(false);
+      } else if (selectedFile.type === 'application/pdf') {
+        setIsParsing(true);
+        setIsManualEntry(false);
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          const res = await fetch('/api/parse-pdf', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          console.log("📄 [SUCCESS] EXTRACTED PDF TEXT:", data.text);
+          setResumeText(data.text);
+        } catch (err: any) {
+          console.error('Error parsing PDF:', err);
+          setError("Failed to extract text from PDF. Please paste your resume text manually.");
+          setIsManualEntry(true);
+        } finally {
+          setIsParsing(false);
+        }
       } else {
-        // For PDF/DOCX, we prompt for manual text entry for better accuracy
+        // For DOCX or other formats not supported by pdf-parse, prompt manual entry
         setResumeText("");
         setIsManualEntry(true);
       }
@@ -119,28 +150,49 @@ export default function ATSScorePage() {
 
       setScanProgress(85);
 
-      const systemPrompt = `You are a professional ATS (Applicant Tracking System) Expert. 
-      Analyze the provided resume content and provide a detailed score and feedback.
-      Output your response ONLY in the following JSON format:
+      const systemPrompt = `You are an expert ATS resume analyzer. Analyze the resume text and return ONLY a valid JSON object with this exact structure (no extra text, no markdown):
+{
+  "overallScore": 75,
+  "categories": {
+    "formatting": { "score": 80, "feedback": "Good structure", "fixes": ["Use consistent fonts"] },
+    "experience": { "score": 70, "feedback": "Needs metrics", "fixes": ["Add quantifiable achievements"] },
+    "skills": { "score": 75, "feedback": "Relevant skills listed", "fixes": ["Add more technical skills"] },
+    "education": { "score": 85, "feedback": "Education clearly shown", "fixes": [] },
+    "contact": { "score": 90, "feedback": "Contact info complete", "fixes": [] }
+  },
+  "summary": "Overall ATS analysis summary here",
+  "resumeData": {
+    "name": "Full Name",
+    "title": "Job Title",
+    "contact": { "phone": "phone number", "email": "email@example.com", "location": "City, State" },
+    "originalSummary": "Exact summary from resume",
+    "optimizedSummary": "ATS-optimized version of the summary with strong action words and keywords",
+    "experience": [
       {
-        "overallScore": number (0-100),
-        "categories": {
-          "formatting": { "score": number, "feedback": "string", "fixes": ["string"] },
-          "experience": { "score": number, "feedback": "string", "fixes": ["string"] },
-          "skills": { "score": number, "feedback": "string", "fixes": ["string"] },
-          "education": { "score": number, "feedback": "string", "fixes": ["string"] },
-          "contact": { "score": number, "feedback": "string", "fixes": ["string"] }
-        },
-        "summary": "string",
-        "optimizedResume": {
-          "summary": "string",
-          "highlights": ["string"],
-          "suggestedKeywords": ["string"]
-        }
-      }`;
+        "role": "Job Title",
+        "company": "Company Name",
+        "dates": "Jan 2020 - Present",
+        "location": "City, State",
+        "originalBulletPoints": ["Original bullet point from resume"],
+        "optimizedBulletPoints": ["Quantified, action-verb driven optimized bullet point"]
+      }
+    ],
+    "education": [
+      { "degree": "Degree Name", "school": "University Name", "dates": "2018-2022", "location": "City" }
+    ],
+    "skills": ["Skill 1", "Skill 2"],
+    "strengths": ["Key strength 1", "Key strength 2", "Key strength 3"],
+    "achievements": ["Notable achievement 1", "Notable achievement 2"],
+    "interests": ["Interest 1", "Interest 2"],
+    "languages": [{ "name": "English", "level": "Fluent" }]
+  }
+}`;
 
-      // Use either the manually pasted text or the extracted text/filename
-      const contentToAnalyze = resumeText || (file ? `Analyze this resume file: ${file.name}` : "");
+      // Truncate long resume text to avoid exceeding token limits
+      const rawText = resumeText || (file ? `Resume filename: ${file.name}` : '');
+      const contentToAnalyze = rawText.length > 4000 ? rawText.slice(0, 4000) + '\n...[truncated]' : rawText;
+      
+      console.log('🤖 Sending to OpenAI, text length:', contentToAnalyze.length);
 
       const response = await fetch('/api/openai', {
         method: 'POST',
@@ -148,7 +200,7 @@ export default function ATSScorePage() {
         body: JSON.stringify({
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: contentToAnalyze }
+            { role: 'user', content: `Analyze this resume:\n\n${contentToAnalyze}` }
           ],
           response_format: { type: 'json_object' }
         })
@@ -156,7 +208,10 @@ export default function ATSScorePage() {
 
       const result = await response.json();
       
-      if (result.error) throw new Error(result.error);
+      console.log('🤖 OpenAI raw result:', result);
+
+      if (result.error) throw new Error(typeof result.error === 'object' ? result.error.message : result.error);
+      if (!result.choices?.[0]?.message?.content) throw new Error('OpenAI returned an empty response. Please try again.');
       
       const parsedContent = JSON.parse(result.choices[0].message.content);
       
@@ -232,10 +287,16 @@ export default function ATSScorePage() {
                     {!isManualEntry ? (
                       <div>
                           <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                              {file ? file.name : "Drag and drop your resume"}
+                              {isParsing ? (
+                                <span className="flex items-center justify-center gap-2">
+                                  <RefreshCcw className="w-5 h-5 animate-spin" /> Extracting PDF...
+                                </span>
+                              ) : (
+                                file ? file.name : "Drag and drop your resume"
+                              )}
                           </h3>
                           <p className="text-gray-500 font-medium">
-                              {file ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB` : "Support for PDF, DOCX (Max 5MB)"}
+                              {isParsing ? "Reading text content..." : (file ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB` : "Support for PDF, DOCX (Max 5MB)")}
                           </p>
                       </div>
                     ) : (
@@ -349,204 +410,522 @@ export default function ATSScorePage() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="space-y-12"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
           >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8 bg-gray-900 text-white p-12 rounded-[40px] shadow-2xl relative overflow-hidden">
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30">Analysis Complete</Badge>
-                        <span className="text-gray-400 text-sm font-medium">{file?.name}</span>
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Your ATS Score</h2>
-                    <p className="text-gray-400 font-medium text-lg max-w-xl">
-                        {analysis?.summary || "Your resume has been analyzed. Here are the detailed insights and improvements suggested by our AI."}
-                    </p>
+            {/* Left Column: Score & Categories */}
+            <div className="lg:col-span-4 space-y-6">
+              <Card className="p-8 border-gray-100 shadow-xl rounded-[32px] bg-white text-center">
+                <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Your Score</h3>
+                <div className="relative w-40 h-40 mx-auto mb-8 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90">
+                    {/* Background Circle */}
+                    <circle cx="80" cy="80" r="70" stroke="#f3f4f6" strokeWidth="12" fill="transparent" />
+                    {/* Progress Circle (half circle styling if needed, but standard circle is great) */}
+                    <circle 
+                      cx="80" cy="80" r="70" stroke="#4f46e5" strokeWidth="12" fill="transparent" 
+                      strokeDasharray={440}
+                      strokeDashoffset={440 - (440 * (analysis?.overallScore || 69)) / 100}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-4xl font-black text-gray-900 tracking-tighter">{analysis?.overallScore || 69}/100</span>
+                    <span className="text-[10px] font-black text-gray-500 mt-1">{100 - (analysis?.overallScore || 69) > 0 ? `${Math.ceil((100 - (analysis?.overallScore || 69)) / 5)} Issues` : 'No Issues'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4 text-left">
+                  {/* CONTENT CATEGORY */}
+                  <div className="border-b border-gray-100 pb-2">
+                    <button 
+                      onClick={() => setExpandedCategory(expandedCategory === 'content' ? null : 'content')}
+                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
+                    >
+                      <span className="text-xs font-black tracking-widest text-gray-400 uppercase">CONTENT</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-orange-50 text-orange-600 border-orange-100 font-bold">{analysis?.categories?.formatting?.score || 65}%</Badge>
+                        {expandedCategory === 'content' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                      </div>
+                    </button>
                     
-                    <div className="mt-8 flex flex-wrap gap-4">
-                        <Button 
-                          onClick={() => setShowPreview(true)}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-indigo-600/20"
-                        >
-                            <Sparkles className="w-4 h-4 mr-2" /> Preview 95+ Score Version
-                        </Button>
-                        <Button variant="outline" onClick={reset} className="border-gray-700 text-white hover:bg-gray-800 h-12 px-8 rounded-xl">
-                            <RefreshCcw className="w-4 h-4 mr-2" /> Scan Another
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center">
-                    <div className="relative w-48 h-48 flex items-center justify-center">
-                        <svg className="w-full h-full -rotate-90">
-                            <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-gray-800" />
-                            <motion.circle 
-                                cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="transparent" 
-                                strokeDasharray={553}
-                                initial={{ strokeDashoffset: 553 }}
-                                animate={{ strokeDashoffset: 553 - (553 * (analysis?.overallScore || 0)) / 100 }}
-                                className="text-indigo-500" 
-                                strokeLinecap="round"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-6xl font-black tracking-tighter">{analysis?.overallScore || 0}</span>
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Out of 100</span>
+                    {expandedCategory === 'content' && (
+                      <div className="py-2 space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 font-semibold text-gray-600">
+                            <AlertCircle className="w-4 h-4 text-amber-500" /><span>ATS Parse Rate</span>
+                          </div>
+                          <Badge className="text-amber-600 border-amber-200 bg-amber-50 font-bold text-[10px]">1 issue</Badge>
                         </div>
-                    </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 font-semibold text-gray-600">
+                            <AlertCircle className="w-4 h-4 text-red-500" /><span>Quantifying Impact</span>
+                          </div>
+                          <Badge className="text-red-600 border-red-200 bg-red-50 font-bold text-[10px]">3 issues</Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 font-semibold text-gray-600">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" /><span>Repetition</span>
+                          </div>
+                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">No issues</Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 font-semibold text-gray-600">
+                            <AlertCircle className="w-4 h-4 text-red-500" /><span>Spelling & Grammar</span>
+                          </div>
+                          <Badge className="text-red-600 border-red-200 bg-red-50 font-bold text-[10px]">1 issue</Badge>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SECTIONS CATEGORY */}
+                  <div className="border-b border-gray-100 pb-2">
+                    <button 
+                      onClick={() => setExpandedCategory(expandedCategory === 'sections' ? null : 'sections')}
+                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
+                    >
+                      <span className="text-xs font-black tracking-widest text-gray-400 uppercase">SECTIONS</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-orange-50 text-orange-600 border-orange-100 font-bold">{analysis?.categories?.experience?.score || 81}%</Badge>
+                        {expandedCategory === 'sections' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                      </div>
+                    </button>
+                    {expandedCategory === 'sections' && (
+                      <p className="text-xs text-gray-500 font-semibold leading-relaxed py-2">
+                        {analysis?.categories?.experience?.feedback || "Your resume sections are well-defined, but could have stronger headings."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ATS ESSENTIALS */}
+                  <div className="border-b border-gray-100 pb-2">
+                    <button 
+                      onClick={() => setExpandedCategory(expandedCategory === 'essentials' ? null : 'essentials')}
+                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
+                    >
+                      <span className="text-xs font-black tracking-widest text-gray-400 uppercase">ATS ESSENTIALS</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold">{analysis?.categories?.skills?.score || 83}%</Badge>
+                        {expandedCategory === 'essentials' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                      </div>
+                    </button>
+                    {expandedCategory === 'essentials' && (
+                      <p className="text-xs text-gray-500 font-semibold leading-relaxed py-2">
+                        {analysis?.categories?.skills?.feedback || "Check keywords, file formats and structure for perfect parse rate."}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* TAILORING */}
+                  <div className="pb-2">
+                    <button 
+                      onClick={() => setExpandedCategory(expandedCategory === 'tailoring' ? null : 'tailoring')}
+                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
+                    >
+                      <span className="text-xs font-black tracking-widest text-gray-400 uppercase">TAILORING</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-gray-100 text-gray-600 font-bold">??%</Badge>
+                        {expandedCategory === 'tailoring' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                      </div>
+                    </button>
+                    {expandedCategory === 'tailoring' && (
+                      <p className="text-xs text-gray-500 font-semibold leading-relaxed py-2">
+                        Match your resume specifically against a targeted job description to see tailoring score.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+                <Button variant="ghost" onClick={reset} className="w-full mt-2 text-gray-400 hover:text-gray-600 font-bold text-xs uppercase tracking-widest">
+                  <RefreshCcw className="w-3 h-3 mr-2" /> Scan Another Resume
+                </Button>
+              </Card>
             </div>
 
-            {/* Breakdown Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <div className="lg:col-span-8 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {CATEGORIES.map((cat) => (
-                            <Card key={cat.id} className="p-8 border-gray-100 shadow-sm hover:shadow-xl transition-all rounded-3xl">
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className="w-12 h-12 bg-gray-50 text-indigo-600 rounded-xl flex items-center justify-center">
-                                        <cat.icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="text-2xl font-black text-gray-900">{analysis?.categories[cat.id]?.score || 0}%</span>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Rating</p>
-                                    </div>
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">{cat.name}</h3>
-                                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
-                                    {analysis?.categories[cat.id]?.feedback || "Standard analysis for this category."}
-                                </p>
-                                
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recommended Fixes</p>
-                                    {(analysis?.categories[cat.id]?.fixes || ["Check keywords", "Verify formatting"]).map((fix: string, idx: number) => (
-                                        <div key={idx} className="flex items-start gap-3 text-xs font-bold text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                            <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-1.5 shrink-0" />
-                                            {fix}
-                                        </div>
-                                    ))}
-                                </div>
-                            </Card>
+            {/* Right Column: Resume Switcher */}
+            <div className="lg:col-span-8">
+              <Card className="p-6 md:p-8 border-gray-100 shadow-xl rounded-[32px] bg-white">
+                <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                  <div className="flex items-center gap-2 font-bold text-gray-700">
+                    <FileText className="w-5 h-5" /> Resume Preview
+                  </div>
+                  <div className="flex bg-gray-100 p-1 rounded-xl">
+                    <button 
+                      onClick={() => setActiveTab('original')}
+                      className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'original' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Original
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('enhancv')}
+                      className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'enhancv' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      Enhancv
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/50 p-4 sm:p-8 rounded-3xl border border-gray-100 relative min-h-[800px]">
+                  {/* Dynamic Resume Data Setup */}
+                  {(() => {
+                    const defaultResumeData = {
+                      name: "ABHISHEK KUMAR",
+                      title: "Mechanical Engineer",
+                      contact: {
+                        phone: "+91-8002888028, 7079537636",
+                        email: "abhishekmishra1160@gmail.com",
+                        location: "Basantpur, Siwan, Bihar"
+                      },
+                      summary: "My objective to make value addition to the system of which I am part & my self-continuous process. I always monitor myself with an unbiased perspective with a view to recognize my liabilities & constantly strive to convert them to achieve the organization's goals.",
+                      strengths: [
+                        { name: "Interpersonal Skills", desc: "Team - Building and Team Leadership skills, Excellent communication and interpersonal skills" }
+                      ],
+                      achievements: [
+                        { title: "Process Improvement Achievements", desc: "Successfully improved production processes leading to enhanced efficiency and reduced waste in manufacturing" }
+                      ],
+                      interests: [
+                        { name: "Hobbies & Interests", desc: "Enjoys listening to music, reading, and engaging in warm-up exercises" }
+                      ],
+                      languages: [
+                        { name: "English", level: 4, label: "Proficient" },
+                        { name: "Hindi", level: 5, label: "Native" }
+                      ],
+                      experience: [
+                        {
+                          role: "Production Engineer (assembly line)",
+                          company: "SAN Automotive Industries Pvt Ltd",
+                          dates: "06/2022 - Present",
+                          location: "Faridabad, Haryana",
+                          bulletPoints: [
+                            "Day to day production planning",
+                            "Manpower handling",
+                            "Product & Process audit in-house",
+                            "Rejection Monitoring",
+                            "Layout inspection",
+                            "Responsible for process improvement",
+                            "Responsible for assembly line production"
+                          ]
+                        },
+                        {
+                          role: "Production Engineer (assembly line)",
+                          company: "Saket Fabs Pvt Ltd",
+                          dates: "09/2021 - 04/2022",
+                          location: "Prithla, Palwal, Haryana",
+                          bulletPoints: [
+                            "Manufacturing and assembly of products",
+                            "Responsible for assembly line production as Production Engineer",
+                            "Ensured timely delivery of products"
+                          ]
+                        },
+                        {
+                          role: "Production Engineer (assembly line)",
+                          company: "Hema Engineering Industries Ltd",
+                          dates: "04/2018 - 08/2021",
+                          location: "Bawal, Haryana",
+                          bulletPoints: [
+                            "Manufacturing company specializing in engineering solutions",
+                            "Worked as Production Engineer on assembly line",
+                            "Ensured quality and efficiency in production"
+                          ]
+                        }
+                      ],
+                      education: [
+                        {
+                          degree: "B.Tech. in Mechanical Engineering",
+                          school: "Siwan Engineering & Technical Institute",
+                          dates: "08/2013 - 05/2017",
+                          location: "Siwan, Bihar"
+                        },
+                        {
+                          degree: "12th Grade",
+                          school: "BSEB",
+                          dates: "06/2009 - 05/2011",
+                          location: "Patna"
+                        },
+                        {
+                          degree: "10th Grade",
+                          school: "BSEB",
+                          dates: "06/2007 - 05/2009",
+                          location: "Patna"
+                        }
+                      ],
+                      skills: ["Gmail", "IAM", "Microsoft Word", "Microsoft Excel", "Kaizen"]
+                    };
+
+                    const isDemo = !analysis?.resumeData?.name && !file?.name;
+                    
+                    const extractedData = analysis?.resumeData;
+
+                    const mapExperience = (expArray: any[], type: 'original' | 'optimized') => {
+                      if (!expArray || !expArray.length) return isDemo ? defaultResumeData.experience : [];
+                      return expArray.map((exp: any) => ({
+                        ...exp,
+                        bulletPoints: type === 'optimized' ? (exp.optimizedBulletPoints || exp.originalBulletPoints) : exp.originalBulletPoints
+                      }));
+                    };
+
+                    const originalResume = {
+                      name: extractedData?.name || (file?.name ? file.name.split('.')[0] : defaultResumeData.name),
+                      title: extractedData?.title || (isDemo ? defaultResumeData.title : "Professional"),
+                      contact: {
+                        phone: extractedData?.contact?.phone || (isDemo ? defaultResumeData.contact.phone : ""),
+                        email: extractedData?.contact?.email || (isDemo ? defaultResumeData.contact.email : ""),
+                        location: extractedData?.contact?.location || (isDemo ? defaultResumeData.contact.location : ""),
+                      },
+                      summary: extractedData?.originalSummary || (isDemo ? defaultResumeData.summary : ""),
+                      experience: mapExperience(extractedData?.experience, 'original'),
+                      education: extractedData?.education?.length ? extractedData?.education : (isDemo ? defaultResumeData.education : []),
+                      skills: extractedData?.skills?.length ? extractedData?.skills : (isDemo ? defaultResumeData.skills : []),
+                      strengths: extractedData?.strengths?.length ? extractedData.strengths.map((s: string) => ({ name: s, desc: '' })) : (isDemo ? defaultResumeData.strengths : []),
+                      achievements: extractedData?.achievements?.length ? extractedData.achievements.map((a: string) => ({ title: a, desc: '' })) : (isDemo ? defaultResumeData.achievements : []),
+                      interests: extractedData?.interests?.length ? extractedData.interests.map((i: string) => ({ name: i, desc: '' })) : (isDemo ? defaultResumeData.interests : []),
+                      languages: extractedData?.languages?.length ? extractedData.languages.map((l: any) => ({ name: l.name, label: l.level || 'Proficient', level: 4 })) : (isDemo ? defaultResumeData.languages : [])
+                    };
+
+                    const enhancedResume = {
+                      ...originalResume,
+                      summary: extractedData?.optimizedSummary || originalResume.summary,
+                      experience: mapExperience(extractedData?.experience, 'optimized'),
+                    };
+
+                    const getInitials = (name: string) => {
+                      return name.split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase();
+                    };
+
+                    const renderDotRating = (rating: number) => (
+                      <div className="flex gap-1.5 justify-end">
+                        {[1, 2, 3, 4, 5].map((dot) => (
+                          <span key={dot} className={`w-2.5 h-2.5 rounded-full ${dot <= rating ? 'bg-blue-500' : 'bg-gray-200'}`} />
                         ))}
-                    </div>
-                </div>
+                      </div>
+                    );
 
-                <div className="lg:col-span-4 space-y-8">
-                    <Card className="p-8 border-indigo-100 bg-indigo-50/30 rounded-[32px] sticky top-28 shadow-2xl shadow-indigo-100/20">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-indigo-600 text-white rounded-lg">
-                                <Target className="w-5 h-5" />
+                    return activeTab === 'original' ? (
+                      /* ORIGINAL RESUME PREVIEW */
+                      file && file.type === 'application/pdf' ? (
+                        <div className="w-full mx-auto max-w-3xl h-full min-h-[800px] border border-gray-200 shadow-xl rounded-xl overflow-hidden bg-gray-50">
+                          <iframe 
+                            src={URL.createObjectURL(file)} 
+                            className="w-full h-full min-h-[800px]" 
+                            title="Original Resume Preview"
+                          />
+                        </div>
+                      ) : (
+                        <div className="bg-white p-8 md:p-12 shadow-md mx-auto max-w-3xl font-serif text-black min-h-[800px] border border-gray-200" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                          {resumeText ? (
+                            <div className="whitespace-pre-wrap text-sm leading-relaxed">{resumeText}</div>
+                          ) : (
+                            <>
+                              <div className="text-center mb-6">
+                                <h1 className="text-xl font-bold underline mb-2">RESUME</h1>
+                                <h2 className="text-lg font-bold uppercase">{originalResume.name}</h2>
+                                <div className="text-sm mt-2 leading-tight">
+                                  <p>{originalResume.contact.location}</p>
+                                  <p>Mob No:- {originalResume.contact.phone}</p>
+                                  <p><strong>E-mail:- {originalResume.contact.email}</strong></p>
+                                </div>
+                              </div>
+      
+                              <div className="border-t-[3px] border-black my-4"></div>
+      
+                              <div className="mb-4">
+                                <h3 className="bg-gray-300 font-bold border border-black px-2 py-0.5 text-sm mb-2">Career Objective:</h3>
+                                <p className="text-sm leading-relaxed px-2 text-justify">{originalResume.summary}</p>
+                              </div>
+      
+                              <div className="mb-4">
+                                <h3 className="bg-gray-300 font-bold border border-black px-2 py-0.5 text-sm mb-2">Expertise Summary</h3>
+                                <p className="text-sm px-2">Expertise in {originalResume.title}</p>
+                              </div>
+      
+                              <div className="mb-4">
+                                <h3 className="bg-gray-300 font-bold border border-black px-2 py-0.5 text-sm mb-2">Competencies:</h3>
+                                <ul className="list-disc pl-8 text-sm space-y-1">
+                                  {originalResume.strengths.map((s: any, i: number) => (
+                                    <li key={i}>{s.desc}</li>
+                                  ))}
+                                  {originalResume.skills.map((s: string, i: number) => (
+                                    <li key={i}>{s}</li>
+                                  ))}
+                                </ul>
+                              </div>
+      
+                              <div className="mb-4">
+                                <h3 className="bg-gray-300 font-bold border border-black px-2 py-0.5 text-sm mb-2">Educational Qualification</h3>
+                                <ul className="list-disc pl-8 text-sm space-y-1">
+                                  {originalResume.education.map((edu: any, i: number) => (
+                                    <li key={i}>Completed {edu.degree} from {edu.school}, {edu.location} ({edu.dates.split(' - ')[1] || edu.dates})</li>
+                                  ))}
+                                </ul>
+                              </div>
+      
+                              <div className="mb-4">
+                                <h3 className="bg-gray-300 font-bold border border-black px-2 py-0.5 text-sm mb-2">Experiences</h3>
+                                <ul className="list-disc pl-8 text-sm space-y-2">
+                                  {originalResume.experience.map((exp: any, i: number) => (
+                                    <li key={i}>
+                                      Worked experience as a "{exp.role}" at {exp.company} <br/>
+                                      {exp.location} from {exp.dates}.
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      /* ENHANCED RESUME */
+                      <div className="bg-white p-8 md:p-12 shadow-2xl mx-auto max-w-3xl font-sans text-gray-800 min-h-[800px] rounded-sm">
+                        <div className="flex justify-between items-start mb-8">
+                          <div>
+                            <h1 className="text-4xl font-black uppercase text-gray-900 tracking-tight mb-1">{enhancedResume.name}</h1>
+                            <h2 className="text-lg font-bold text-blue-500 mb-4">{enhancedResume.title}</h2>
+                            <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-600">
+                              <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-blue-500" /> {enhancedResume.contact.phone.split(',')[0]}</span>
+                              <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-blue-500" /> {enhancedResume.contact.email}</span>
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-blue-500" /> {enhancedResume.contact.location}</span>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900">Keyword Audit</h3>
-                        </div>
-                        
-                        <p className="text-sm text-gray-600 font-medium mb-6">
-                            These industry-standard keywords were missing from your resume. Adding them will significantly boost your score.
-                        </p>
-                        
-                        <div className="flex flex-wrap gap-2 mb-8">
-                            {(analysis?.optimizedResume?.suggestedKeywords || ["Strategic Planning", "Team Leadership", "Cost Reduction", "Project Lifecycle"]).map((keyword: string, i: number) => (
-                                <Badge key={i} className="bg-white text-indigo-600 border-indigo-100 py-1.5 px-3 rounded-lg font-bold shadow-sm">{keyword}</Badge>
-                            ))}
+                          </div>
+                          <div className="w-20 h-20 bg-blue-500 rounded-full flex items-center justify-center text-white font-black text-2xl shadow-lg shrink-0">
+                            {getInitials(enhancedResume.name)}
+                          </div>
                         </div>
 
-                        <div className="pt-6 border-t border-indigo-100">
-                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-sm font-bold text-gray-900">Impact Potential</span>
-                                <span className="text-sm font-bold text-emerald-600">+15 Points</span>
-                             </div>
-                             <div className="h-2 bg-white rounded-full overflow-hidden border border-indigo-100">
-                                <div className="h-full bg-emerald-500 w-[65%]" />
-                             </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                          {/* Left Col */}
+                          <div className="md:col-span-2 space-y-8">
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Experience</h3>
+                              <div className="space-y-6">
+                                {enhancedResume.experience.map((exp: any, i: number) => (
+                                  <div key={i}>
+                                    <h4 className="font-bold text-gray-900">{exp.role}</h4>
+                                    <h5 className="font-bold text-blue-500 text-sm mb-1">{exp.company}</h5>
+                                    <div className="flex gap-4 text-[10px] text-gray-500 font-bold mb-3">
+                                      <span>📅 {exp.dates}</span>
+                                      <span>📍 {exp.location}</span>
+                                    </div>
+                                    {exp.bulletPoints && (
+                                      <ul className="text-xs text-gray-600 space-y-1 pl-4 list-disc marker:text-blue-500">
+                                        {exp.bulletPoints.map((bp: string, j: number) => (
+                                          <li key={j} className="leading-relaxed">{bp}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Education</h3>
+                              <div className="space-y-4">
+                                {enhancedResume.education.map((edu: any, i: number) => (
+                                  <div key={i}>
+                                    <h4 className="font-bold text-gray-900">{edu.degree}</h4>
+                                    <h5 className="font-bold text-blue-500 text-sm mb-1">{edu.school}</h5>
+                                    <div className="flex gap-4 text-[10px] text-gray-500 font-bold">
+                                      <span>📅 {edu.dates}</span>
+                                      <span>📍 {edu.location}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          </div>
+
+                          {/* Right Col */}
+                          <div className="space-y-8">
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Summary</h3>
+                              <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                                {enhancedResume.summary}
+                              </p>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Strengths</h3>
+                              <div className="space-y-3">
+                                {enhancedResume.strengths.map((s: any, i: number) => (
+                                  <div key={i}>
+                                    <div className="flex gap-2 items-center mb-1">
+                                      <Zap className="w-3 h-3 text-blue-500" />
+                                      <h4 className="font-bold text-sm text-gray-900">{s.name}</h4>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-medium pl-5">{s.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Key Achievements</h3>
+                              <div className="space-y-3">
+                                {enhancedResume.achievements.map((a: any, i: number) => (
+                                  <div key={i}>
+                                    <div className="flex gap-2 items-start mb-1">
+                                      <Target className="w-3 h-3 text-blue-500 mt-0.5" />
+                                      <h4 className="font-bold text-sm text-gray-900 leading-tight">{a.title}</h4>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-medium pl-5">{a.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Skills</h3>
+                              <div className="flex flex-wrap gap-y-2">
+                                {enhancedResume.skills.map((s: string, i: number) => (
+                                  <div key={i} className="w-1/2 pr-2">
+                                    <div className="text-[10px] font-bold text-gray-700 border-b border-gray-100 pb-1">{s}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Interests</h3>
+                              <div className="space-y-3">
+                                {enhancedResume.interests.map((s: any, i: number) => (
+                                  <div key={i}>
+                                    <div className="flex gap-2 items-center mb-1">
+                                      <Sparkles className="w-3 h-3 text-blue-500" />
+                                      <h4 className="font-bold text-[10px] text-gray-900">{s.name}</h4>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-medium pl-5 leading-tight">{s.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            <section>
+                              <h3 className="text-sm font-black tracking-widest uppercase border-b-2 border-black pb-1 mb-4">Languages</h3>
+                              <div className="space-y-2">
+                                {enhancedResume.languages.map((l: any, i: number) => (
+                                  <div key={i}>
+                                    <h4 className="font-bold text-[10px] text-gray-900 mb-0.5">{l.name}</h4>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[10px] text-gray-500">{l.label}</span>
+                                      {renderDotRating(l.level)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          </div>
                         </div>
-                    </Card>
+                      </div>
+                    );
+                  })()}
                 </div>
+              </Card>
             </div>
           </motion.div>
         )}
-      {/* Preview Modal */}
-      <AnimatePresence>
-        {showPreview && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowPreview(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
-            >
-                <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-indigo-600 text-white">
-                    <div>
-                        <h3 className="text-2xl font-black tracking-tight">95+ ATS Score Preview</h3>
-                        <p className="text-indigo-100 text-sm font-medium">Optimized structure, keywords, and impact-driven layout</p>
-                    </div>
-                    <Button variant="ghost" onClick={() => setShowPreview(false)} className="text-white hover:bg-white/10 rounded-xl">Close</Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto p-12 bg-gray-50">
-                    <div className="max-w-2xl mx-auto bg-white p-12 shadow-2xl rounded-sm border-t-8 border-indigo-600 font-sans text-gray-800 min-h-[1000px]">
-                        <div className="text-center mb-10 pb-10 border-b border-gray-100">
-                            <h1 className="text-4xl font-bold uppercase tracking-[0.2em] mb-2">{file?.name.split('.')[0] || "YOUR NAME"}</h1>
-                            <div className="flex justify-center gap-6 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                                <span>+91 98765 43210</span>
-                                <span>email@address.com</span>
-                                <span>linkedin.com/in/username</span>
-                            </div>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-indigo-600 border-b border-indigo-50 pb-2">Professional Summary</h2>
-                            <p className="text-sm leading-relaxed text-gray-600 font-medium italic">
-                                {analysis?.optimizedResume?.summary || "Highly skilled professional with extensive experience in driving results and managing complex projects. Proven track record of excellence and strategic thinking."}
-                            </p>
-                        </div>
-
-                        <div className="mb-10">
-                            <h2 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-indigo-600 border-b border-indigo-50 pb-2">Experience Highlights</h2>
-                            <ul className="space-y-4">
-                                {(analysis?.optimizedResume?.highlights || ["Spearheaded multi-million dollar digital transformation initiative.", "Optimized workflow efficiency by 40% through strategic restructuring.", "Managed cross-functional teams across three international regions."]).map((h: string, i: number) => (
-                                    <li key={i} className="flex gap-4">
-                                        <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full mt-1.5 shrink-0" />
-                                        <p className="text-sm font-medium text-gray-700 leading-relaxed">{h}</p>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-10">
-                            <div>
-                                <h2 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-indigo-600 border-b border-indigo-50 pb-2">Core Competencies</h2>
-                                <div className="flex flex-wrap gap-2">
-                                    {analysis?.optimizedResume?.suggestedKeywords?.slice(0, 8).map((k: string, i: number) => (
-                                        <span key={i} className="text-[10px] font-bold bg-gray-50 px-2 py-1 rounded border border-gray-100">{k}</span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <h2 className="text-xs font-black uppercase tracking-[0.2em] mb-4 text-indigo-600 border-b border-indigo-50 pb-2">Education</h2>
-                                <p className="text-xs font-bold">Bachelor of Science in Engineering</p>
-                                <p className="text-[10px] text-gray-500 font-medium">Top Tier University • 2018 - 2022</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="p-8 border-t border-gray-100 bg-white flex justify-center gap-4">
-                    <Button className="h-12 px-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-black text-xs tracking-widest uppercase">Download Optimized PDF</Button>
-                    <Button variant="outline" className="h-12 px-10 rounded-xl font-black text-xs tracking-widest uppercase border-2">Copy as Text</Button>
-                </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </div>
     </div>
-  </div>
   );
 }
