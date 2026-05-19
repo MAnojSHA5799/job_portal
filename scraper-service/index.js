@@ -13,6 +13,7 @@ const allowedOrigins = [
   'http://www.hiringstores.com',
   'https://www.hiringstores.com'
   // 'https://job-portal-seven-rosy.vercel.app' 
+  
 ];
 
 app.use(cors({
