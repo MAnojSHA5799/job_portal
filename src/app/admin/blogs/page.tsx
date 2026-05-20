@@ -19,7 +19,8 @@ import {
   Newspaper,
   CheckCircle2,
   AlertCircle,
-  Info
+  Info,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { calculateSeoScore, SeoReport } from '@/lib/seo';
@@ -44,6 +45,7 @@ export default function BlogsManagement() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'published' | 'draft' | 'trash'>('all');
 
   useEffect(() => {
     fetchBlogs();
@@ -76,11 +78,23 @@ export default function BlogsManagement() {
     fetchBlogs();
   };
 
-  const filteredBlogs = blogs.filter(blog => 
-    blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    blog.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    blog.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const totalBlogs = blogs.length;
+  const publishedBlogs = blogs.filter(b => b.is_published).length;
+  const draftBlogs = blogs.filter(b => !b.is_published).length;
+  const trashBlogs = 0; // Assuming no soft-delete column yet
+
+  const filteredBlogs = blogs.filter(blog => {
+    const matchesSearch = blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          blog.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          blog.category.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    let matchesStatus = true;
+    if (activeFilter === 'published') matchesStatus = blog.is_published === true;
+    if (activeFilter === 'draft') matchesStatus = blog.is_published === false;
+    if (activeFilter === 'trash') matchesStatus = false; // Return none for now, update if soft-delete implemented
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-8 pb-12">
@@ -94,6 +108,65 @@ export default function BlogsManagement() {
             <Plus className="mr-2 h-5 w-5" /> CREATE NEW POST
           </Button>
         </Link>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card 
+          className={cn("p-6 cursor-pointer transition-all border-0 shadow-sm rounded-[24px]", activeFilter === 'all' ? "ring-2 ring-primary bg-primary/5" : "bg-white hover:bg-gray-50")}
+          onClick={() => setActiveFilter('all')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">All Blogs</p>
+              <h3 className="text-2xl font-black text-gray-900">{totalBlogs}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <Newspaper className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+        </Card>
+        <Card 
+          className={cn("p-6 cursor-pointer transition-all border-0 shadow-sm rounded-[24px]", activeFilter === 'published' ? "ring-2 ring-emerald-500 bg-emerald-50" : "bg-white hover:bg-gray-50")}
+          onClick={() => setActiveFilter('published')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Published</p>
+              <h3 className="text-2xl font-black text-gray-900">{publishedBlogs}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+            </div>
+          </div>
+        </Card>
+        <Card 
+          className={cn("p-6 cursor-pointer transition-all border-0 shadow-sm rounded-[24px]", activeFilter === 'draft' ? "ring-2 ring-orange-500 bg-orange-50" : "bg-white hover:bg-gray-50")}
+          onClick={() => setActiveFilter('draft')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Drafts</p>
+              <h3 className="text-2xl font-black text-gray-900">{draftBlogs}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
+              <FileText className="h-6 w-6 text-orange-600" />
+            </div>
+          </div>
+        </Card>
+        <Card 
+          className={cn("p-6 cursor-pointer transition-all border-0 shadow-sm rounded-[24px]", activeFilter === 'trash' ? "ring-2 ring-rose-500 bg-rose-50" : "bg-white hover:bg-gray-50")}
+          onClick={() => setActiveFilter('trash')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Trash</p>
+              <h3 className="text-2xl font-black text-gray-900">{trashBlogs}</h3>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-rose-100 flex items-center justify-center">
+              <Trash2 className="h-6 w-6 text-rose-600" />
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm">

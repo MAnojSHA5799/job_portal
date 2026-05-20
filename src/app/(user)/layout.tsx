@@ -101,12 +101,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   };
 
   const navigation = [
-    { name: 'Find Jobs', href: '/jobs', hasDropdown: true },
-    { name: 'Companies', href: '/companies' },
+    { name: 'Home', href: '/', },
+    { name: 'Find Jobs', href: '/jobs', hasDropdown: true},
     // { name: 'Salary Intel', href: '/salary' },
     { name: 'ATS Score', href: '/ats-score' },
     { name: 'Blog', href: '/blog' },
-    { name: 'Contact', href: '/contact' },
+    { name: 'Companies', href: '/companies' },
+    { name: 'About Us', href: '/about' },
   ];
 
   const jobsDropdownItems = {

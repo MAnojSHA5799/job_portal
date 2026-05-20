@@ -368,7 +368,7 @@ export default function JobsQueue() {
             <h1 
               className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3"
             >
-              Jobs Queue <Badge className="bg-indigo-600 text-white border-0 font-bold">{totalCount}</Badge>
+             All Jobs <Badge className="bg-indigo-600 text-white border-0 font-bold">{totalCount}</Badge>
             </h1>
             <p 
               className="text-gray-500 font-medium"

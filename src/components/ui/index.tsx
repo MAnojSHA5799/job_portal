@@ -82,13 +82,20 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 );
 Textarea.displayName = "Textarea";
 
-export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
-  return (
-    <div className={cn("bg-white rounded-xl border border-gray-100 card-shadow", className)}>
-      {children}
-    </div>
-  );
-}
+export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <div 
+        ref={ref}
+        className={cn("bg-white rounded-xl border border-gray-100 card-shadow", className)}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+Card.displayName = "Card";
 
 export function Badge({ children, variant = 'default', className }: { children: React.ReactNode; variant?: 'default' | 'success' | 'warning' | 'danger' | 'info'; className?: string }) {
   const variants = {

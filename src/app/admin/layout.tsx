@@ -26,7 +26,7 @@ import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
-  { icon: Briefcase, label: 'Jobs Queue', href: '/admin/jobs' },
+  { icon: Briefcase, label: 'All Jobs', href: '/admin/jobs' },
   { icon: Users, label: 'Applications', href: '/admin/applications' },
   { icon: FileText, label: 'Resume Vault', href: '/admin/resume-scans' },
   { icon: Globe, label: 'Scraper Status', href: '/admin/scraper' },
@@ -50,12 +50,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     setMounted(true);
+
+    if (pathname?.startsWith('/admin/login')) {
+      return; // Skip auth check entirely on the login page itself
+    }
+
     const checkUser = () => {
         const token = localStorage.getItem('token');
         const userStr = localStorage.getItem('user');
 
         if (!token || !userStr) {
-            router.push('/login');
+            router.push('/admin/login');
             return;
         }
 
@@ -70,15 +75,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     checkUser();
-  }, [router]);
+  }, [router, pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/login');
+    router.push('/admin/login');
   };
 
   if (!mounted) return null;
+  
+  if (pathname?.startsWith('/admin/login')) {
+    return <>{children}</>;
+  }
+  
   if (!user) return <div className="h-screen w-screen bg-white flex items-center justify-center font-bold text-primary italic">Verifying Secure Session...</div>;
 
   return (

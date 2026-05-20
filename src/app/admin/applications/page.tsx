@@ -18,7 +18,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  MapPin
+  MapPin,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -112,6 +113,53 @@ export default function ApplicationsPage() {
     }
   };
 
+  const downloadCSV = async () => {
+    try {
+      let query = supabase.from('job_applications').select('*');
+
+      if (searchQuery) {
+        query = query.or(`user_name.ilike.%${searchQuery}%,user_email.ilike.%${searchQuery}%,job_title.ilike.%${searchQuery}%,company_name.ilike.%${searchQuery}%`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert("No applications found to download.");
+        return;
+      }
+
+      const headers = ['Candidate Name', 'Email', 'Phone', 'Location', 'Job Title', 'Company Name', 'Applied On', 'Status'];
+      
+      const rows = data.map(app => [
+        `"${(app.user_name || '').replace(/"/g, '""')}"`,
+        `"${(app.user_email || '').replace(/"/g, '""')}"`,
+        `"${(app.user_phone || '').replace(/"/g, '""')}"`,
+        `"${(app.user_location || '').replace(/"/g, '""')}"`,
+        `"${(app.job_title || '').replace(/"/g, '""')}"`,
+        `"${(app.company_name || '').replace(/"/g, '""')}"`,
+        `"${new Date(app.created_at).toLocaleString().replace(/"/g, '""')}"`,
+        `"${(app.status || 'pending').replace(/"/g, '""')}"`
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `job_applications_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      alert('Failed to download CSV');
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const filteredApplications = applications; // Already filtered server-side now
 
@@ -143,6 +191,9 @@ export default function ApplicationsPage() {
               }}
             />
           </div>
+          <Button variant="outline" className="rounded-xl h-11 gap-2" onClick={downloadCSV}>
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
           <Button variant="outline" className="rounded-xl h-11 gap-2">
             <Filter className="w-4 h-4" /> Filter
           </Button>
