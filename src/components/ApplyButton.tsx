@@ -33,7 +33,7 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
     if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -53,7 +53,7 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
         company_name: companyName || 'Unknown Company',
         status: 'pending'
       };
-      
+
       console.log('Submitting application payload:', payload);
 
       const { error } = await supabase
@@ -81,7 +81,7 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
           .from('jobs')
           .update({ is_approved: true })
           .eq('id', jobId);
-        
+
         if (error) throw error;
         alert('Job Approved Successfully!');
         window.location.reload();
@@ -94,11 +94,11 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
       return;
     }
 
-    if (!user) {
-      alert("Please login first to apply for this job.");
-      router.push('/login');
-      return;
-    }
+    // if (!user) {
+    //   alert("Please login first to apply for this job.");
+    //   router.push('/login');
+    //   return;
+    // }
     setIsModalOpen(true);
   };
 
@@ -118,15 +118,15 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
     <AnimatePresence>
       {isModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsModalOpen(false)}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          
-          <motion.div 
+
+          <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -142,7 +142,7 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
                     Choose how you want to proceed
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
@@ -211,11 +211,11 @@ export function ApplyButton({ jobId, jobTitle, companyId, companyName, applyLink
 
   return (
     <>
-      <Button 
+      <Button
         onClick={handleApplyClick}
         disabled={loading}
         className={cn(
-          "font-black flex items-center justify-center gap-2 group transition-all", 
+          "font-black flex items-center justify-center gap-2 group transition-all",
           className || "w-full h-12 text-base rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white border-0 shadow-lg shadow-indigo-200"
         )}
       >
