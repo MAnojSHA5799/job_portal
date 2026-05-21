@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, Button, Input, Select, Badge } from '@/components/ui';
@@ -115,6 +115,31 @@ export function JobForm({
   const [savingType, setSavingType] = useState<'draft' | 'publish' | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(!!initialData?.url_slug);
+
+  useEffect(() => {
+    if (!isSlugManuallyEdited) {
+      const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+      const compName = currentJob.company_id === 'new' ? currentJob.new_company_name : selectedCompany?.name;
+      
+      if (currentJob.title || compName || currentJob.location) {
+        const parts = [compName, currentJob.title, currentJob.location];
+        const newSlug = parts
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '') // Remove stop words
+          .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
+          .trim()
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-+/g, '-') // Remove double hyphens
+          .replace(/^-|-$/g, ''); // Trim hyphens
+
+        setCurrentJob(prev => ({ ...prev, url_slug: newSlug }));
+      }
+    }
+  }, [currentJob.title, currentJob.company_id, currentJob.new_company_name, currentJob.location, isSlugManuallyEdited, companies]);
+
   // Real-time SEO Scoring
   const seoReport = calculateSEOScore({
     title: currentJob.title,
@@ -191,7 +216,12 @@ Return ONLY the new description string. No quotes or explanation.`
         const data = await response.json();
         setCurrentJob({ ...currentJob, meta_description: data.choices[0].message.content.replace(/"/g, '') });
       } else if (check.category === 'url') {
-        const slug = (currentJob.focus_keyword || '')
+        const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+        const compName = currentJob.company_id === 'new' ? currentJob.new_company_name : selectedCompany?.name;
+        const parts = [compName, currentJob.title, currentJob.location];
+        const slug = parts
+          .filter(Boolean)
+          .join(' ')
           .toLowerCase()
           .replace(/\b(in|at|for|the|and|a|an|with|by|to|from)\b/g, '') // Remove stop words
           .replace(/[^a-z0-9\s-]/g, '') // Remove special chars
@@ -241,9 +271,13 @@ Instructions:
     setIsFixingAll(true);
     try {
       const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+      const companySlugFallback = (name: string | undefined) => 
+        (name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '-');
       const companyData = currentJob.company_id === 'new' 
-        ? { name: currentJob.new_company_name } 
-        : selectedCompany || { name: 'Gethyrd' };
+        ? { name: currentJob.new_company_name, url_slug: companySlugFallback(currentJob.new_company_name) } 
+        : selectedCompany 
+          ? { ...selectedCompany, url_slug: selectedCompany.url_slug || companySlugFallback(selectedCompany.name) }
+          : { name: 'Gethyrd', url_slug: 'gethyrd' };
 
       const enhanced = await enhanceJobSEO(currentJob, companyData);
 
@@ -280,9 +314,13 @@ Instructions:
     setIsEnhancing(true);
     try {
       const selectedCompany = companies.find(c => c.id === currentJob.company_id);
+      const companySlugFallback = (name: string | undefined) => 
+        (name || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().replace(/\s+/g, '-');
       const companyData = currentJob.company_id === 'new' 
-        ? { name: currentJob.new_company_name } 
-        : selectedCompany || { name: 'Gethyrd' };
+        ? { name: currentJob.new_company_name, url_slug: companySlugFallback(currentJob.new_company_name) } 
+        : selectedCompany 
+          ? { ...selectedCompany, url_slug: selectedCompany.url_slug || companySlugFallback(selectedCompany.name) }
+          : { name: 'Gethyrd', url_slug: 'gethyrd' };
 
       const enhanced = await enhanceJobSEO(currentJob, companyData);
       
@@ -1015,6 +1053,7 @@ Instructions:
                             .replace(/\s+/g, '-')       // Replace spaces with hyphens
                             .replace(/-+/g, '-');       // Replace multiple hyphens with single hyphen
                         setCurrentJob({...currentJob, url_slug: val});
+                        setIsSlugManuallyEdited(true);
                     }}
                   />
                 </div>

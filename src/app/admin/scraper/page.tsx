@@ -480,7 +480,7 @@ export default function ScraperManager() {
                            </div>
                         </td>
                         <td className="px-8 py-5 text-right">
-                          <Link href={`/admin/jobs?search=${encodeURIComponent(company.name)}`}>
+                          <Link href={`/admin/companies/${company.id}`}>
                             <Button variant="ghost" className="h-9 px-4 rounded-xl text-indigo-600 font-bold hover:bg-indigo-50 shadow-sm shadow-indigo-100/20 border border-indigo-50">
                               <Eye className="h-4 w-4 mr-2" /> View Jobs
                             </Button>

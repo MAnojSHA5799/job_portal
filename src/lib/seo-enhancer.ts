@@ -101,15 +101,14 @@ GOOD (157 chars): "Looking for Manufacturing Engineer Pune jobs? Tenneco is hiri
 BAD: "Join as a Manufacturing Engineer Lake City with a rewarding ₹15L salary package. Lucrative opportunities await. Apply now on hiringstores.com.in." ← wrong city, no experience info
 
 RULE 3 — URL SLUG (must score all 15 pts):
-Pattern: [focus-keyword-hyphenated]
-✓ Focus keyword is first segment
+Pattern: [company-slug]-[focus-keyword-hyphenated]
+✓ Company name is first segment, followed by job title and location
 ✓ All lowercase, hyphens only, no underscores, no IDs, no special characters
 ✓ Under 75 characters total
-✓ If duplicate: append company slug (e.g. manufacturing-engineer-pune-tenneco)
 
-GOOD: "manufacturing-engineer-pune"
+GOOD: "maruti-suzuki-investment-manager-gurgaon"
+BAD:  "investment-manager-gurgaon" ← missing company prefix
 BAD:  "dte-dte" ← internal code
-BAD:  "manufacturing-engineer-lake-city" ← wrong/placeholder city
 
 RULE 4 — H1 TAG:
 Pattern: [Focus Keyword] Jobs | [Company] Hiring [Year]
@@ -159,11 +158,12 @@ RULE 7 — TABLE OF CONTENTS:
 
 RULE 8 — INTERNAL LINKS (minimum 2):
 ✓ Link 1: category page anchor text = "[Job Title] jobs in India"
-href = "/jobs/[job-title-slug]"
+ href = "/jobs/[job-title-slug]"
 ✓ Link 2: company page anchor text = "[Company] careers"
-href = "/company/[company-slug]"
+ href = "/company/{{company_url_slug}}" — MANDATORY: use the exact company_url_slug variable provided in INPUT VARIABLES. NEVER use a UUID or numeric ID.
 ✓ Link 3 (bonus): related location page
-href = "/jobs-in-[city-slug]"
+ href = "/jobs-in-[city-slug]"
+CRITICAL: The company internal link MUST use company_url_slug. Example: if company_url_slug = "maruti-suzuki-careers", use href="/company/maruti-suzuki-careers"
 
 RULE 9 — EXTERNAL DOFOLLOW LINK (minimum 1):
 ✓ Link to company's official website (rel="dofollow" — default, do not add nofollow)
@@ -267,6 +267,7 @@ Return a single valid JSON object. No markdown. No explanation. No preamble.
 job_id: ${job.id || ''}
 job_title_raw: ${job.title || ''}
 company_name: ${company.name || ''}
+company_url_slug: ${company.url_slug || company.name?.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-') || ''}
 city_raw: ${job.location?.split(',')[0] || ''}
 state_raw: ${job.location?.split(',')[1] || ''}
 country: ${job.country || 'India'}

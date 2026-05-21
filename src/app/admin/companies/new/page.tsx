@@ -26,8 +26,7 @@ export default function NewCompanyPage() {
         alert('Draft saved successfully! Continuing in edit mode...');
         router.push(`/admin/companies/${data.id}/edit`);
       } else {
-        router.push('/admin/companies');
-        router.refresh();
+        router.push(`/admin/companies/${data.id}/edit?published=true`);
       }
     } catch (error: any) {
       alert('Error creating company: ' + error.message);

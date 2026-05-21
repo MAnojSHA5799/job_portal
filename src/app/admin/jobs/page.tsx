@@ -39,7 +39,7 @@ import {
   Calendar
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { enhanceJobSEO } from '@/lib/seo-enhancer';
 
@@ -70,6 +70,9 @@ interface Job {
 
 export default function JobsQueue() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCompanyId = searchParams?.get('company') || 'all';
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +82,7 @@ export default function JobsQueue() {
   const [enhancingJobIds, setEnhancingJobIds] = useState<Set<string>>(new Set());
   const [enhancingProgress, setEnhancingProgress] = useState({ current: 0, total: 0 });
   const [companies, setCompanies] = useState<any[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(initialCompanyId);
   const [activeTab, setActiveTab] = useState<'all' | 'published' | 'drafts' | 'trash' | 'expired'>('all');
   const [selectedValidity, setSelectedValidity] = useState<'all' | 'valid' | 'expired'>('all');
   const [dateRange, setDateRange] = useState({

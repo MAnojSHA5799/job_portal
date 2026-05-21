@@ -74,13 +74,16 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true
   });
 
-  const keywordInUrl = hasKeyword && (urlSlug.toLowerCase().startsWith(focusKeyword.toLowerCase().replace(/\s+/g, '-').slice(0, 10)));
+  const keywordInUrl = hasKeyword && (
+    urlSlug.toLowerCase().startsWith(focusKeyword.toLowerCase().replace(/\s+/g, '-').slice(0, 10)) ||
+    urlSlug.toLowerCase().includes(focusKeyword.toLowerCase().replace(/\s+/g, '-').slice(0, 10))
+  );
   checks.push({
     id: 4,
-    name: 'URL starts with Focus Keyword',
+    name: 'URL optimized with Focus Keyword',
     points: 5,
     passed: keywordInUrl,
-    message: keywordInUrl ? 'URL is keyword-optimized.' : 'URL must start with focus keyword.',
+    message: keywordInUrl ? 'URL is keyword-optimized.' : 'URL must contain focus keyword.',
     category: 'url',
     autoFixAvailable: true
   });
