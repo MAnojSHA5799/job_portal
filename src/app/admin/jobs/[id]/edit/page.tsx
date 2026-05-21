@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { JobForm } from '@/components/admin/JobForm';
-import { Loader2, ArrowLeft, Briefcase, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, Briefcase, Sparkles, CheckCircle2, X, Globe, Copy, Check, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface Company {
   id: string;
@@ -22,6 +24,34 @@ export default function EditJobPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const searchParams = useSearchParams();
+  const isPublishedQuery = searchParams?.get('published') === 'true';
+
+  useEffect(() => {
+    if (isPublishedQuery && job) {
+      const slug = job.url_slug || id;
+      const url = `${window.location.origin}/jobs/${slug}`;
+      setPublishedUrl(url);
+      
+      // Clean up the URL query parameter so it doesn't show again on refresh
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [isPublishedQuery, job, id]);
+
+  const handleCopy = async () => {
+    if (!publishedUrl) return;
+    try {
+      await navigator.clipboard.writeText(publishedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -94,18 +124,23 @@ export default function EditJobPage() {
       // Cleanup job data
       const { id: jobId, created_at, companies: _, new_company_name, ...updateData } = jobData;
 
-      const { error } = await supabase
+      const { data: updatedJob, error } = await supabase
         .from('jobs')
         .update({ ...updateData, company_id: finalCompanyId })
-        .eq('id', id);
+        .eq('id', id)
+        .select('id, url_slug')
+        .single();
       
       if (error) throw error;
       
       if (!jobData.is_approved) {
         alert('Draft saved successfully!');
       } else {
-        router.push('/admin/jobs');
-        router.refresh();
+        const slug = updatedJob?.url_slug || jobData.url_slug || id;
+        const url = `${window.location.origin}/jobs/${slug}`;
+        setPublishedUrl(url);
+        // Update local job state to reflect any new changes (like url_slug)
+        setJob((prev: any) => ({ ...prev, ...updateData, url_slug: updatedJob?.url_slug }));
       }
     } catch (error: any) {
       alert('Error saving job: ' + error.message);
@@ -162,6 +197,7 @@ export default function EditJobPage() {
         </div>
 
         <JobForm 
+          key={job ? `${job.id}-${job.url_slug || ''}` : 'new'}
           initialData={job}
           companies={companies} 
           onSave={handleSave} 
@@ -171,6 +207,119 @@ export default function EditJobPage() {
           subtitle="All fields marked with * are mandatory for publishing."
         />
       </div>
+
+      {/* Premium Publish Success Modal */}
+      <AnimatePresence>
+        {publishedUrl && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="w-full max-w-lg bg-white rounded-[32px] border border-gray-100 shadow-2xl p-8 relative overflow-hidden"
+            >
+              {/* Background Glows */}
+              <div className="absolute top-[-50px] left-[-50px] w-[200px] h-[200px] bg-indigo-500/10 blur-[60px] rounded-full pointer-events-none" />
+              <div className="absolute bottom-[-50px] right-[-50px] w-[200px] h-[200px] bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
+
+              {/* Close Button */}
+              <button 
+                onClick={() => setPublishedUrl(null)}
+                className="absolute top-6 right-6 w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 border border-gray-100 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex flex-col items-center text-center space-y-6">
+                {/* Success Icon Badge */}
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.15, type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 rounded-[24px] bg-emerald-50 border border-emerald-100 flex items-center justify-center shadow-lg shadow-emerald-100/30 text-emerald-500 p-2 shrink-0"
+                >
+                  <CheckCircle2 className="h-10 w-10 animate-pulse" />
+                </motion.div>
+
+                {/* Headings */}
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center justify-center gap-2">
+                    Job Published Successfully! <Sparkles className="h-5 w-5 text-indigo-500 fill-indigo-500" />
+                  </h2>
+                  <p className="text-sm text-gray-500 font-medium max-w-sm">
+                    Your job posting is now live and SEO optimized for candidates and search engines.
+                  </p>
+                </div>
+
+                {/* Live URL Slug Box */}
+                <div className="w-full space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-left block pl-2">
+                    Live Job URL
+                  </label>
+                  <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                    <div className="flex-1 min-w-0 flex items-center gap-2 pl-2">
+                      <Globe className="h-4 w-4 text-indigo-500 shrink-0" />
+                      <span className="text-sm font-bold text-gray-700 truncate select-all text-left">
+                        {publishedUrl}
+                      </span>
+                    </div>
+                    
+                    <motion.button 
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleCopy}
+                      className={cn(
+                        "h-10 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shrink-0 shadow-sm cursor-pointer",
+                        copied 
+                          ? "bg-emerald-500 text-white shadow-emerald-200" 
+                          : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                      )}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy URL</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="w-full grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <a 
+                    href={publishedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
+                  >
+                    <Button 
+                      variant="outline"
+                      className="w-full h-12 border-2 border-indigo-100 bg-white text-indigo-600 font-black rounded-2xl hover:bg-indigo-50 text-xs flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      VIEW LIVE JOB
+                    </Button>
+                  </a>
+                  
+                  <Button 
+                    onClick={() => setPublishedUrl(null)}
+                    className="w-full h-12 bg-gray-900 text-white font-black rounded-2xl hover:bg-gray-800 text-xs flex items-center justify-center gap-2"
+                  >
+                    DISMISS
+                  </Button>
+                </div>
+
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

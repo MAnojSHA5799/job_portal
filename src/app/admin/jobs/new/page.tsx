@@ -73,7 +73,7 @@ export default function NewJobPage() {
       const { data: createdJob, error } = await supabase
         .from('jobs')
         .insert([{ ...payload, company_id: finalCompanyId }])
-        .select('id')
+        .select('id, url_slug')
         .single();
       
       if (error) throw error;
@@ -82,8 +82,7 @@ export default function NewJobPage() {
         alert('Draft saved! Continuing in edit mode...');
         router.push(`/admin/jobs/${createdJob.id}/edit`);
       } else {
-        router.push('/admin/jobs');
-        router.refresh();
+        router.push(`/admin/jobs/${createdJob.id}/edit?published=true`);
       }
     } catch (error: any) {
       alert('Error saving job: ' + error.message);
