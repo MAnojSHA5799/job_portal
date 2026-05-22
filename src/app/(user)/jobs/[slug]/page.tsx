@@ -5,14 +5,14 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 import { supabase } from '@/lib/supabase';
 import { Card, Badge, Button } from '@/components/ui';
-import { 
-  MapPin, 
-  Briefcase, 
-  Clock, 
-  Share2, 
-  Bookmark, 
-  ChevronRight, 
-  Zap, 
+import {
+  MapPin,
+  Briefcase,
+  Clock,
+  Share2,
+  Bookmark,
+  ChevronRight,
+  Zap,
   Star,
   HandshakeIcon,
   Flame,
@@ -75,10 +75,10 @@ async function getData(slug: string) {
       .eq('url_slug', decodedSlug)
       .eq('is_approved', true);
 
-    console.log('Step 2 Raw Response:', { 
-      count: response.data?.length || 0, 
+    console.log('Step 2 Raw Response:', {
+      count: response.data?.length || 0,
       error: response.error,
-      firstJobSlug: response.data?.[0]?.url_slug 
+      firstJobSlug: response.data?.[0]?.url_slug
     });
 
     if (response.data && response.data.length > 0) {
@@ -95,7 +95,7 @@ async function getData(slug: string) {
       .ilike('title', fuzzyTitle)
       .eq('is_approved', true)
       .maybeSingle();
-    
+
     if (jobByTitle) {
       console.log('Step 3 SUCCESS: Found job by fuzzy title match');
       return { type: 'job', data: jobByTitle };
@@ -184,12 +184,12 @@ export default async function SlugPage({ params }: Props) {
 
     // Fetch related jobs
     const { data: relatedJobs } = await supabase
-        .from('jobs')
-        .select('*, companies(*)')
-        .eq('category', job.category)
-        .neq('id', job.id)
-        .eq('is_approved', true)
-        .limit(3);
+      .from('jobs')
+      .select('*, companies(*)')
+      .eq('category', job.category)
+      .neq('id', job.id)
+      .eq('is_approved', true)
+      .limit(3);
 
     // Schema.org JSON-LD
     const jsonLd = {
@@ -233,7 +233,7 @@ export default async function SlugPage({ params }: Props) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        
+
         {/* Admin Preview Banner (Only shows if unapproved) */}
         {!job.is_approved && (
           <div className="bg-amber-600 text-white py-3 px-4 sticky top-0 z-[100] shadow-lg flex items-center justify-between animate-in fade-in slide-in-from-top duration-500">
@@ -247,20 +247,20 @@ export default async function SlugPage({ params }: Props) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-               <Link href={`/admin/jobs/${job.id}/edit`}>
-                 <Button className="h-8 px-4 bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold text-[10px] rounded-lg">
-                   EDIT CONTENT
-                 </Button>
-               </Link>
-               <ApplyButton 
-                  jobId={job.id} 
-                  jobTitle={job.title} 
-                  companyId={job.company_id}
-                  companyName={job.companies?.name || ''}
-                  applyLink={job.apply_link || ''}
-                  approveOnly={true}
-                  className="h-8 px-4 bg-white text-amber-600 hover:bg-gray-100 font-black text-[10px] rounded-lg border-0 shadow-sm"
-               />
+              <Link href={`/admin/jobs/${job.id}/edit`}>
+                <Button className="h-8 px-4 bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold text-[10px] rounded-lg">
+                  EDIT CONTENT
+                </Button>
+              </Link>
+              <ApplyButton
+                jobId={job.id}
+                jobTitle={job.title}
+                companyId={job.company_id}
+                companyName={job.companies?.name || ''}
+                applyLink={job.apply_link || ''}
+                approveOnly={true}
+                className="h-8 px-4 bg-white text-amber-600 hover:bg-gray-100 font-black text-[10px] rounded-lg border-0 shadow-sm"
+              />
             </div>
           </div>
         )}
@@ -277,308 +277,297 @@ export default async function SlugPage({ params }: Props) {
         <div className="max-w-3xl mx-auto px-4 space-y-4">
           {/* Main Summary Card */}
           <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white overflow-hidden">
-             <div className="flex items-start gap-4 mb-4">
-                <div className="w-14 h-14 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0">
-                    {job.companies?.logo_url ? (
-                        <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center font-bold text-primary text-2xl">
-                            {job.companies?.name?.charAt(0) || 'J'}
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{job.title}</h1>
-                    <p className="text-sm text-gray-500 font-semibold">{job.companies?.name}</p>
-                </div>
-             </div>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-14 h-14 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0">
+                {job.companies?.logo_url ? (
+                  <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-bold text-primary text-2xl">
+                    {job.companies?.name?.charAt(0) || 'J'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{job.title}</h1>
+                <p className="text-sm text-gray-500 font-semibold">{job.companies?.name}</p>
+              </div>
+            </div>
 
-             <div className="space-y-2 mb-6">
-                <div className="flex items-center gap-2 text-gray-500">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-semibold">{job.location}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-500">
-                    <Banknote className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-semibold">{job.salary_range || 'Not disclosed'}</span>
-                </div>
-             </div>
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center gap-2 text-gray-500">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-semibold">{job.location}</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-500">
+                <Banknote className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-semibold">
+                  {job.salary_range ? job.salary_range.replace(/LAPPA/gi, 'LPA') : 'Not disclosed'}
+                </span>
+              </div>
+            </div>
 
-             {/* Salary Breakdown */}
-             {job.salary_range && (
-                 <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Salary Range</p>
-                            <p className="text-sm font-bold text-gray-700">{job.salary_range}</p>
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Employment Type</p>
-                            <p className="text-sm font-bold text-gray-700">{job.job_type || 'Full Time'}</p>
-                        </div>
-                    </div>
-                 </div>
-             )}
 
-             {/* Badges Row */}
-             <div className="flex flex-wrap gap-2 mb-8">
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                    <Bike className="w-3.5 h-3.5 text-gray-400" /> Field Job
-                </div>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                    <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">P</div>
-                    Part Time
-                </div>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                    <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">F</div>
-                    Full Time
-                </div>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                    <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {job.experience_level || 'Any experience'}
-                </div>
-                <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
-                    <Languages className="w-3.5 h-3.5 text-gray-400" /> No English Req.
-                </div>
-             </div>
 
-             <div className="flex gap-3">
-                <ApplyButton 
-                    jobId={job.id}
-                    jobTitle={job.title}
-                    companyId={job.companies?.id}
-                    companyName={job.companies?.name}
-                    applyLink={job.apply_link || '#'}
-                    className="flex-1 h-12 bg-[#006d5b] hover:bg-[#005a4b] text-white font-bold rounded-xl border-0"
-                />
-                <ShareActions title={job.title} />
-             </div>
+            {/* Badges Row */}
+            <div className="flex flex-wrap gap-2 mb-8">
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                <Bike className="w-3.5 h-3.5 text-gray-400" /> Field Job
+              </div>
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">P</div>
+                Part Time
+              </div>
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                <div className="w-4 h-4 rounded-full bg-gray-400 text-white flex items-center justify-center text-[10px] font-black">F</div>
+                Full Time
+              </div>
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {job.experience_level || 'Any experience'}
+              </div>
+              <div className="flex items-center gap-1.5 bg-gray-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-gray-500 border border-gray-100/50">
+                <Languages className="w-3.5 h-3.5 text-gray-400" /> No English Req.
+              </div>
+            </div>
           </Card>
 
           {/* Job Highlights Box */}
           <div className="bg-[#f0f7ff] border border-[#dceaff] rounded-2xl p-6 space-y-6">
-             <h3 className="text-lg font-bold text-gray-900 mb-4">Job highlights</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                <div className="flex items-start gap-3">
-                    <Flame className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-800">Urgently hiring</p>
-                        <p className="text-xs text-gray-500 mt-1">Hiring for immediate joining</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Zap className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-800">Verified Job</p>
-                        <p className="text-xs text-gray-500 mt-1">Verified by {job.companies?.name}</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-800">Job Benefits</p>
-                        <p className="text-xs text-gray-500 mt-1 leading-relaxed">As per company norms and statutory requirements</p>
-                    </div>
-                </div>
-                <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
-                    <div>
-                        <p className="text-sm font-bold text-gray-800">Posted On</p>
-                        <p className="text-xs text-gray-500 mt-1">{new Date(job.created_at).toLocaleDateString()}</p>
-                    </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Job highlights</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+              <div className="flex items-start gap-3">
+                <Flame className="w-5 h-5 text-orange-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Urgently hiring</p>
+                  <p className="text-xs text-gray-500 mt-1">Hiring for immediate joining</p>
                 </div>
               </div>
-           </div>
- 
-           {/* Detailed Sections Card */}
-          <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white space-y-10">
-             {/* Job Description */}
-             <section>
-                <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-4">Job Description</h3>
-                
-                <div className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none">
-                  {(() => {
-                    const parts = job.description.split('</ul>');
-                    if (parts.length > 1) {
-                      return (
-                        <>
-                          <div dangerouslySetInnerHTML={{ __html: parts[0] + '</ul>' }} />
-                          
-                          {/* Job Media Display */}
-                          {job.media_url && (
-                            <div className="my-8 rounded-2xl overflow-hidden">
-                              {job.media_type === 'video' ? (
-                                job.media_link ? (
-                                  <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
-                                    <video 
-                                      src={job.media_url} 
-                                      className="w-full h-full object-cover pointer-events-none" 
-                                      poster={job.companies?.logo_url}
-                                    />
-                                  </a>
-                                ) : (
-                                  <div className="aspect-video w-full bg-black">
-                                    <video 
-                                      src={job.media_url} 
-                                      className="w-full h-full" 
-                                      controls 
-                                      poster={job.companies?.logo_url}
-                                    />
-                                  </div>
-                                )
-                              ) : (
-                                <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
-                                  <img 
-                                    src={job.media_url} 
-                                    alt={job.title} 
-                                    className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
-                                  />
-                                </a>
-                              )}
-                            </div>
-                          )}
+              <div className="flex items-start gap-3">
+                <Zap className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Verified Job</p>
+                  <p className="text-xs text-gray-500 mt-1">Verified by {job.companies?.name}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Job Benefits</p>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">As per company norms and statutory requirements</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Clock className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-gray-800">Posted On</p>
+                  <p className="text-xs text-gray-500 mt-1">{new Date(job.created_at).toLocaleDateString()}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                          <div dangerouslySetInnerHTML={{ __html: parts.slice(1).join('</ul>') }} />
-                        </>
-                      );
-                    }
+          {/* Detailed Sections Card */}
+          <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white space-y-10">
+            {/* Job Description */}
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-4">Job Description</h3>
+
+              <div className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none">
+                {(() => {
+                  const parts = job.description.split('</ul>');
+                  if (parts.length > 1) {
                     return (
                       <>
-                        {/* Job Media Display (Fallback if no list found) */}
+                        <div dangerouslySetInnerHTML={{ __html: parts[0] + '</ul>' }} />
+
+                        {/* Job Media Display */}
                         {job.media_url && (
-                          <div className="mb-8 rounded-2xl overflow-hidden">
-                              {job.media_type === 'video' ? (
-                                job.media_link ? (
-                                  <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
-                                    <video 
-                                      src={job.media_url} 
-                                      className="w-full h-full object-cover pointer-events-none" 
-                                      poster={job.companies?.logo_url}
-                                    />
-                                  </a>
-                                ) : (
-                                  <div className="aspect-video w-full bg-black flex items-center justify-center">
-                                    <video 
-                                      src={job.media_url} 
-                                      className="w-full h-full" 
-                                      controls 
-                                      poster={job.companies?.logo_url}
-                                    />
-                                  </div>
-                                )
-                              ) : (
-                                <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
-                                  <img 
-                                    src={job.media_url} 
-                                    alt={job.title} 
-                                    className="w-full h-auto transition-transform duration-700 group-hover:scale-105" 
+                          <div className="my-8 rounded-2xl overflow-hidden">
+                            {job.media_type === 'video' ? (
+                              job.media_link ? (
+                                <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
+                                  <video
+                                    src={job.media_url}
+                                    className="w-full h-full object-cover pointer-events-none"
+                                    poster={job.companies?.logo_url}
                                   />
                                 </a>
-                              )}
+                              ) : (
+                                <div className="aspect-video w-full bg-black">
+                                  <video
+                                    src={job.media_url}
+                                    className="w-full h-full"
+                                    controls
+                                    poster={job.companies?.logo_url}
+                                  />
+                                </div>
+                              )
+                            ) : (
+                              <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
+                                <img
+                                  src={job.media_url}
+                                  alt={job.title}
+                                  className="w-full h-auto transition-transform duration-700 group-hover:scale-105"
+                                />
+                              </a>
+                            )}
                           </div>
                         )}
-                        <div dangerouslySetInnerHTML={{ __html: job.description }} />
+
+                        <div dangerouslySetInnerHTML={{ __html: parts.slice(1).join('</ul>') }} />
                       </>
                     );
-                  })()}
-                </div>
-             </section>
-             {/* Job Role Grid */}
-             {/* Job Role Grid */}
-             <section>
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Job role</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="flex gap-4">
-                        <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Department</p>
-                            <p className="text-sm font-bold text-gray-700">{job.category || 'General'}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <ShieldCheck className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Role / Category</p>
-                            <p className="text-sm font-bold text-gray-700">{job.title}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <Clock className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Employment type</p>
-                            <p className="text-sm font-bold text-gray-700">{job.job_type || 'Full Time'}</p>
-                        </div>
-                    </div>
-                </div>
-             </section>
-
-             {/* Job Requirements Grid */}
-             <section>
-                <h3 className="text-lg font-bold text-gray-900 mb-6">Job requirements</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="flex gap-4">
-                        <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Experience</p>
-                            <p className="text-sm font-bold text-gray-700">{job.experience_level || 'Any experience'}</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-4">
-                        <CheckCircle2 className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Education</p>
-                            <p className="text-sm font-bold text-gray-700">Check Job Description</p>
-                        </div>
-                    </div>
-                </div>
-             </section>
-
-             {/* About Company */}
-             <section className="pt-8 border-t border-gray-50">
-                <h3 className="text-lg font-bold text-gray-900 mb-6">About company</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center p-1">
-                            {job.companies?.logo_url ? (
-                                <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                  }
+                  return (
+                    <>
+                      {/* Job Media Display (Fallback if no list found) */}
+                      {job.media_url && (
+                        <div className="mb-8 rounded-2xl overflow-hidden">
+                          {job.media_type === 'video' ? (
+                            job.media_link ? (
+                              <a href={job.media_link} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-black block cursor-pointer">
+                                <video
+                                  src={job.media_url}
+                                  className="w-full h-full object-cover pointer-events-none"
+                                  poster={job.companies?.logo_url}
+                                />
+                              </a>
                             ) : (
-                                <Building2 className="w-5 h-5 text-gray-400" />
-                            )}
+                              <div className="aspect-video w-full bg-black flex items-center justify-center">
+                                <video
+                                  src={job.media_url}
+                                  className="w-full h-full"
+                                  controls
+                                  poster={job.companies?.logo_url}
+                                />
+                              </div>
+                            )
+                          ) : (
+                            <a href={job.media_link || job.media_url} target="_blank" rel="noopener noreferrer" className="relative group cursor-pointer overflow-hidden block">
+                              <img
+                                src={job.media_url}
+                                alt={job.title}
+                                className="w-full h-auto transition-transform duration-700 group-hover:scale-105"
+                              />
+                            </a>
+                          )}
                         </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Name</p>
-                            <p className="text-sm font-bold text-gray-700">{job.companies?.name}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-gray-400 mt-1" />
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Address</p>
-                            <p className="text-sm font-bold text-gray-700 leading-relaxed">{job.location}, India</p>
-                        </div>
-                    </div>
+                      )}
+                      <div dangerouslySetInnerHTML={{ __html: job.description }} />
+                    </>
+                  );
+                })()}
+              </div>
+            </section>
+            {/* Job Role Grid */}
+            {/* Job Role Grid */}
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 mb-6">Job role</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex gap-4">
+                  <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Department</p>
+                    <p className="text-sm font-bold text-gray-700">{job.category || 'General'}</p>
+                  </div>
                 </div>
-             </section>
+                <div className="flex gap-4">
+                  <ShieldCheck className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Role / Category</p>
+                    <p className="text-sm font-bold text-gray-700">{job.title}</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <Clock className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Employment type</p>
+                    <p className="text-sm font-bold text-gray-700">{job.job_type || 'Full Time'}</p>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-             <p className="text-xs font-bold text-gray-400 pt-6">Job posted by <span className="text-gray-600">{job.companies?.name}</span></p>
+            {/* Job Requirements Grid */}
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 mb-6">Job requirements</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex gap-4">
+                  <Briefcase className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Experience</p>
+                    <p className="text-sm font-bold text-gray-700">{job.experience_level || 'Any experience'}</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <CheckCircle2 className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Education</p>
+                    <p className="text-sm font-bold text-gray-700">Check Job Description</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* About Company */}
+            <section className="pt-8 border-t border-gray-50">
+              <h3 className="text-lg font-bold text-gray-900 mb-6">About company</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center p-1">
+                    {job.companies?.logo_url ? (
+                      <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <Building2 className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase">Name</p>
+                    <p className="text-sm font-bold text-gray-700">{job.companies?.name}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-gray-400 mt-1" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase">Address</p>
+                    <p className="text-sm font-bold text-gray-700 leading-relaxed">{job.location}, India</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <p className="text-xs font-bold text-gray-400 pt-6">Job posted by <span className="text-gray-600">{job.companies?.name}</span></p>
+
+            {/* Action Buttons at the Bottom */}
+            <div className="flex gap-3 pt-6 mt-4 border-t border-gray-50">
+              <ApplyButton
+                jobId={job.id}
+                jobTitle={job.title}
+                companyId={job.companies?.id}
+                companyName={job.companies?.name}
+                applyLink={job.apply_link || '#'}
+                className="flex-1 h-12 bg-[#006d5b] hover:bg-[#005a4b] text-white font-bold rounded-xl border-0"
+              />
+              <ShareActions title={job.title} />
+            </div>
           </Card>
 
           {/* Related Jobs - Compact */}
           {relatedJobs && relatedJobs.length > 0 && (
             <section className="pt-8 space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 px-1">More {job.category} Jobs</h3>
-                <div className="grid grid-cols-1 gap-4">
-                    {relatedJobs.map((rj) => (
-                        <Link key={rj.id} href={`/jobs/${rj.url_slug || rj.id}`}>
-                            <Card className="p-4 border border-gray-100 shadow-sm bg-white rounded-2xl hover:shadow-md transition-all flex items-center justify-between group">
-                                <div>
-                                    <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{rj.title}</h4>
-                                    <p className="text-xs text-gray-500 font-semibold">{rj.companies?.name} • {rj.location}</p>
-                                </div>
-                                <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary" />
-                            </Card>
-                        </Link>
-                    ))}
-                </div>
+              <h3 className="text-lg font-bold text-gray-900 px-1">More {job.category} Jobs</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {relatedJobs.map((rj) => (
+                  <Link key={rj.id} href={`/jobs/${rj.url_slug || rj.id}`}>
+                    <Card className="p-4 border border-gray-100 shadow-sm bg-white rounded-2xl hover:shadow-md transition-all flex items-center justify-between group">
+                      <div>
+                        <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors">{rj.title}</h4>
+                        <p className="text-xs text-gray-500 font-semibold">{rj.companies?.name} • {rj.location}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-primary" />
+                    </Card>
+                  </Link>
+                ))}
+              </div>
             </section>
           )}
         </div>
@@ -592,14 +581,14 @@ export default async function SlugPage({ params }: Props) {
     const citiesInCat = Array.from(new Set(jobs.map((j: any) => j.location?.split(',')[0]))).slice(0, 5);
 
     const itemListSchema = {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        "itemListElement": jobs.slice(0, 10).map((job: any, index: number) => ({
-            "@type": "ListItem",
-            "position": index + 1,
-            "url": `https://www.hiringstores.com/jobs/${job.url_slug || job.id}`,
-            "name": job.title
-        }))
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": jobs.slice(0, 10).map((job: any, index: number) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "url": `https://www.hiringstores.com/jobs/${job.url_slug || job.id}`,
+        "name": job.title
+      }))
     };
 
     return (
@@ -625,50 +614,50 @@ export default async function SlugPage({ params }: Props) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-12">
-                <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
-                    <h2 className="text-2xl font-black text-gray-900 mb-6">{categoryName} Careers Overview</h2>
-                    <p className="text-gray-600 font-medium">
-                        There are currently {jobs.length} verified openings for {categoryName} positions. These roles are essential for the manufacturing and industrial sectors, offering diverse opportunities in production, maintenance, and quality control.
-                    </p>
-                </Card>
+              <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
+                <h2 className="text-2xl font-black text-gray-900 mb-6">{categoryName} Careers Overview</h2>
+                <p className="text-gray-600 font-medium">
+                  There are currently {jobs.length} verified openings for {categoryName} positions. These roles are essential for the manufacturing and industrial sectors, offering diverse opportunities in production, maintenance, and quality control.
+                </p>
+              </Card>
 
-                <div className="space-y-6">
-                    <h2 className="text-2xl font-black text-gray-900 px-2">Recent Openings</h2>
-                    <div className="grid grid-cols-1 gap-6">
-                        {jobs.map((job: any) => (
-                            <Link 
-                                key={job.id} 
-                                href={`/jobs/${job.url_slug || job.id}`}
-                                target="_blank"
-                                className="block group"
-                            >
-                                <Card className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white rounded-[32px] overflow-hidden">
-                                    <div className="flex items-start gap-6">
-                                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 p-2 group-hover:scale-105">
-                                            {job.companies?.logo_url ? (
-                                                <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                                            ) : (
-                                                job.companies?.name?.charAt(0) || 'J'
-                                            )}
-                                        </div>
-                                        <div className="flex-1 space-y-3">
-                                            <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                                {job.title}
-                                            </h3>
-                                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
-                                                <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {job.companies?.name}</span>
-                                                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
-                                            </div>
-                                        </div>
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                                            <ChevronRight className="w-6 h-6" />
-                                        </div>
-                                    </div>
-                                </Card>
-                            </Link>
-                        ))}
-                    </div>
+              <div className="space-y-6">
+                <h2 className="text-2xl font-black text-gray-900 px-2">Recent Openings</h2>
+                <div className="grid grid-cols-1 gap-6">
+                  {jobs.map((job: any) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.url_slug || job.id}`}
+                      target="_blank"
+                      className="block group"
+                    >
+                      <Card className="p-8 border-0 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/30 transition-all bg-white rounded-[32px] overflow-hidden">
+                        <div className="flex items-start gap-6">
+                          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-2xl font-black text-indigo-600 border border-gray-100 transition-all shrink-0 p-2 group-hover:scale-105">
+                            {job.companies?.logo_url ? (
+                              <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                            ) : (
+                              job.companies?.name?.charAt(0) || 'J'
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
+                              {job.title}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-500 font-bold">
+                              <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4" /> {job.companies?.name}</span>
+                              <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
+                            </div>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-300 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
+                            <ChevronRight className="w-6 h-6" />
+                          </div>
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
                 </div>
+              </div>
             </div>
 
             <aside className="space-y-8">
@@ -676,24 +665,24 @@ export default async function SlugPage({ params }: Props) {
                 <Card className="p-8 border-0 shadow-2xl shadow-indigo-100/20 bg-white rounded-[40px]">
                   <h3 className="text-lg font-bold text-gray-900 mb-8 tracking-tight">Cities with {categoryName} Jobs</h3>
                   <div className="space-y-3">
-                      {(citiesInCat as string[]).map((city: string) => (
-                          <a 
-                              key={city} 
-                              href={`/jobs-in-${city.toLowerCase().replace(/\s+/g, '-')}`}
-                              className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-600 hover:text-white transition-all font-bold text-gray-600"
-                          >
-                              {city} <ChevronRight className="w-4 h-4" />
-                          </a>
-                      ))}
+                    {(citiesInCat as string[]).map((city: string) => (
+                      <a
+                        key={city}
+                        href={`/jobs-in-${city.toLowerCase().replace(/\s+/g, '-')}`}
+                        className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-indigo-600 hover:text-white transition-all font-bold text-gray-600"
+                      >
+                        {city} <ChevronRight className="w-4 h-4" />
+                      </a>
+                    ))}
                   </div>
                 </Card>
               )}
 
               <Card className="p-8 border-0 shadow-2xl shadow-indigo-100 bg-indigo-600 text-white rounded-[40px]">
-                  <TrendingUp className="w-10 h-10 mb-4 fill-white animate-pulse" />
-                  <h3 className="text-lg font-bold mb-2 leading-tight">Apply for {categoryName} Jobs</h3>
-                  <p className="text-sm font-medium opacity-80 mb-6">Stay updated with the latest industrial career opportunities.</p>
-                  <Button className="w-full h-12 rounded-2xl bg-white text-indigo-600 font-black hover:bg-gray-100 border-0">Get Alerts</Button>
+                <TrendingUp className="w-10 h-10 mb-4 fill-white animate-pulse" />
+                <h3 className="text-lg font-bold mb-2 leading-tight">Apply for {categoryName} Jobs</h3>
+                <p className="text-sm font-medium opacity-80 mb-6">Stay updated with the latest industrial career opportunities.</p>
+                <Button className="w-full h-12 rounded-2xl bg-white text-indigo-600 font-black hover:bg-gray-100 border-0">Get Alerts</Button>
               </Card>
             </aside>
           </div>

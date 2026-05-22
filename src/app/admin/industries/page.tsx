@@ -1,0 +1,270 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { Card, Badge, Button, Input } from '@/components/ui';
+import { 
+  Plus, 
+  Search, 
+  Layers, 
+  CheckCircle2, 
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Trash2,
+  Edit3,
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+
+interface Industry {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  active_jobs?: number;
+}
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
+export default function IndustriesManagement() {
+  const router = useRouter();
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchIndustries = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: industriesData, error: industriesError } = await supabase
+        .from('industries')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (industriesError) throw industriesError;
+
+      const { data: jobCounts, error: jobsError } = await supabase
+        .from('jobs')
+        .select('category, companies(industry)');
+
+      if (jobsError) throw jobsError;
+
+      const countsMap: Record<string, number> = {};
+      jobCounts?.forEach(job => {
+        const industry = (job.companies as any)?.industry || job.category;
+        if (industry) {
+            const cleanInd = industry.trim();
+            countsMap[cleanInd] = (countsMap[cleanInd] || 0) + 1;
+        }
+      });
+
+      const processedIndustries = industriesData.map(ind => ({
+        ...ind,
+        active_jobs: countsMap[ind.name.trim()] || 0
+      }));
+
+      setIndustries(processedIndustries);
+    } catch (error) {
+      console.error('Error fetching industries:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIndustries();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this industry?')) return;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('industries')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      fetchIndustries();
+    } catch (error: any) {
+      alert('Error deleting industry: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateLogo = async (id: string, logoUrl: string) => {
+    try {
+      const { error } = await supabase
+        .from('industries')
+        .update({ logo_url: logoUrl })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      setIndustries(prev => prev.map(c => c.id === id ? { ...c, logo_url: logoUrl } : c));
+    } catch (error: any) {
+      alert('Error updating logo: ' + error.message);
+    }
+  };
+
+  const filteredIndustries = industries.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-10 p-6 bg-gray-50/30 min-h-screen">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <Badge className="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter">
+            Admin Dashboard
+          </Badge>
+          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Industry Management</h1>
+          <p className="text-gray-500 font-medium max-w-xl">Configure industry categories, brand assets, and track job distribution.</p>
+        </div>
+        <Button onClick={() => router.push('/admin/industries/new')} className="h-12 px-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 transition-all font-bold rounded-2xl">
+          <Plus className="mr-2 h-5 w-5" /> Add New Industry
+        </Button>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 py-4 px-2">
+        <div className="relative max-w-md w-full group">
+            <Search className="absolute left-4 top-3.5 h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+            <Input 
+              placeholder="Search by industry name..." 
+              className="pl-12 h-12 bg-white border-none shadow-xl shadow-gray-200/40 rounded-2xl focus:ring-4 focus:ring-indigo-100 transition-all text-sm font-semibold" 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+        </div>
+        <div className="flex items-center gap-6">
+            <div className="px-5 py-2.5 bg-white rounded-2xl shadow-lg shadow-gray-200/40 flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-black text-gray-500 uppercase tracking-[0.1em] whitespace-nowrap">
+                Total Industries: <span className="text-indigo-600 ml-1">{industries.length}</span>
+              </span>
+            </div>
+        </div>
+      </div>
+
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+      >
+        {loading && industries.length === 0 ? (
+          <div className="col-span-full py-32 flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <Loader2 className="w-16 h-16 animate-spin text-indigo-500" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Layers className="h-5 w-5 text-indigo-600" />
+              </div>
+            </div>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Architecting Dashboard...</p>
+          </div>
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {filteredIndustries.map((industry) => (
+              <motion.div
+                key={industry.id}
+                layout
+                variants={itemVariants}
+                whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                className="group h-full"
+              >
+                <Card className="p-6 border-none shadow-xl shadow-gray-200/50 rounded-[2rem] bg-white h-full flex flex-col justify-between transition-all hover:shadow-2xl hover:shadow-indigo-100 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full -mr-12 -mt-12 group-hover:bg-indigo-50/50 transition-colors duration-500" />
+                  
+                  <div className="relative z-10 overflow-hidden">
+                      <div className="flex justify-between items-start mb-4">
+                          <div className="w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-white shadow-xl transition-all duration-500 group-hover:scale-110 bg-gray-50 p-1">
+                              {industry.logo_url ? (
+                                <img src={industry.logo_url} alt={industry.name} className="w-full h-full object-contain" />
+                              ) : (
+                                <Layers className="h-8 w-8 text-gray-400" />
+                              )}
+                          </div>
+                          <div className="flex gap-1.5 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                onClick={() => router.push(`/admin/industries/${industry.id}/edit`)}
+                             >
+                                <Edit3 className="h-4 w-4" />
+                             </Button>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                onClick={() => handleDelete(industry.id)}
+                             >
+                                <Trash2 className="h-4 w-4" />
+                             </Button>
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-1 mb-2">
+                        <div className="flex items-center gap-2">
+                           <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                            {industry.name}
+                           </h3>
+                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 fill-emerald-50 shrink-0" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5 mb-3">
+                          <div className="flex items-center text-[10px] font-bold text-gray-400 gap-2.5">
+                              <div className="p-1.5 rounded-lg bg-gray-50 text-gray-400 group-hover:bg-white group-hover:shadow-sm group-hover:text-indigo-500 transition-all">
+                                <Layers className="h-3 w-3" />
+                              </div>
+                              <span className="text-gray-900 font-black">{industry.active_jobs}</span> Active Positions
+                          </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-gray-50 space-y-3">
+                        <div>
+                          <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Logo URL (Icon)</label>
+                          <Input 
+                            defaultValue={industry.logo_url || ''} 
+                            onBlur={(e) => handleUpdateLogo(industry.id, e.target.value)}
+                            className="h-8 text-[10px] font-bold border-gray-100 bg-gray-50/50 rounded-lg focus:bg-white transition-all"
+                            placeholder="https://..."
+                          />
+                        </div>
+                      </div>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+      </motion.div>
+    </div>
+  );
+}

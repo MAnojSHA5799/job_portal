@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Shield, ShieldCheck, Target, Zap, Globe, Users, BarChart } from 'lucide-react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 const Counter = ({ value, suffix = "", duration = 2 }: { value: number, suffix?: string, duration?: number }) => {
   const count = useMotionValue(0);
@@ -23,27 +24,87 @@ const Counter = ({ value, suffix = "", duration = 2 }: { value: number, suffix?:
   return <span>{displayValue}{suffix}</span>;
 };
 
+const defaultContent = {
+  stats: [
+    { label: 'Active Listings', value: 500, suffix: 'k+', color: 'blue' },
+    { label: 'Company Sources', value: 12, suffix: 'k+', color: 'indigo' },
+    { label: 'Real-time Updates', value: 24, suffix: '/7', color: 'amber' },
+    { label: 'Accuracy Rate', value: 98, suffix: '%', color: 'emerald' },
+  ],
+  mission: {
+    heading_line1: 'Democratizing the',
+    heading_line2: 'Future of Work.',
+    description: "The current job market is broken. Opportunities are scattered across thousands of hidden career pages. We built the world's most advanced scraper to find them all.",
+    image_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
+    features: [
+      { title: 'Direct-to-Source Integrity', description: 'We bypass middle-man job boards to connect you directly with official company hiring portals.' },
+      { title: 'Low-Latency Intelligence', description: "Our scraper updates every hour, ensuring you're among the first 1% to apply for new roles." },
+    ]
+  },
+  tech_stack: {
+    heading: 'Our Technology DNA',
+    description: "We don't just find jobs; we analyze and verify them at scale.",
+    items: [
+      { title: 'Massive Crawling', desc: 'Our bots visit 10,000+ career websites every hour using distributed cloud infrastructure.' },
+      { title: 'Neural Data Extraction', desc: 'We use Large Language Models (LLMs) to structure chaotic job descriptions into clean, filterable data.' },
+      { title: 'Integrity Shield', desc: 'Our AI detects duplicates, scams, and expired roles before they ever reach your dashboard.' },
+    ]
+  },
+  cta: {
+    heading: 'Stop Searching.\nStart Applying.'
+  }
+};
+
 export default function AboutPage() {
+  const [content, setContent] = useState<typeof defaultContent>(defaultContent);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('static_pages')
+          .select('content')
+          .eq('page_slug', 'about')
+          .single();
+
+        if (!error && data?.content) {
+          setContent({ ...defaultContent, ...data.content });
+        }
+      } catch (err) {
+        console.error('Error fetching about content:', err);
+      }
+    };
+    fetchContent();
+  }, []);
+
+  const statIconMap: Record<string, React.ReactNode> = {
+    blue: <BarChart className="w-5 h-5" />,
+    indigo: <Globe className="w-5 h-5" />,
+    amber: <Zap className="w-5 h-5" />,
+    emerald: <ShieldCheck className="w-5 h-5" />,
+  };
+
+  const techIconMap = [
+    <Globe key="globe" className="w-8 h-8 text-primary" />,
+    <Zap key="zap" className="w-8 h-8 text-indigo-500" />,
+    <ShieldCheck key="shield" className="w-8 h-8 text-emerald-500" />,
+  ];
+
+  const techBgMap = ['bg-primary/5', 'bg-indigo-50', 'bg-emerald-50'];
+
   return (
     <div className="bg-white">
-      {/* Stats Section - Redesigned for Impact */}
+      {/* Stats Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.03),transparent)] pointer-events-none" />
-        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-sm font-black text-primary uppercase tracking-[0.3em]">Our Impact in Numbers</h2>
             <p className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">The scale of our career ecosystem</p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { label: 'Active Listings', value: 500, suffix: 'k+', icon: <BarChart className="w-5 h-5" />, color: 'blue' },
-              { label: 'Company Sources', value: 12, suffix: 'k+', icon: <Globe className="w-5 h-5" />, color: 'indigo' },
-              { label: 'Real-time Updates', value: 24, suffix: '/7', icon: <Zap className="w-5 h-5" />, color: 'amber' },
-              { label: 'Accuracy Rate', value: 98, suffix: '%', icon: <ShieldCheck className="w-5 h-5" />, color: 'emerald' },
-            ].map((stat, i) => (
-              <motion.div 
+            {content.stats.map((stat, i) => (
+              <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -58,7 +119,7 @@ export default function AboutPage() {
                   stat.color === 'amber' && "bg-amber-100 text-amber-600",
                   stat.color === 'emerald' && "bg-emerald-100 text-emerald-600",
                 )}>
-                  {stat.icon}
+                  {statIconMap[stat.color]}
                 </div>
                 <div className="space-y-1">
                   <p className="text-3xl font-black text-slate-900 tracking-tighter">
@@ -72,13 +133,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Our Mission - Split Layout with Premium Cards */}
+      {/* Mission Section */}
       <section className="py-24 bg-slate-950 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
-        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -89,51 +149,40 @@ export default function AboutPage() {
                   Our Mission
                 </div>
                 <h2 className="text-3xl md:text-4xl font-black text-white leading-tight tracking-tight">
-                  Democratizing the <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400 font-black">Future of Work.</span>
+                  {content.mission.heading_line1} <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-400 font-black">{content.mission.heading_line2}</span>
                 </h2>
-                <p className="text-slate-400 leading-relaxed text-lg max-w-xl">
-                  The current job market is broken. Opportunities are scattered across thousands of hidden career pages. We built the world's most advanced scraper to find them all.
-                </p>
+                <p className="text-slate-400 leading-relaxed text-lg max-w-xl">{content.mission.description}</p>
               </div>
-
               <div className="grid grid-cols-1 gap-6">
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex gap-6 group hover:bg-white/[0.08] transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Target className="w-7 h-7 text-primary" />
+                {content.mission.features.map((feat, i) => (
+                  <div key={i} className="p-6 rounded-3xl bg-white/5 border border-white/10 flex gap-6 group hover:bg-white/[0.08] transition-all">
+                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0", i === 0 ? "bg-primary/20" : "bg-indigo-500/20")}>
+                      {i === 0 ? <Target className={cn("w-7 h-7", "text-primary")} /> : <Zap className="w-7 h-7 text-indigo-400" />}
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white mb-1">{feat.title}</h4>
+                      <p className="text-sm text-slate-500 leading-relaxed">{feat.description}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-1">Direct-to-Source Integrity</h4>
-                    <p className="text-sm text-slate-500 leading-relaxed">We bypass middle-man job boards to connect you directly with official company hiring portals.</p>
-                  </div>
-                </div>
-                <div className="p-6 rounded-3xl bg-white/5 border border-white/10 flex gap-6 group hover:bg-white/[0.08] transition-all">
-                  <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-7 h-7 text-indigo-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-bold text-white mb-1">Low-Latency Intelligence</h4>
-                    <p className="text-sm text-slate-500 leading-relaxed">Our scraper updates every hour, ensuring you're among the first 1% to apply for new roles.</p>
-                  </div>
-                </div>
+                ))}
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               className="relative"
             >
               <div className="aspect-[4/5] rounded-[60px] overflow-hidden border-8 border-white/5 shadow-2xl relative group">
-                <img 
-                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800" 
-                  alt="Modern Office" 
+                <img
+                  src={content.mission.image_url}
+                  alt="Mission"
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
               </div>
-              
               <div className="absolute -bottom-6 -right-6 md:-right-12 bg-white p-8 rounded-[40px] shadow-2xl border border-slate-100 max-w-[280px]">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -150,36 +199,16 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Tech Stack - Modern Grid */}
+      {/* Tech Stack Section */}
       <section className="py-32 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-20 space-y-4">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Our Technology DNA</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto text-lg">We don't just find jobs; we analyze and verify them at scale.</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{content.tech_stack.heading}</h2>
+            <p className="text-slate-500 max-w-2xl mx-auto text-lg">{content.tech_stack.description}</p>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {[
-              { 
-                title: 'Massive Crawling', 
-                desc: 'Our bots visit 10,000+ career websites every hour using distributed cloud infrastructure.',
-                icon: <Globe className="w-8 h-8 text-primary" />,
-                bg: 'bg-primary/5'
-              },
-              { 
-                title: 'Neural Data Extraction', 
-                desc: 'We use Large Language Models (LLMs) to structure chaotic job descriptions into clean, filterable data.',
-                icon: <Zap className="w-8 h-8 text-indigo-500" />,
-                bg: 'bg-indigo-50'
-              },
-              { 
-                title: 'Integrity Shield', 
-                desc: 'Our AI detects duplicates, scams, and expired roles before they ever reach your dashboard.',
-                icon: <ShieldCheck className="w-8 h-8 text-emerald-500" />,
-                bg: 'bg-emerald-50'
-              }
-            ].map((item, i) => (
-              <motion.div 
+            {content.tech_stack.items.map((item, i) => (
+              <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -187,8 +216,8 @@ export default function AboutPage() {
                 transition={{ delay: i * 0.1 }}
                 className="space-y-8"
               >
-                <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center", item.bg)}>
-                  {item.icon}
+                <div className={cn("w-20 h-20 rounded-3xl flex items-center justify-center", techBgMap[i])}>
+                  {techIconMap[i]}
                 </div>
                 <div className="space-y-4">
                   <h4 className="text-xl font-black text-slate-900">{item.title}</h4>
@@ -200,10 +229,10 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA Section - Ultra Premium */}
+      {/* CTA Section */}
       <section className="pb-16 px-4">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -211,23 +240,15 @@ export default function AboutPage() {
           >
             <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-white/10 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-slate-950/20 rounded-full blur-[100px] -ml-32 -mb-32 pointer-events-none" />
-            
             <div className="relative z-10 space-y-8">
-              <h2 className="text-3xl md:text-5xl font-black text-white leading-tight">
-                Stop Searching. <br />
-                Start Applying.
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-tight whitespace-pre-line">
+                {content.cta.heading}
               </h2>
               <div className="flex flex-wrap justify-center gap-4">
-                <Link 
-                  href="/jobs"
-                  className="px-10 py-4 bg-white text-primary font-black rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/20 uppercase tracking-[0.2em] text-sm inline-block"
-                >
+                <Link href="/jobs" className="px-10 py-4 bg-white text-primary font-black rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/20 uppercase tracking-[0.2em] text-sm inline-block">
                   Explore Jobs
                 </Link>
-                <Link 
-                  href="/contact"
-                  className="px-10 py-4 bg-primary-foreground/10 text-white border border-white/20 font-black rounded-2xl transition-all hover:bg-white/10 uppercase tracking-[0.2em] text-sm inline-block"
-                >
+                <Link href="/contact" className="px-10 py-4 bg-primary-foreground/10 text-white border border-white/20 font-black rounded-2xl transition-all hover:bg-white/10 uppercase tracking-[0.2em] text-sm inline-block">
                   Contact Us
                 </Link>
               </div>

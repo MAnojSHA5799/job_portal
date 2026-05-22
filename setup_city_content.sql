@@ -24,3 +24,13 @@ CREATE TRIGGER update_city_content_updated_at
 BEFORE UPDATE ON city_content
 FOR EACH ROW
 EXECUTE PROCEDURE update_city_content_updated_at();
+
+-- Disable Row Level Security so the app can read/write freely
+ALTER TABLE city_content DISABLE ROW LEVEL SECURITY;
+
+-- New SEO Content columns
+ALTER TABLE city_content 
+ADD COLUMN IF NOT EXISTS seo_heading TEXT,
+ADD COLUMN IF NOT EXISTS seo_description TEXT,
+ADD COLUMN IF NOT EXISTS salary_heading TEXT,
+ADD COLUMN IF NOT EXISTS salary_description TEXT;

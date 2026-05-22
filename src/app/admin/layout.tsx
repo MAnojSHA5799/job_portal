@@ -11,6 +11,7 @@ import {
   Building2, 
   Settings, 
   Bell, 
+  Layers,
   Search, 
   Menu, 
   X,
@@ -20,7 +21,9 @@ import {
   Newspaper,
   Target,
   Users,
-  FileText
+  FileText,
+  MapPin,
+  AppWindow
 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -33,6 +36,9 @@ const menuItems = [
   { icon: Target, label: 'Scraper Targets', href: '/admin/scraper-targets' },
   { icon: Copy, label: 'Duplicate Jobs', href: '/admin/duplicates' },
   { icon: Building2, label: 'Companies', href: '/admin/companies' },
+  { icon: Layers, label: 'Industries', href: '/admin/industries' },
+  { icon: MapPin, label: 'City Content', href: '/admin/city-content' },
+  { icon: AppWindow, label: 'Static Pages', href: '/admin/pages' },
   { icon: Newspaper, label: 'Blogs', href: '/admin/blogs' },
   { icon: ImageIcon, label: 'Banners', href: '/admin/banners' },
   { icon: Settings, label: 'Settings', href: '/admin/settings' },

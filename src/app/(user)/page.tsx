@@ -2,10 +2,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button, Card } from '@/components/ui';
-import { 
-  Search, 
-  MapPin, 
-  Briefcase, 
+import {
+  Search,
+  MapPin,
+  Briefcase,
   ArrowRight,
   Star,
   Coins,
@@ -60,17 +60,19 @@ export default function HomePage() {
   const [selectedExperience, setSelectedExperience] = useState('');
   const [selectedSkills, setSelectedSkills] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('');
-  
+
   const [jobs, setJobs] = useState<any[]>([]);
   const [totalJobs, setTotalJobs] = useState(0);
   const [dbCompanies, setDbCompanies] = useState<any[]>([]);
   const [popularCompanies, setPopularCompanies] = useState<any[]>([]);
+  const [industries, setIndustries] = useState<any[]>([]);
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [industryCounts, setIndustryCounts] = useState<Record<string, number>>({});
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
-  
+
   // Mobile Slider State for Jobs
   const [jobPageIndex, setJobPageIndex] = useState(0);
   const jobsPerSlide = 4;
@@ -100,7 +102,7 @@ export default function HomePage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch Jobs
       const { data, error } = await supabase
         .from('jobs')
@@ -110,7 +112,8 @@ export default function HomePage() {
             id,
             name,
             logo_url,
-            url_slug
+            url_slug,
+            industry
           )
         `)
         .eq('is_approved', true)
@@ -126,27 +129,27 @@ export default function HomePage() {
         .select('name, logo_url')
         .not('logo_url', 'is', null)
         .limit(15);
-      
+
       setDbCompanies(compData || []);
 
-      // Fetch Popular Companies (sorted by team size if possible, or just limit)
+      // Fetch Popular Companies (latest added companies)
       const { data: popCompData } = await supabase
         .from('companies')
         .select(`
           *,
           jobs(id)
         `)
-        .not('logo_url', 'is', null)
-        .limit(10);
-      
+        .order('created_at', { ascending: false })
+        .limit(20);
+
       setPopularCompanies(popCompData || []);
-      
+
       // Fetch all unique company names for suggestions
       const { data: allCompNames } = await supabase
         .from('companies')
         .select('name')
         .order('name');
-      
+
       if (allCompNames) {
         const uniqueNames = Array.from(new Set(allCompNames.map(c => c.name).filter(Boolean)));
         setCompanySuggestions(uniqueNames as string[]);
@@ -159,17 +162,35 @@ export default function HomePage() {
         .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(3);
-      
+
       setBlogs(blogData || []);
 
-      // Process Category Counts
-      const counts: Record<string, number> = {};
+      // Fetch Industries
+      const { data: indData } = await supabase
+        .from('industries')
+        .select('*')
+        .order('name');
+      setIndustries(indData || []);
+
+      // Process Category & Industry Counts separately
+      const catCounts: Record<string, number> = {};
+      const indCounts: Record<string, number> = {};
+      
       data?.forEach(job => {
+        // Count for job categories
         if (job.category) {
-          counts[job.category] = (counts[job.category] || 0) + 1;
+          catCounts[job.category] = (catCounts[job.category] || 0) + 1;
+        }
+        
+        // Count for company industries
+        const industry = job.companies?.industry;
+        if (industry) {
+          const cleanInd = industry.trim();
+          indCounts[cleanInd] = (indCounts[cleanInd] || 0) + 1;
         }
       });
-      setCategoryCounts(counts);
+      setCategoryCounts(catCounts);
+      setIndustryCounts(indCounts);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -181,18 +202,18 @@ export default function HomePage() {
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
       const companyName = job.companies?.name || '';
-      const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           companyName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        companyName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLocation = job.location?.toLowerCase().includes(locationQuery.toLowerCase());
       const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
       const matchesType = selectedType ? job.job_type === selectedType : true;
       const matchesExperience = selectedExperience ? job.experience_level === selectedExperience : true;
-      
+
       // Salary filter logic (basic string check for now)
       const matchesSalary = selectedSalary ? (job.salary_range || '').includes(selectedSalary) : true;
       const matchesSkills = selectedSkills ? (job.description || '').toLowerCase().includes(selectedSkills.toLowerCase()) : true;
       const matchesLanguage = selectedLanguage ? (job.description || '').toLowerCase().includes(selectedLanguage.toLowerCase()) : true;
-      
+
       return matchesSearch && matchesLocation && matchesCategory && matchesType && matchesExperience && matchesSalary && matchesSkills && matchesLanguage;
     });
   }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, jobs]);
@@ -227,80 +248,80 @@ export default function HomePage() {
       <section className="relative pt-16 pb-0 bg-[#F8F9FE] overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
-            <div 
+            <div
               className="max-w-2xl text-left"
             >
-              <span 
+              <span
                 className="text-[#4f46e5] font-bold text-xs uppercase tracking-widest mb-4 block"
               >
                 INDIA'S #1 JOB PLATFORM
               </span>
-              <h1 
+              <h1
                 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight mb-4 tracking-tight"
               >
-                Your job search <br />ends here
+                Your job search ends here
               </h1>
-              <p 
+              <p
                 className="text-gray-500 text-lg font-medium mb-10"
               >
                 Discover {totalJobs.toLocaleString()}+ career opportunities
               </p>
 
               {/* Search UI matching image */}
-              <div 
+              <div
                 className="w-full space-y-6"
               >
                 <div className="relative group max-w-4xl">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                     <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
                   </div>
-                  <input 
+                  <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setShowCompanySuggestions(true);
+                      setSearchQuery(e.target.value);
+                      setShowCompanySuggestions(true);
                     }}
                     onFocus={() => setShowCompanySuggestions(true)}
                     onBlur={() => setTimeout(() => setShowCompanySuggestions(false), 200)}
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSearch();
+                      if (e.key === 'Enter') handleSearch();
                     }}
                     placeholder="Search Job Title or Company name..."
                     className="w-full h-16 pl-14 pr-32 bg-white rounded-full shadow-lg border-0 text-base font-medium focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-gray-400"
                   />
                   <AnimatePresence>
                     {showCompanySuggestions && searchQuery && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute top-full left-0 right-0 mt-4 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 overflow-hidden"
-                        >
-                            {companySuggestions
-                                .filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                .slice(0, 5)
-                                .map((name, i) => (
-                                    <button
-                                        key={i}
-                                        type="button"
-                                        onClick={() => {
-                                            setSearchQuery(name);
-                                            setShowCompanySuggestions(false);
-                                        }}
-                                        className="w-full px-6 py-4 text-left hover:bg-gray-50 text-sm font-bold text-gray-600 hover:text-primary transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3"
-                                    >
-                                        <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-primary/10">
-                                            <Building2 className="h-4 w-4 text-gray-400 group-hover:text-primary" />
-                                        </div>
-                                        {name}
-                                    </button>
-                                ))}
-                        </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full left-0 right-0 mt-4 bg-white rounded-2xl border border-gray-100 shadow-2xl z-50 overflow-hidden"
+                      >
+                        {companySuggestions
+                          .filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .slice(0, 5)
+                          .map((name, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery(name);
+                                setShowCompanySuggestions(false);
+                              }}
+                              className="w-full px-6 py-4 text-left hover:bg-gray-50 text-sm font-bold text-gray-600 hover:text-primary transition-colors border-b border-gray-50 last:border-0 flex items-center gap-3"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-primary/10">
+                                <Building2 className="h-4 w-4 text-gray-400 group-hover:text-primary" />
+                              </div>
+                              {name}
+                            </button>
+                          ))}
+                      </motion.div>
                     )}
-                </AnimatePresence>
+                  </AnimatePresence>
                   <div className="absolute right-2 inset-y-2">
-                    <button 
+                    <button
                       onClick={() => handleSearch()}
                       className="h-full px-8 bg-primary hover:bg-primary/90 rounded-full transition-all flex items-center justify-center text-white font-bold text-sm shadow-md active:scale-95"
                     >
@@ -310,12 +331,12 @@ export default function HomePage() {
                 </div>
 
                 {/* Filter Pills Grid */}
-                <div 
+                <div
                   className="grid grid-cols-2 md:flex md:flex-wrap gap-3 max-w-5xl"
                 >
                   {/* Job Category */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -330,7 +351,7 @@ export default function HomePage() {
 
                   {/* Location */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={locationQuery}
                       onChange={(e) => setLocationQuery(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -349,7 +370,7 @@ export default function HomePage() {
 
                   {/* Experience */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={selectedExperience}
                       onChange={(e) => setSelectedExperience(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -365,7 +386,7 @@ export default function HomePage() {
 
                   {/* Employment Type */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={selectedType}
                       onChange={(e) => setSelectedType(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -381,7 +402,7 @@ export default function HomePage() {
 
                   {/* Skills */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={selectedSkills}
                       onChange={(e) => setSelectedSkills(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -399,7 +420,7 @@ export default function HomePage() {
 
                   {/* Salary */}
                   <div className="relative group">
-                    <select 
+                    <select
                       value={selectedSalary}
                       onChange={(e) => setSelectedSalary(e.target.value)}
                       className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
@@ -413,26 +434,11 @@ export default function HomePage() {
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
                   </div>
 
-                  {/* Language */}
-                  <div className="relative group">
-                    <select 
-                      value={selectedLanguage}
-                      onChange={(e) => setSelectedLanguage(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
-                    >
-                      <option value="">🗣️ Language</option>
-                      <option value="English">English</option>
-                      <option value="Hindi">Hindi</option>
-                      <option value="Kannada">Kannada</option>
-                      <option value="Tamil">Tamil</option>
-                      <option value="Telugu">Telugu</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
-                  </div>
+
 
                   {/* Clear Filters (Optional but good) */}
                   {(selectedCategory || locationQuery || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage) && (
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedCategory('');
                         setLocationQuery('');
@@ -450,7 +456,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div 
+              <div
                 className="space-y-6"
               >
                 <div>
@@ -458,20 +464,20 @@ export default function HomePage() {
                   <div className="relative overflow-hidden w-full h-16">
                     <div className="flex items-center gap-12 animate-infinite-scroll whitespace-nowrap absolute left-0 top-0 h-full">
                       {[...dbCompanies, ...dbCompanies, ...dbCompanies].map((company, i) => (
-                        <img 
-                          key={`${company.name}-${i}`} 
-                          src={company.logo_url} 
-                          alt={company.name} 
-                          className="h-8 w-auto object-contain inline-block" 
+                        <img
+                          key={`${company.name}-${i}`}
+                          src={company.logo_url}
+                          alt={company.name}
+                          className="h-8 w-auto object-contain inline-block"
                           style={{ filter: 'none', opacity: 1 }}
                           onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                         />
                       ))}
                       {dbCompanies.length === 0 && BRANDS.map(brand => (
-                        <img 
-                          key={brand.name} 
-                          src={brand.logo} 
-                          alt={brand.name} 
+                        <img
+                          key={brand.name}
+                          src={brand.logo}
+                          alt={brand.name}
                           className="h-8 w-auto object-contain inline-block"
                           style={{ filter: 'none', opacity: 1 }}
                         />
@@ -482,13 +488,13 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div 
+            <div
               className="hidden lg:block relative w-[500px]"
             >
-               <img src="/assets/hero-3d.png" alt="Professional Growth" className="w-full relative z-10 rounded-[2.5rem] shadow-2xl" />
-               <div 
-                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4f46e5]/10 rounded-full blur-[100px] -z-0"
-               ></div>
+              <img src="/assets/hero-3d.png" alt="Professional Growth" className="w-full relative z-10 rounded-[2.5rem] shadow-2xl" />
+              <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4f46e5]/10 rounded-full blur-[100px] -z-0"
+              ></div>
             </div>
           </div>
         </div>
@@ -523,171 +529,171 @@ export default function HomePage() {
 
       {/* Recent Jobs Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-gray-50">
-        <div 
+        <div
           className="flex items-center justify-between mb-12"
         >
-            <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Recent Jobs</h2>
-                <p className="text-gray-500 font-medium">Explore the latest opportunities across all categories</p>
-            </div>
-            <Link href="/jobs" className="hidden sm:block">
-                <Button variant="ghost" className="text-primary font-bold">View all jobs <ArrowRight className="ml-2 w-4 h-4" /></Button>
-            </Link>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Recent Jobs</h2>
+            <p className="text-gray-500 font-medium">Explore the latest opportunities across all categories</p>
+          </div>
+          <Link href="/jobs" className="hidden sm:block">
+            <Button variant="ghost" className="text-primary font-bold">View all jobs <ArrowRight className="ml-2 w-4 h-4" /></Button>
+          </Link>
         </div>
 
         {/* Desktop View (Original 3-column grid) */}
         <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {loading ? (
-                Array(9).fill(0).map((_, i) => (
-                    <div key={i} className="h-[220px] rounded-2xl bg-gray-50 animate-pulse"></div>
-                ))
-              ) : shuffledJobs.length > 0 ? (
-                shuffledJobs
-                  .slice(0, 9) // Show 9 jobs
-                  .map((job) => (
-                  <Link
-                    key={job.id}
-                    href={`/jobs/${job.url_slug || job.id}`}
-                    target="_blank"
-                    className="block h-full group/card"
-                  >
-                    <Card className="p-6 rounded-2xl group-hover/card:shadow-2xl group-hover/card:-translate-y-1 transition-all border border-gray-100 bg-white h-full flex flex-col justify-between overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
-                        
-                        <div className="relative z-10">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-100 p-2">
-                                    {job.companies?.logo_url ? (
-                                        <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center font-bold text-primary text-lg">
-                                            {(job.companies?.name || 'J').charAt(0)}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-tight border border-green-100">
-                                    {job.type || 'Full Time'}
-                                </div>
-                            </div>
-                            
-                            <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover/card:text-primary transition-colors line-clamp-1">
-                                {job.title}
-                            </h3>
-                            <p className="text-sm font-semibold text-gray-500 mb-4">{job.companies?.name}</p>
+          {loading ? (
+            Array(9).fill(0).map((_, i) => (
+              <div key={i} className="h-[220px] rounded-2xl bg-gray-50 animate-pulse"></div>
+            ))
+          ) : shuffledJobs.length > 0 ? (
+            shuffledJobs
+              .slice(0, 9) // Show 9 jobs
+              .map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/jobs/${job.url_slug || job.id}`}
+                  target="_blank"
+                  className="block h-full group/card"
+                >
+                  <Card className="p-6 rounded-2xl group-hover/card:shadow-2xl group-hover/card:-translate-y-1 transition-all border border-gray-100 bg-white h-full flex flex-col justify-between overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity" />
 
-                            <div className="space-y-2 mb-6">
-                                <div className="flex items-center text-xs font-semibold text-gray-500">
-                                    <MapPin className="w-4 h-4 mr-2 text-gray-400" /> {job.location || 'India'}
-                                </div>
-                                <div className="flex items-center text-xs font-semibold text-gray-500">
-                                    <Coins className="w-4 h-4 mr-2 text-gray-400" /> {job.salary || 'Not disclosed'}
-                                </div>
-                                <div className="flex items-center text-xs font-semibold text-gray-500">
-                                    <Briefcase className="w-4 h-4 mr-2 text-gray-400" /> {job.experience || 'Fresher'}
-                                </div>
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-100 p-2">
+                          {job.companies?.logo_url ? (
+                            <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center font-bold text-primary text-lg">
+                              {(job.companies?.name || 'J').charAt(0)}
                             </div>
+                          )}
                         </div>
+                        <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-bold uppercase tracking-tight border border-green-100">
+                          {job.type || 'Full Time'}
+                        </div>
+                      </div>
 
-                        <div className="pt-4 border-t border-gray-50 flex items-center justify-between gap-2 relative z-10">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">
-                                {new Date(job.created_at).toLocaleDateString()}
-                            </span>
-                            <Button className="h-9 px-6 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all text-[10px] uppercase tracking-widest pointer-events-none">
-                                Apply Now
-                            </Button>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover/card:text-primary transition-colors line-clamp-1">
+                        {job.title}
+                      </h3>
+                      <p className="text-sm font-semibold text-gray-500 mb-4">{job.companies?.name}</p>
+
+                      <div className="space-y-2 mb-6">
+                        <div className="flex items-center text-xs font-semibold text-gray-500">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-400" /> {job.location || 'India'}
                         </div>
-                    </Card>
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-full py-20 text-center">
-                    <p className="text-gray-500 font-bold">No jobs found in your database.</p>
-                </div>
-              )}
+                        <div className="flex items-center text-xs font-semibold text-gray-500">
+                          <Coins className="w-4 h-4 mr-2 text-gray-400" /> {job.salary || 'Not disclosed'}
+                        </div>
+                        <div className="flex items-center text-xs font-semibold text-gray-500">
+                          <Briefcase className="w-4 h-4 mr-2 text-gray-400" /> {job.experience || 'Fresher'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-50 flex items-center justify-between gap-2 relative z-10">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest shrink-0">
+                        {new Date(job.created_at).toLocaleDateString()}
+                      </span>
+                      <Button className="h-9 px-6 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all text-[10px] uppercase tracking-widest pointer-events-none">
+                        Apply Now
+                      </Button>
+                    </div>
+                  </Card>
+                </Link>
+              ))
+          ) : (
+            <div className="col-span-full py-20 text-center">
+              <p className="text-gray-500 font-bold">No jobs found in your database.</p>
+            </div>
+          )}
         </div>
 
         {/* Mobile View Slider (2x2 Grid with pagination) */}
         <div className="md:hidden space-y-8">
-            <div className="grid grid-cols-2 gap-4">
-                {shuffledJobs
-                  .slice(jobPageIndex * jobsPerSlide, (jobPageIndex + 1) * jobsPerSlide)
-                  .map((job) => (
-                    <Link
-                      key={job.id}
-                      href={`/jobs/${job.url_slug || job.id}`}
-                      target="_blank"
-                      className="block h-full"
-                    >
-                      <Card className="p-4 rounded-3xl border border-gray-100 bg-white h-full flex flex-col justify-between shadow-sm">
-                          <div className="relative z-10">
-                              <div className="flex justify-between items-start mb-3">
-                                  <div className="w-10 h-10 bg-white rounded-lg overflow-hidden border border-gray-50 p-2">
-                                      {job.companies?.logo_url ? (
-                                          <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                                      ) : (
-                                          <div className="w-full h-full flex items-center justify-center font-bold text-primary text-sm">
-                                              {(job.companies?.name || 'J').charAt(0)}
-                                          </div>
-                                      )}
-                                  </div>
-                              </div>
-                              
-                              <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">
-                                  {job.title}
-                              </h3>
-                              <p className="text-[10px] font-semibold text-gray-400 mb-4 line-clamp-1 uppercase tracking-wider">{job.companies?.name}</p>
+          <div className="grid grid-cols-2 gap-4">
+            {shuffledJobs
+              .slice(jobPageIndex * jobsPerSlide, (jobPageIndex + 1) * jobsPerSlide)
+              .map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/jobs/${job.url_slug || job.id}`}
+                  target="_blank"
+                  className="block h-full"
+                >
+                  <Card className="p-4 rounded-3xl border border-gray-100 bg-white h-full flex flex-col justify-between shadow-sm">
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="w-10 h-10 bg-white rounded-lg overflow-hidden border border-gray-50 p-2">
+                          {job.companies?.logo_url ? (
+                            <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center font-bold text-primary text-sm">
+                              {(job.companies?.name || 'J').charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-                              <div className="space-y-1.5 mb-4">
-                                  <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                                      <MapPin className="w-3 h-3 mr-1.5 text-indigo-400" /> {job.location || 'India'}
-                                  </div>
-                                  <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                                      <Coins className="w-3 h-3 mr-1.5 text-emerald-400" /> {job.salary || 'Not disclosed'}
-                                  </div>
-                              </div>
-                          </div>
+                      <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">
+                        {job.title}
+                      </h3>
+                      <p className="text-[10px] font-semibold text-gray-400 mb-4 line-clamp-1 uppercase tracking-wider">{job.companies?.name}</p>
 
-                          <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-1 relative z-10">
-                              <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest shrink-0">
-                                  {new Date(job.created_at).toLocaleDateString()}
-                              </span>
-                              <Button className="h-8 px-3 bg-primary text-white font-bold rounded-lg text-[8px] uppercase tracking-widest pointer-events-none">
-                                  Apply
-                              </Button>
-                          </div>
-                      </Card>
-                    </Link>
-                ))}
-            </div>
-
-            {/* Slider Controls */}
-            <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={() => setJobPageIndex(prev => Math.max(0, prev - 1))}
-                        disabled={jobPageIndex === 0}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="flex gap-1.5">
-                        {Array.from({ length: Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) }).map((_, i) => (
-                            <button 
-                                key={i}
-                                onClick={() => setJobPageIndex(i)}
-                                className={`h-1.5 transition-all duration-300 rounded-full ${i === jobPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                            />
-                        ))}
+                      <div className="space-y-1.5 mb-4">
+                        <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                          <MapPin className="w-3 h-3 mr-1.5 text-indigo-400" /> {job.location || 'India'}
+                        </div>
+                        <div className="flex items-center text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                          <Coins className="w-3 h-3 mr-1.5 text-emerald-400" /> {job.salary || 'Not disclosed'}
+                        </div>
+                      </div>
                     </div>
-                    <button 
-                        onClick={() => setJobPageIndex(prev => Math.min(Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1, prev + 1))}
-                        disabled={jobPageIndex >= Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
+
+                    <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-1 relative z-10">
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest shrink-0">
+                        {new Date(job.created_at).toLocaleDateString()}
+                      </span>
+                      <Button className="h-8 px-3 bg-primary text-white font-bold rounded-lg text-[8px] uppercase tracking-widest pointer-events-none">
+                        Apply
+                      </Button>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+          </div>
+
+          {/* Slider Controls */}
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setJobPageIndex(prev => Math.max(0, prev - 1))}
+                disabled={jobPageIndex === 0}
+                className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex gap-1.5">
+                {Array.from({ length: Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setJobPageIndex(i)}
+                    className={`h-1.5 transition-all duration-300 rounded-full ${i === jobPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => setJobPageIndex(prev => Math.min(Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1, prev + 1))}
+                disabled={jobPageIndex >= Math.ceil(Math.min(shuffledJobs.length, 16) / jobsPerSlide) - 1}
+                className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
+          </div>
         </div>
 
         {/* Bottom See More Button */}
@@ -711,7 +717,7 @@ export default function HomePage() {
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">Top <span className="text-primary italic">Industries</span></h2>
               <p className="text-gray-500 font-medium text-sm">Explore jobs by specialized industry sectors</p>
             </div>
-            
+
 
 
             <Link href="/jobs" className="hidden md:block text-primary font-bold text-sm hover:underline">Browse All</Link>
@@ -719,68 +725,77 @@ export default function HomePage() {
 
           {/* Desktop View (Original horizontal scroll) */}
           <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
-            {Object.entries(categoryCounts)
-              .sort((a, b) => b[1] - a[1])
-              .map(([name, count]) => (
-              <Link key={name} href={`/jobs?category=${name}`} target="_blank" className="snap-start">
-                <div className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
-                    {INDUSTRY_ICONS[name] || <Layers className="w-8 h-8 text-gray-400" />}
+            {industries.map((industry) => (
+                <Link key={industry.id} href={`/industry/${encodeURIComponent(industry.name)}`} className="snap-start">
+                  <div className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
+                      {industry.logo_url ? (
+                        <img src={industry.logo_url} alt={industry.name} className="w-full h-full object-contain" />
+                      ) : INDUSTRY_ICONS[industry.name] ? (
+                        INDUSTRY_ICONS[industry.name]
+                      ) : (
+                        <Layers className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{industry.name}</h3>
+                    <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{industryCounts[industry.name.trim()] || 0} Jobs</p>
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{name}</h3>
-                  <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{count} Jobs</p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
           </div>
 
           {/* Mobile View Slider (2x2 Grid) */}
           <div className="md:hidden space-y-8">
             <div className="grid grid-cols-2 gap-4">
-              {Object.entries(categoryCounts)
-                .sort((a, b) => b[1] - a[1])
+              {industries
                 .slice(industryPageIndex * industriesPerSlide, (industryPageIndex + 1) * industriesPerSlide)
-                .map(([name, count]) => (
-                <Link key={name} href={`/jobs?category=${name}`} target="_blank">
-                  <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden">
-                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3">
-                      {INDUSTRY_ICONS[name] || <Layers className="w-6 h-6 text-gray-400" />}
+                .map((industry) => (
+                  <Link key={industry.id} href={`/industry/${encodeURIComponent(industry.name)}`}>
+                    <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden">
+                      <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3">
+                        {industry.logo_url ? (
+                          <img src={industry.logo_url} alt={industry.name} className="w-full h-full object-contain" />
+                        ) : INDUSTRY_ICONS[industry.name] ? (
+                          INDUSTRY_ICONS[industry.name]
+                        ) : (
+                          <Layers className="w-6 h-6 text-gray-400" />
+                        )}
+                      </div>
+                      <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">{industry.name}</h3>
+                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">{industryCounts[industry.name.trim()] || 0} Jobs</p>
                     </div>
-                    <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1">{name}</h3>
-                    <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest">{count} Jobs</p>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
 
             {/* Pagination & Controls */}
             <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={() => setIndustryPageIndex(prev => Math.max(0, prev - 1))}
-                        disabled={industryPageIndex === 0}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="flex gap-1.5">
-                        {Array.from({ length: Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) }).map((_, i) => (
-                            <button 
-                                key={i}
-                                onClick={() => setIndustryPageIndex(i)}
-                                className={`h-1.5 transition-all duration-300 rounded-full ${i === industryPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                            />
-                        ))}
-                    </div>
-                    <button 
-                        onClick={() => setIndustryPageIndex(prev => Math.min(Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) - 1, prev + 1))}
-                        disabled={industryPageIndex >= Math.ceil(Object.entries(categoryCounts).length / industriesPerSlide) - 1}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIndustryPageIndex(prev => Math.max(0, prev - 1))}
+                  disabled={industryPageIndex === 0}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: Math.ceil(industries.length / industriesPerSlide) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setIndustryPageIndex(i)}
+                      className={`h-1.5 transition-all duration-300 rounded-full ${i === industryPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                    />
+                  ))}
                 </div>
+                <button
+                  onClick={() => setIndustryPageIndex(prev => Math.min(Math.ceil(industries.length / industriesPerSlide) - 1, prev + 1))}
+                  disabled={industryPageIndex >= Math.ceil(industries.length / industriesPerSlide) - 1}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -826,50 +841,50 @@ export default function HomePage() {
               {popularCompanies
                 .slice(companyPageIndex * companiesPerSlide, (companyPageIndex + 1) * companiesPerSlide)
                 .map((company) => (
-                <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank">
-                  <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden h-full">
-                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10">
-                      {company.logo_url ? (
-                        <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <div className="text-emerald-600 font-bold text-lg">{company.name[0]}</div>
-                      )}
+                  <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank">
+                    <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden h-full">
+                      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10">
+                        {company.logo_url ? (
+                          <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <div className="text-emerald-600 font-bold text-lg">{company.name[0]}</div>
+                        )}
+                      </div>
+                      <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
+                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
                     </div>
-                    <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
-                    <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
 
             {/* Pagination & Controls */}
             <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={() => setCompanyPageIndex(prev => Math.max(0, prev - 1))}
-                        disabled={companyPageIndex === 0}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="flex gap-1.5">
-                        {Array.from({ length: Math.ceil(popularCompanies.length / companiesPerSlide) }).map((_, i) => (
-                            <button 
-                                key={i}
-                                onClick={() => setCompanyPageIndex(i)}
-                                className={`h-1.5 transition-all duration-300 rounded-full ${i === companyPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                            />
-                        ))}
-                    </div>
-                    <button 
-                        onClick={() => setCompanyPageIndex(prev => Math.min(Math.ceil(popularCompanies.length / companiesPerSlide) - 1, prev + 1))}
-                        disabled={companyPageIndex >= Math.ceil(popularCompanies.length / companiesPerSlide) - 1}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setCompanyPageIndex(prev => Math.max(0, prev - 1))}
+                  disabled={companyPageIndex === 0}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: Math.ceil(popularCompanies.length / companiesPerSlide) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCompanyPageIndex(i)}
+                      className={`h-1.5 transition-all duration-300 rounded-full ${i === companyPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                    />
+                  ))}
                 </div>
+                <button
+                  onClick={() => setCompanyPageIndex(prev => Math.min(Math.ceil(popularCompanies.length / companiesPerSlide) - 1, prev + 1))}
+                  disabled={companyPageIndex >= Math.ceil(popularCompanies.length / companiesPerSlide) - 1}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -893,8 +908,8 @@ export default function HomePage() {
           {/* Desktop View (Original 3-column grid) */}
           <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-8">
             {blogs.map((post) => (
-              <Link 
-                key={post.id} 
+              <Link
+                key={post.id}
                 href={`/blog/${post.slug || post.id}`}
                 target="_blank"
                 className="block h-full group"
@@ -940,69 +955,69 @@ export default function HomePage() {
               {blogs
                 .slice(blogPageIndex * blogsPerSlide, (blogPageIndex + 1) * blogsPerSlide)
                 .map((post) => (
-                <Link 
-                  key={post.id} 
-                  href={`/blog/${post.slug || post.id}`}
-                  target="_blank"
-                  className="block h-full group"
-                >
-                  <div
-                    className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full hover:shadow-lg transition-shadow"
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug || post.id}`}
+                    target="_blank"
+                    className="block h-full group"
                   >
-                    <div className="h-32 bg-gray-100 relative overflow-hidden">
-                      {post.image_url ? (
-                        <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                          <Newspaper className="w-8 h-8 text-gray-200" />
+                    <div
+                      className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col h-full hover:shadow-lg transition-shadow"
+                    >
+                      <div className="h-32 bg-gray-100 relative overflow-hidden">
+                        {post.image_url ? (
+                          <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                            <Newspaper className="w-8 h-8 text-gray-200" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 flex flex-col flex-1">
+                        <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                          {post.category}
                         </div>
-                      )}
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                        {post.category}
-                      </div>
-                      <h3 className="text-[12px] font-bold text-gray-900 mb-4 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                        {post.title}
-                      </h3>
-                      <div className="mt-auto">
-                        <span className="text-primary font-bold text-[10px] uppercase tracking-widest flex items-center">
-                          Read <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
-                        </span>
+                        <h3 className="text-[12px] font-bold text-gray-900 mb-4 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                          {post.title}
+                        </h3>
+                        <div className="mt-auto">
+                          <span className="text-primary font-bold text-[10px] uppercase tracking-widest flex items-center">
+                            Read <ArrowRight className="h-3 w-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ))}
             </div>
 
             {/* Pagination & Controls */}
             <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={() => setBlogPageIndex(prev => Math.max(0, prev - 1))}
-                        disabled={blogPageIndex === 0}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="flex gap-1.5">
-                        {Array.from({ length: Math.ceil(blogs.length / blogsPerSlide) }).map((_, i) => (
-                            <button 
-                                key={i}
-                                onClick={() => setBlogPageIndex(i)}
-                                className={`h-1.5 transition-all duration-300 rounded-full ${i === blogPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
-                            />
-                        ))}
-                    </div>
-                    <button 
-                        onClick={() => setBlogPageIndex(prev => Math.min(Math.ceil(blogs.length / blogsPerSlide) - 1, prev + 1))}
-                        disabled={blogPageIndex >= Math.ceil(blogs.length / blogsPerSlide) - 1}
-                        className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setBlogPageIndex(prev => Math.max(0, prev - 1))}
+                  disabled={blogPageIndex === 0}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: Math.ceil(blogs.length / blogsPerSlide) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setBlogPageIndex(i)}
+                      className={`h-1.5 transition-all duration-300 rounded-full ${i === blogPageIndex ? 'w-6 bg-primary' : 'w-1.5 bg-gray-200'}`}
+                    />
+                  ))}
                 </div>
+                <button
+                  onClick={() => setBlogPageIndex(prev => Math.min(Math.ceil(blogs.length / blogsPerSlide) - 1, prev + 1))}
+                  disabled={blogPageIndex >= Math.ceil(blogs.length / blogsPerSlide) - 1}
+                  className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

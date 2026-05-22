@@ -42,10 +42,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
-  const [navData, setNavData] = useState<{ cities: string[], categories: string[], types: string[] }>({ 
+  const [navData, setNavData] = useState<{ cities: string[], categories: string[], types: string[], industries: string[] }>({ 
     cities: ['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'], 
     categories: ['IT', 'Sales', 'Marketing', 'Accounting', 'Production'],
-    types: ['Full Time', 'Part Time', 'Contract', 'Remote', 'Freshers']
+    types: ['Full Time', 'Part Time', 'Contract', 'Remote', 'Freshers'],
+    industries: ['Manufacturing', 'Technology', 'Healthcare', 'Automotive']
   });
 
   useEffect(() => {
@@ -80,10 +81,18 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             .filter(Boolean)
             .slice(0, 6);
 
+          const { data: indData } = await supabase
+            .from('industries')
+            .select('name')
+            .limit(6);
+
+          const uniqueInd = indData ? indData.map(i => i.name).filter(Boolean) : [];
+
           setNavData({
             cities: uniqueCities.length > 0 ? uniqueCities : navData.cities,
             categories: uniqueCats.length > 0 ? uniqueCats : navData.categories,
-            types: uniqueTypes.length > 0 ? uniqueTypes : navData.types
+            types: uniqueTypes.length > 0 ? uniqueTypes : navData.types,
+            industries: uniqueInd.length > 0 ? uniqueInd : navData.industries
           });
         }
       } catch (error) {
@@ -111,13 +120,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   ];
 
   const jobsDropdownItems = {
-    left: navData.types.map(type => ({
-      name: `${type} Jobs`,
-      href: `/jobs/${type.toLowerCase().replace(/\s+/g, '-')}`
-    })),
-    right: navData.categories.map(cat => ({
+    left: navData.categories.map(cat => ({
       name: `Jobs in ${cat}`,
-      href: `/jobs/${cat.toLowerCase().replace(/\s+/g, '-')}`
+      href: `/jobs?category=${encodeURIComponent(cat)}`
+    })),
+    right: navData.industries.map(ind => ({
+      name: ind,
+      href: `/industry/${encodeURIComponent(ind)}`
     }))
   };
 

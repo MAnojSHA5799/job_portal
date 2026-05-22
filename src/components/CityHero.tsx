@@ -7,9 +7,12 @@ interface CityHeroProps {
   cityName: string;
   jobCount: number;
   majorIndustry: string;
+  customHeading?: string | null;
+  customSubheading?: string | null;
+  customDescription?: string | null;
 }
 
-export const CityHero = ({ cityName, jobCount, majorIndustry }: CityHeroProps) => {
+export const CityHero = ({ cityName, jobCount, majorIndustry, customHeading, customSubheading, customDescription }: CityHeroProps) => {
   return (
     <div className="bg-gray-900 py-24 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 via-gray-900 to-transparent z-0" />
@@ -25,19 +28,27 @@ export const CityHero = ({ cityName, jobCount, majorIndustry }: CityHeroProps) =
         <h1 
           className="text-4xl md:text-6xl font-black mb-8 tracking-tight leading-[1.1]"
         >
-          Manufacturing Jobs in <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-primary">{cityName}</span>
+          {customHeading ? (
+            <span dangerouslySetInnerHTML={{ __html: customHeading.replace('{cityName}', `<span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-primary">${cityName}</span>`) }} />
+          ) : (
+            <>Manufacturing Jobs in <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-primary">{cityName}</span></>
+          )}
           <br />
           <span 
             className="text-2xl md:text-4xl text-gray-500 block mt-2"
           >
-            {jobCount} Verified Openings Today
+            {customSubheading ? customSubheading.replace('{jobCount}', jobCount.toString()) : `${jobCount} Verified Openings Today`}
           </span>
         </h1>
 
         <p 
           className="text-lg md:text-xl text-gray-400 max-w-2xl font-medium leading-relaxed border-l-4 border-indigo-600/30 pl-6"
         >
-          {cityName} is a key industrial hub. Explore verified career opportunities in <span className="text-white">{majorIndustry}</span> and other high-growth sectors within the city.
+          {customDescription ? (
+            customDescription.replace('{cityName}', cityName)
+          ) : (
+            <>{cityName} is a key industrial hub. Explore verified career opportunities in <span className="text-white">{majorIndustry}</span> and other high-growth sectors within the city.</>
+          )}
         </p>
 
         {/* Stats Row in Hero */}

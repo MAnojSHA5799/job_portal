@@ -52,6 +52,14 @@ export default async function LocationPage({ params }: Props) {
     .eq('is_approved', true)
     .order('created_at', { ascending: false });
 
+  // Fetch city content override
+  const { data: cityContent } = await supabase
+    .from('city_content')
+    .select('*')
+    .ilike('city_name', citySlug)
+    .eq('is_active', true)
+    .single();
+
   // Fetch unique categories (roles) in this city for sidebar
   const { data: cityRoles } = await supabase
     .from('jobs')
@@ -94,7 +102,10 @@ export default async function LocationPage({ params }: Props) {
       <CityHero 
         cityName={cityName} 
         jobCount={jobCount} 
-        majorIndustry={majorIndustry} 
+        majorIndustry={majorIndustry}
+        customHeading={cityContent?.heading}
+        customSubheading={cityContent?.subheading}
+        customDescription={cityContent?.description}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -171,10 +182,22 @@ export default async function LocationPage({ params }: Props) {
             {/* SEO Content: Dynamic Industry Overview */}
             <Card className="p-10 border-0 shadow-2xl shadow-gray-100 bg-white rounded-[40px] prose prose-slate max-w-none">
                 <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                    <Building2 className="w-6 h-6 text-indigo-600" /> Manufacturing Industry in {cityName}
+                    <Building2 className="w-6 h-6 text-indigo-600" /> 
+                    {cityContent?.seo_heading ? (
+                        cityContent.seo_heading.replace('{cityName}', cityName)
+                    ) : (
+                        `Manufacturing Industry in ${cityName}`
+                    )}
                 </h2>
-                <p className="text-gray-600 font-medium">
-                    With {jobCount} active job openings, {cityName} continues to be a destination for skilled workers in India. The local industry is characterized by a strong presence of {majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.
+                <p className="text-gray-600 font-medium whitespace-pre-line">
+                    {cityContent?.seo_description ? (
+                        cityContent.seo_description
+                            .replace('{cityName}', cityName)
+                            .replace('{jobCount}', jobCount.toString())
+                            .replace('{majorIndustry}', majorIndustry)
+                    ) : (
+                        `With ${jobCount} active job openings, ${cityName} continues to be a destination for skilled workers in India. The local industry is characterized by a strong presence of ${majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.`
+                    )}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-10 not-prose">
                     <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
@@ -193,9 +216,22 @@ export default async function LocationPage({ params }: Props) {
                         <p className="text-xs text-amber-700 font-bold">{cityName}, India</p>
                     </div>
                 </div>
-                <h3 className="text-xl font-black text-gray-900 mb-4">Salary & Benefits in {cityName}</h3>
-                <p className="text-gray-600 font-medium">
-                    Manufacturing companies in {cityName} provide competitive compensation packages. Current listings show a variety of roles with benefits like PF, ESIC, and performance bonuses. Most employers in the area prioritize safety and skill development for their workforce.
+                <h3 className="text-xl font-black text-gray-900 mb-4">
+                    {cityContent?.salary_heading ? (
+                        cityContent.salary_heading.replace('{cityName}', cityName)
+                    ) : (
+                        `Salary & Benefits in ${cityName}`
+                    )}
+                </h3>
+                <p className="text-gray-600 font-medium whitespace-pre-line">
+                    {cityContent?.salary_description ? (
+                        cityContent.salary_description
+                            .replace('{cityName}', cityName)
+                            .replace('{jobCount}', jobCount.toString())
+                            .replace('{majorIndustry}', majorIndustry)
+                    ) : (
+                        `Manufacturing companies in ${cityName} provide competitive compensation packages. Current listings show a variety of roles with benefits like PF, ESIC, and performance bonuses. Most employers in the area prioritize safety and skill development for their workforce.`
+                    )}
                 </p>
             </Card>
 
