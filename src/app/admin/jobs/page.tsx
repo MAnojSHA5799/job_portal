@@ -355,6 +355,43 @@ export default function JobsQueue() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          companies(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
+      if (!data) return;
+
+      const csvHeader = 'ID,Title,Company,Location,Type,Salary Range,Status,Created At\n';
+      const csvRows = data.map((job: any) => {
+        return `"${job.id}","${(job.title || '').replace(/"/g, '""')}","${(job.companies?.name || '').replace(/"/g, '""')}","${(job.location || '').replace(/"/g, '""')}","${job.type || ''}","${(job.salary_range || '').replace(/"/g, '""')}","${job.is_approved ? 'Approved' : 'Pending'}","${new Date(job.created_at).toLocaleString()}"`;
+      }).join('\n');
+      const csvContent = csvHeader + csvRows;
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `jobs_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Error exporting jobs:', err);
+      alert('Failed to export jobs');
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
   return (
@@ -382,7 +419,7 @@ export default function JobsQueue() {
           <div className="flex items-center gap-3">
             {[
               { icon: RefreshCcw, onClick: () => { fetchJobs(); fetchStats(); }, loading: loading, type: 'icon' },
-              { icon: FileDown, text: 'Export', type: 'button' },
+              { icon: FileDown, text: 'Export', type: 'button', onClick: handleExport },
               { icon: Wand2, text: isBulkEnhancing ? `Enhancing ${enhancingProgress.current}/${enhancingProgress.total}` : 'ALL AI ENHANCE', onClick: handleBulkEnhance, disabled: isBulkEnhancing || loading || jobs.length === 0, type: 'enhance' },
               { icon: Plus, text: 'POST NEW JOB', href: '/admin/jobs/new', type: 'primary' }
             ].map((action, i) => (
@@ -405,7 +442,7 @@ export default function JobsQueue() {
                     </Button>
                   </Link>
                 ) : (
-                  <Button variant="outline" className="h-11 px-5 border-gray-200 bg-white hover:bg-gray-50 transition-all rounded-xl shadow-sm font-bold text-gray-700 whitespace-nowrap flex items-center justify-center">
+                  <Button variant="outline" onClick={action.onClick} className="h-11 px-5 border-gray-200 bg-white hover:bg-gray-50 transition-all rounded-xl shadow-sm font-bold text-gray-700 whitespace-nowrap flex items-center justify-center">
                     <action.icon className="mr-2 h-4 w-4 shrink-0" /> {action.text}
                   </Button>
                 )}
@@ -642,19 +679,30 @@ export default function JobsQueue() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <div className="flex items-center justify-end gap-2">
-                             <a 
-                               href={`/jobs/${job.url_slug || job.id}`} 
-                               target="_blank" 
-                               rel="noopener noreferrer"
-                             >
+                             {job.is_approved ? (
+                               <a 
+                                 href={`/jobs/${job.url_slug || job.id}`} 
+                                 target="_blank" 
+                                 rel="noopener noreferrer"
+                               >
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
+                                 >
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                               </a>
+                             ) : (
                                <Button 
                                  variant="ghost" 
                                  size="icon" 
                                  className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
+                                 onClick={() => alert("first appored then show the page")}
                                >
                                  <Eye className="h-4 w-4" />
                                </Button>
-                             </a>
+                             )}
                              <Link href={`/admin/jobs/${job.id}/edit`}>
                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-amber-50 hover:text-amber-600">
                                  <Pencil className="h-4 w-4" />

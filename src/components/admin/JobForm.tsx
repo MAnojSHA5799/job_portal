@@ -809,6 +809,9 @@ Instructions:
                  if (!currentJob.id) {
                    e.preventDefault();
                    setShowPreview(true);
+                 } else if (!currentJob.is_approved) {
+                   e.preventDefault();
+                   alert("first appored then show the page");
                  }
                }}
              >

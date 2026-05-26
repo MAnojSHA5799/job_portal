@@ -222,6 +222,10 @@ export default function HomePage() {
     return [...filteredJobs].sort(() => Math.random() - 0.5);
   }, [filteredJobs]);
 
+  const shuffledPopularCompanies = useMemo(() => {
+    return [...popularCompanies].sort(() => Math.random() - 0.5);
+  }, [popularCompanies]);
+
   const popularCategories = useMemo(() => {
     // Basic types from job fields
     const baseTypes = [
@@ -815,7 +819,7 @@ export default function HomePage() {
 
           {/* Desktop View (Original horizontal scroll) */}
           <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
-            {popularCompanies.map((company, index) => (
+            {shuffledPopularCompanies.map((company, index) => (
               <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank" className="snap-start">
                 <div
                   className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group"
@@ -838,7 +842,7 @@ export default function HomePage() {
           {/* Mobile View Slider (2x2 Grid) */}
           <div className="md:hidden space-y-8">
             <div className="grid grid-cols-2 gap-4">
-              {popularCompanies
+              {shuffledPopularCompanies
                 .slice(companyPageIndex * companiesPerSlide, (companyPageIndex + 1) * companiesPerSlide)
                 .map((company) => (
                   <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank">
@@ -869,7 +873,7 @@ export default function HomePage() {
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="flex gap-1.5">
-                  {Array.from({ length: Math.ceil(popularCompanies.length / companiesPerSlide) }).map((_, i) => (
+                  {Array.from({ length: Math.ceil(shuffledPopularCompanies.length / companiesPerSlide) }).map((_, i) => (
                     <button
                       key={i}
                       onClick={() => setCompanyPageIndex(i)}
@@ -878,8 +882,8 @@ export default function HomePage() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setCompanyPageIndex(prev => Math.min(Math.ceil(popularCompanies.length / companiesPerSlide) - 1, prev + 1))}
-                  disabled={companyPageIndex >= Math.ceil(popularCompanies.length / companiesPerSlide) - 1}
+                  onClick={() => setCompanyPageIndex(prev => Math.min(Math.ceil(shuffledPopularCompanies.length / companiesPerSlide) - 1, prev + 1))}
+                  disabled={companyPageIndex >= Math.ceil(shuffledPopularCompanies.length / companiesPerSlide) - 1}
                   className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center text-gray-400 hover:text-primary disabled:opacity-30 transition-all"
                 >
                   <ChevronRight className="w-5 h-5" />

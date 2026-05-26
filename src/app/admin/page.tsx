@@ -46,6 +46,8 @@ export default function AdminDashboard() {
   const [chartData, setChartData] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [chartDays, setChartDays] = useState(7);
+  const [showAllActivity, setShowAllActivity] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: new Date().toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
@@ -88,20 +90,20 @@ export default function AdminDashboard() {
           { label: 'Failed Scrapes', value: failed.toLocaleString(), icon: XCircle, color: 'text-danger', bg: 'bg-danger/10', trend: '+2.4%' },
         ]);
 
-        // Fetch Chart Data (Last 7 Days)
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // Fetch Chart Data
+        const chartStartDate = new Date();
+        chartStartDate.setDate(chartStartDate.getDate() - chartDays);
         
         const { data: recentJobs } = await supabase
           .from('jobs')
           .select('created_at')
-          .gte('created_at', sevenDaysAgo.toISOString());
+          .gte('created_at', chartStartDate.toISOString());
 
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const groupedData = Array.from({ length: 7 }, (_, i) => {
+        const groupedData = Array.from({ length: chartDays }, (_, i) => {
           const d = new Date();
-          d.setDate(d.getDate() - (6 - i));
-          const dayName = days[d.getDay()];
+          d.setDate(d.getDate() - ((chartDays - 1) - i));
+          const dayName = chartDays <= 7 ? days[d.getDay()] : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
           const count = recentJobs?.filter(j => 
             new Date(j.created_at).toDateString() === d.toDateString()
           ).length || 0;
@@ -110,9 +112,10 @@ export default function AdminDashboard() {
         setChartData(groupedData);
 
         // Fetch Recent Activity
+        const activityLimit = showAllActivity ? 50 : 5;
         const [ { data: latestJobs }, { data: latestLogs } ] = await Promise.all([
-          supabase.from('jobs').select('id, url_slug, title, created_at, is_approved').order('created_at', { ascending: false }).limit(5),
-          supabase.from('scraper_logs').select('status, jobs_found, created_at').order('created_at', { ascending: false }).limit(5)
+          supabase.from('jobs').select('id, url_slug, title, created_at, is_approved').order('created_at', { ascending: false }).limit(activityLimit),
+          supabase.from('scraper_logs').select('status, jobs_found, created_at').order('created_at', { ascending: false }).limit(activityLimit)
         ]);
 
         const mergedActivities = [
@@ -127,7 +130,7 @@ export default function AdminDashboard() {
             text: `Scraper ${l.status}: ${l.jobs_found} jobs found`,
             time: new Date(l.created_at),
           }))
-        ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, 5);
+        ].sort((a, b) => b.time.getTime() - a.time.getTime()).slice(0, activityLimit);
 
         setActivities(mergedActivities);
       } catch (error) {
@@ -138,7 +141,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [dateRange]);
+  }, [dateRange, chartDays, showAllActivity]);
 
   if (!mounted) return null;
 
@@ -150,6 +153,64 @@ export default function AdminDashboard() {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return date.toLocaleDateString();
+  };
+
+  const handleExport = async () => {
+    try {
+      const start = new Date(dateRange.start);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.end);
+      end.setHours(23, 59, 59, 999);
+
+      const [ { data: jobs }, { data: logs } ] = await Promise.all([
+        supabase
+          .from('jobs')
+          .select('id, url_slug, title, created_at, is_approved')
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('scraper_logs')
+          .select('status, jobs_found, created_at')
+          .gte('created_at', start.toISOString())
+          .lte('created_at', end.toISOString())
+          .order('created_at', { ascending: false })
+      ]);
+
+      const mergedActivities = [
+        ...(jobs || []).map(j => ({
+          type: j.is_approved ? 'Approval' : 'New Job',
+          description: j.is_approved ? `Job approved: ${j.title}` : `New job found: ${j.title}`,
+          date: new Date(j.created_at).toLocaleString(),
+          timeMs: new Date(j.created_at).getTime()
+        })),
+        ...(logs || []).map(l => ({
+          type: 'Scraper',
+          description: `Scraper ${l.status}: ${l.jobs_found} jobs found`,
+          date: new Date(l.created_at).toLocaleString(),
+          timeMs: new Date(l.created_at).getTime()
+        }))
+      ].sort((a, b) => b.timeMs - a.timeMs);
+
+      const csvHeader = 'Date,Type,Description\n';
+      const csvRows = mergedActivities.map(act => 
+        `"${act.date}","${act.type}","${act.description.replace(/"/g, '""')}"`
+      ).join('\n');
+      const csvContent = csvHeader + csvRows;
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `activity_export_${dateRange.start}_to_${dateRange.end}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      alert('Failed to export data');
+    }
   };
 
   return (
@@ -190,7 +251,7 @@ export default function AdminDashboard() {
           })}>
             Today
           </Button>
-          <Button size="sm" variant="outline" className="hidden sm:flex">
+          <Button size="sm" variant="outline" className="hidden sm:flex" onClick={handleExport}>
             <ArrowUpRight className="mr-2 h-4 w-4" /> Export
           </Button>
         </div>
@@ -231,9 +292,14 @@ export default function AdminDashboard() {
           <Card className="p-6 border-gray-100">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-gray-900">Job Posting Trends</h3>
-              <select className="text-sm bg-gray-50 border-0 rounded-md px-2 py-1 outline-none">
-                <option>Last 7 Days</option>
-                <option>Last 30 Days</option>
+              <select 
+                className="text-sm bg-gray-50 border-0 rounded-md px-2 py-1 outline-none"
+                value={chartDays}
+                onChange={(e) => setChartDays(Number(e.target.value))}
+              >
+                <option value={7}>Last 7 Days</option>
+                <option value={30}>Last 30 Days</option>
+                <option value={90}>Last 90 Days</option>
               </select>
             </div>
             <div className="h-[300px] w-full">
@@ -319,8 +385,12 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
-            <Button variant="ghost" className="w-full mt-6 text-primary text-xs font-bold hover:bg-indigo-50">
-              View All Activity
+            <Button 
+              variant="ghost" 
+              className="w-full mt-6 text-primary text-xs font-bold hover:bg-indigo-50"
+              onClick={() => setShowAllActivity(!showAllActivity)}
+            >
+              {showAllActivity ? 'Show Less Activity' : 'View All Activity'}
             </Button>
           </Card>
         </div>
