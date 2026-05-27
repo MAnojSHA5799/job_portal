@@ -53,17 +53,90 @@ export default function ATSScorePage() {
   const [activeTab, setActiveTab] = useState<'original' | 'enhancv'>('enhancv');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('content');
   const [isParsing, setIsParsing] = useState(false);
+  const [isVerifyingResume, setIsVerifyingResume] = useState(false);
+  const [isResumeVerified, setIsResumeVerified] = useState<boolean | null>(null); // null=not checked, true=valid, false=invalid
+
+  const ALLOWED_RESUME_TYPES = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+  ];
+  const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt'];
+
+  // AI-based resume content verification — sets isResumeVerified state
+  const checkIfResume = async (text: string): Promise<void> => {
+    if (!text || text.trim().length < 50) {
+      setIsResumeVerified(false); 
+      setError('⚠️ We couldn\'t extract enough text from this document. If this is an image or a scanned PDF, please upload a text-based PDF or Word document.');
+      return;
+    }
+    setIsVerifyingResume(true);
+    setIsResumeVerified(null);
+    try {
+      const res = await fetch('/api/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a document classifier. Analyze the given document text and determine if it is a resume or CV.
+A resume/CV contains sections like: personal info, work experience, education, skills, certifications, summary/objective.
+Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason" }. No extra text.`
+            },
+            {
+              role: 'user',
+              content: `Classify this document (first 1500 chars):\n\n${text.slice(0, 1500)}`
+            }
+          ]
+        })
+      });
+      const data = await res.json();
+      const raw = data?.choices?.[0]?.message?.content?.trim() || '{"isResume":true}';
+      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      if (!parsed.isResume) {
+        setIsResumeVerified(false);
+        setError(`⚠️ This does not appear to be a Resume/CV. Detected: "${parsed.reason}". Please upload your actual resume.`);
+      } else {
+        setIsResumeVerified(true);
+        setError(null);
+      }
+    } catch {
+      // If AI check fails, silently pass — don't block the user
+      setIsResumeVerified(true);
+    } finally {
+      setIsVerifyingResume(false);
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+
+      // ✅ Validate file extension / MIME type
+      const ext = '.' + selectedFile.name.split('.').pop()?.toLowerCase();
+      const isValidType = ALLOWED_RESUME_TYPES.includes(selectedFile.type) || ALLOWED_EXTENSIONS.includes(ext);
+
+      if (!isValidType) {
+        setError('⚠️ Invalid file type. Please upload only a Resume file (PDF, DOCX, DOC, or TXT).');
+        setFile(null);
+        setResumeText('');
+        setIsResumeVerified(null);
+        if (e.target) e.target.value = '';
+        return;
+      }
+
       setFile(selectedFile);
       setError(null);
+      setIsResumeVerified(null); // reset verification on new file
 
       if (selectedFile.type === 'text/plain') {
         const text = await selectedFile.text();
         setResumeText(text);
         setIsManualEntry(false);
+        await checkIfResume(text); // 🔍 AI verification
       } else if (selectedFile.type === 'application/pdf') {
         setIsParsing(true);
         setIsManualEntry(false);
@@ -76,19 +149,23 @@ export default function ATSScorePage() {
           });
           const data = await res.json();
           if (data.error) throw new Error(data.error);
-          console.log("📄 [SUCCESS] EXTRACTED PDF TEXT:", data.text);
+          console.log('📄 [SUCCESS] EXTRACTED PDF TEXT:', data.text);
           setResumeText(data.text);
+          setIsParsing(false);
+          await checkIfResume(data.text); // 🔍 AI verification
         } catch (err: any) {
           console.error('Error parsing PDF:', err);
-          setError("Failed to extract text from PDF. Please paste your resume text manually.");
+          setError('Failed to extract text from PDF. Please paste your resume text manually.');
           setIsManualEntry(true);
+          setIsResumeVerified(null);
         } finally {
           setIsParsing(false);
         }
       } else {
-        // For DOCX or other formats not supported by pdf-parse, prompt manual entry
-        setResumeText("");
+        // DOCX — prompt manual paste
+        setResumeText('');
         setIsManualEntry(true);
+        setIsResumeVerified(null);
       }
     }
   };
@@ -291,18 +368,30 @@ export default function ATSScorePage() {
                     className="hidden"
                     ref={fileInputRef}
                     onChange={handleFileChange}
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.txt"
                   />
 
                   <div className="flex flex-col items-center gap-6 w-full max-w-lg mx-auto">
                     <div className="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform shrink-0 z-20">
-                      {file ? <FileText className="w-12 h-12" /> : <Upload className="w-12 h-12" />}
+                      {isVerifyingResume ? (
+                        <Brain className="w-12 h-12 animate-pulse text-indigo-500" />
+                      ) : isParsing ? (
+                        <RefreshCcw className="w-12 h-12 animate-spin text-indigo-400" />
+                      ) : file ? (
+                        <FileText className="w-12 h-12" />
+                      ) : (
+                        <Upload className="w-12 h-12" />
+                      )}
                     </div>
 
                     {!isManualEntry ? (
                       <div className="text-center w-full z-20 bg-white/60 p-6 rounded-3xl shadow-sm backdrop-blur-md border border-white/50">
                         <h3 className="text-3xl font-black text-gray-900 mb-2 truncate px-2 tracking-tight">
-                          {isParsing ? (
+                          {isVerifyingResume ? (
+                            <span className="flex items-center justify-center gap-2 text-indigo-600">
+                              <Brain className="w-6 h-6 animate-pulse" /> Verifying document...
+                            </span>
+                          ) : isParsing ? (
                             <span className="flex items-center justify-center gap-2">
                               <RefreshCcw className="w-6 h-6 animate-spin text-indigo-600" /> Extracting PDF...
                             </span>
@@ -311,7 +400,13 @@ export default function ATSScorePage() {
                           )}
                         </h3>
                         <p className="text-gray-600 font-bold">
-                          {isParsing ? "Reading text content..." : (file ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB` : "Support for PDF, DOCX (Max 5MB)")}
+                          {isVerifyingResume
+                            ? 'AI is checking if this is a resume…'
+                            : isParsing
+                            ? 'Reading text content...'
+                            : file
+                            ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`
+                            : 'Support for PDF, DOCX (Max 5MB)'}
                         </p>
                       </div>
                     ) : (
@@ -354,10 +449,34 @@ export default function ATSScorePage() {
                       ) : (
                         <Button
                           size="lg"
-                          className="font-black text-lg rounded-2xl h-16 px-12 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl hover:shadow-indigo-500/30 w-full"
-                          onClick={startScan}
+                          className={`font-black text-lg rounded-2xl h-16 px-12 w-full shadow-xl transition-all ${
+                            (isManualEntry ? resumeText.trim().length > 50 : isResumeVerified === true)
+                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-indigo-500/30'
+                              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          }`}
+                          onClick={() => {
+                            if (isManualEntry) {
+                              if (resumeText.trim().length <= 50) {
+                                alert('⚠️ Please paste your full resume text before analyzing.');
+                                return;
+                              }
+                            } else if (isResumeVerified !== true) {
+                              alert('⚠️ Please upload a valid Resume/CV file before analyzing.');
+                              return;
+                            }
+                            startScan();
+                          }}
+                          disabled={isVerifyingResume || isParsing || (isManualEntry && resumeText.trim().length <= 50)}
                         >
-                          <Zap className="w-5 h-5 mr-2 fill-white" /> Analyze Now
+                          {isVerifyingResume ? (
+                            <><Brain className="w-5 h-5 mr-2 animate-pulse" /> Verifying Resume...</>
+                          ) : (isManualEntry ? resumeText.trim().length > 50 : isResumeVerified === true) ? (
+                            <><Zap className="w-5 h-5 mr-2 fill-white" /> Analyze Now</>
+                          ) : isResumeVerified === false ? (
+                            <><AlertCircle className="w-5 h-5 mr-2" /> Not a Resume</>
+                          ) : (
+                            <><Zap className="w-5 h-5 mr-2" /> Analyze Now</>
+                          )}
                         </Button>
                       )}
                       {(file || isManualEntry) && (

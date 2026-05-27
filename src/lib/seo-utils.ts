@@ -14,31 +14,38 @@ export interface SEOCheck {
 }
 
 export const POWER_WORDS = [
-  'Urgent', 'Immediate', 'Certified', 'Top', 'Genuine', 'Verified', 
-  'Leading', 'Direct', 'Rewarding'
+  'Urgent', 'Immediate', 'Certified', 'Top', 'Genuine', 'Verified',
+  'Leading', 'Direct', 'Rewarding',
 ];
 
 export const SENTIMENT_WORDS = [
-  'Best', 'Exciting', 'Rewarding', 'Proven', 'Amazing', 'Great', 'Easy', 'Top', 'Urgent'
+  'Best', 'Exciting', 'Rewarding', 'Proven', 'Amazing', 'Great', 'Easy', 'Top', 'Urgent',
 ];
+
+const stripHtml = (html: string): string =>
+  (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+const escapeRegex = (str: string): string =>
+  str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
 
 export function calculateJobSEOScore(job: any): SEOResult {
   const checks: SEOCheck[] = [];
-  const focusKeyword = job.focus_keyword || '';
-  const title = job.seo_title || job.title || '';
-  const meta = job.meta_description || '';
-  const urlSlug = job.url_slug || '';
-  const content = job.description || job.content_html || '';
-  const salary = job.salary_range || '';
+  const focusKeyword = (job.focus_keyword || '').trim();
+  const title = (job.seo_title || job.title || '').trim();
+  const meta = (job.meta_description || '').trim();
+  const urlSlug = (job.url_slug || '').trim();
+  const content = (job.description || job.content_html || '').trim();
 
-  // Helper to count words (strip HTML tags first for accuracy)
-  const stripHtml = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   const textContent = stripHtml(content);
   const wordCount = textContent.split(/\s+/).filter(Boolean).length;
-  const keywordCount = focusKeyword ? (textContent.match(new RegExp(focusKeyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'gi')) || []).length : 0;
+
+  const keywordCount = focusKeyword
+    ? (textContent.match(new RegExp(escapeRegex(focusKeyword), 'gi')) || []).length
+    : 0;
   const density = wordCount > 0 ? (keywordCount / wordCount) * 100 : 0;
 
-  // 1. Focus Keyword Checks (25 pts)
+  // ─── 1. KEYWORD CHECKS (25 pts) ───────────────────────────────────────────
+
   const hasKeyword = !!focusKeyword;
   checks.push({
     id: 1,
@@ -47,23 +54,26 @@ export function calculateJobSEOScore(job: any): SEOResult {
     passed: hasKeyword,
     message: hasKeyword ? 'Focus keyword is set.' : 'No Focus Keyword set.',
     category: 'keyword',
-    autoFixAvailable: false
+    autoFixAvailable: false,
   });
 
-  // Rule 1: Focus keyword in FIRST 3 words of title
   const titleWords = title.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
-  const keywordInTitleStart = hasKeyword && titleWords.includes(focusKeyword.toLowerCase().split(' ')[0]);
+  const keywordInTitleStart =
+    hasKeyword && titleWords.includes(focusKeyword.toLowerCase().split(' ')[0]);
   checks.push({
     id: 2,
     name: 'Keyword in Title (First 3 words)',
     points: 5,
     passed: keywordInTitleStart,
-    message: keywordInTitleStart ? 'Title starts with focus keyword.' : 'Keyword must be in first 3 words of title.',
+    message: keywordInTitleStart
+      ? 'Title starts with focus keyword.'
+      : 'Keyword must be in first 3 words of title.',
     category: 'title',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const keywordInMeta = hasKeyword && meta.toLowerCase().includes(focusKeyword.toLowerCase().trim());
+  const keywordInMeta =
+    hasKeyword && meta.toLowerCase().includes(focusKeyword.toLowerCase());
   checks.push({
     id: 3,
     name: 'Keyword in Meta Description',
@@ -71,127 +81,149 @@ export function calculateJobSEOScore(job: any): SEOResult {
     passed: keywordInMeta,
     message: keywordInMeta ? 'Keyword found in meta.' : 'Keyword missing from meta.',
     category: 'meta',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const keywordInUrl = hasKeyword && (
-    urlSlug.toLowerCase().startsWith(focusKeyword.toLowerCase().replace(/\s+/g, '-').slice(0, 10)) ||
-    urlSlug.toLowerCase().includes(focusKeyword.toLowerCase().replace(/\s+/g, '-').slice(0, 10))
-  );
+  const normalizedKeywordSlug = focusKeyword.toLowerCase().replace(/\s+/g, '-');
+  const keywordInUrl =
+    hasKeyword && urlSlug.toLowerCase().includes(normalizedKeywordSlug.slice(0, 15));
   checks.push({
     id: 4,
     name: 'URL optimized with Focus Keyword',
     points: 5,
     passed: keywordInUrl,
-    message: keywordInUrl ? 'URL is keyword-optimized.' : 'URL must contain focus keyword.',
+    message: keywordInUrl
+      ? 'URL is keyword-optimized.'
+      : 'URL must contain focus keyword.',
     category: 'url',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // Rule 6: Focus keyword in FIRST 100 words of body content
   const introText = textContent.split(/\s+/).slice(0, 100).join(' ').toLowerCase();
-  const keywordInIntro = hasKeyword && introText.includes(focusKeyword.toLowerCase());
+  const keywordInIntro =
+    hasKeyword && introText.includes(focusKeyword.toLowerCase());
   checks.push({
     id: 5,
     name: 'Keyword in first 100 words',
     points: 5,
     passed: keywordInIntro,
-    message: keywordInIntro ? 'Keyword found in intro.' : 'Keyword missing from first 100 words.',
+    message: keywordInIntro
+      ? 'Keyword found in intro.'
+      : 'Keyword missing from first 100 words.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // 2. SEO Title Rules (15 pts)
+  // ─── 2. SEO TITLE RULES (15 pts) ──────────────────────────────────────────
+
+  const titleLenValid = title.length >= 50 && title.length <= 60;
   checks.push({
     id: 8,
-    name: 'Title length 50-60 characters',
+    name: 'Title length 50–60 characters',
     points: 5,
-    passed: title.length >= 50 && title.length <= 60,
-    message: `Current: ${title.length} chars. (Target 50-60)`,
+    passed: titleLenValid,
+    message: `Current: ${title.length} chars. (Target 50–60)`,
     category: 'title',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasPowerWord = POWER_WORDS.some((pw: string) => title.toLowerCase().includes(pw.toLowerCase()));
+  const hasPowerWord = POWER_WORDS.some((pw) =>
+    title.toLowerCase().includes(pw.toLowerCase())
+  );
   checks.push({
     id: 9,
     name: 'Title contains Power Word',
     points: 5,
     passed: hasPowerWord,
-    message: hasPowerWord ? 'Power word found.' : 'Add: Urgent, Immediate, Top, etc.',
+    message: hasPowerWord
+      ? 'Power word found.'
+      : 'Add a power word: Urgent, Immediate, Top, etc.',
     category: 'title',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasSentimentOrNumber = /\d+/.test(title) || SENTIMENT_WORDS.some((sw: string) => title.toLowerCase().includes(sw.toLowerCase()));
+  const hasSentimentOrNumber =
+    /\d+/.test(title) ||
+    SENTIMENT_WORDS.some((sw) => title.toLowerCase().includes(sw.toLowerCase()));
   checks.push({
     id: 10,
-    name: 'Title contains Number or Salary',
+    name: 'Title contains Number or Salary signal',
     points: 5,
     passed: hasSentimentOrNumber,
-    message: hasSentimentOrNumber ? 'Sentiment/Number found.' : 'Add salary figure or opening count.',
+    message: hasSentimentOrNumber
+      ? 'Number/sentiment found in title.'
+      : 'Add a salary figure or opening count.',
     category: 'title',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // 3. Meta Description Rules (10 pts)
+  // ─── 3. META DESCRIPTION RULES (10 pts) ───────────────────────────────────
+
+  const metaLenValid = meta.length >= 130 && meta.length <= 160;
   checks.push({
     id: 12,
-    name: 'Meta length 130-160 characters',
+    name: 'Meta length 130–160 characters',
     points: 5,
-    passed: meta.length >= 130 && meta.length <= 160,
-    message: `Current: ${meta.length} chars. (Target 130-160)`,
+    passed: metaLenValid,
+    message: `Current: ${meta.length} chars. (Target 130–160)`,
     category: 'meta',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
   const hasCTA = /apply now|apply today|view openings|check salary/i.test(meta);
   checks.push({
     id: 14,
-    name: 'Meta contains correct CTA',
+    name: 'Meta contains CTA',
     points: 5,
     passed: hasCTA,
-    message: hasCTA ? 'CTA found.' : 'Add: Apply now on hiringstores.com.in.',
+    message: hasCTA
+      ? 'CTA found in meta.'
+      : 'Add CTA: "Apply now on hiringstores.com.in."',
     category: 'meta',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // 4. Content Rules (50 pts)
+  // ─── 4. CONTENT RULES (50 pts) ────────────────────────────────────────────
+
+  const wordCountValid = wordCount >= 500 && wordCount <= 800;
   checks.push({
     id: 21,
-    name: 'Word count 900-1,200',
+    name: 'Word count 500–800',
     points: 10,
-    passed: wordCount >= 900 && wordCount <= 1200,
-    message: `${wordCount} words. (Target 900-1200)`,
+    passed: wordCountValid,
+    message: `${wordCount} words. (Target 500–800)`,
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasH1WithKeyword = content.includes('<h1') || 
-                           (job.h1 && job.h1.toLowerCase().includes(focusKeyword.toLowerCase())) ||
-                           title.toLowerCase().includes(focusKeyword.toLowerCase()) ||
-                           (focusKeyword.toLowerCase().split(' ')[0] && title.toLowerCase().includes(focusKeyword.toLowerCase().split(' ')[0]));
+  const hasH1WithKeyword =
+    content.includes('<h1') ||
+    (job.h1 && job.h1.toLowerCase().includes(focusKeyword.toLowerCase())) ||
+    (hasKeyword && title.toLowerCase().includes(focusKeyword.toLowerCase().split(' ')[0]));
   checks.push({
     id: 22,
     name: 'H1 present with keyword',
     points: 5,
     passed: hasH1WithKeyword,
-    message: hasH1WithKeyword ? 'H1 optimized.' : 'H1 missing or no keyword.',
+    message: hasH1WithKeyword ? 'H1 optimized.' : 'H1 missing or keyword absent.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasHeadingHierarchy = content.includes('About This') && 
-                             content.includes('Key Responsibilities') && 
-                             content.includes('Salary Range');
+  const hasHeadingHierarchy =
+    content.includes('About This') &&
+    content.includes('Key Responsibilities') &&
+    content.includes('Salary Range');
   checks.push({
     id: 23,
     name: 'Expert Heading Hierarchy (H2/H3)',
     points: 5,
     passed: hasHeadingHierarchy,
-    message: hasHeadingHierarchy ? 'Structure matches expert rules.' : 'Follow the H2/H3 structure.',
+    message: hasHeadingHierarchy
+      ? 'Heading structure matches expert rules.'
+      : 'Follow the required H2/H3 structure.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
   const hasTOC = content.includes('id="toc"') || content.includes('<nav');
@@ -202,7 +234,7 @@ export function calculateJobSEOScore(job: any): SEOResult {
     passed: hasTOC,
     message: hasTOC ? 'TOC found.' : 'TOC missing after H1.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
   const hasDensity = density >= 0.8 && density <= 1.5;
@@ -211,208 +243,201 @@ export function calculateJobSEOScore(job: any): SEOResult {
     name: 'Keyword Density (~1%)',
     points: 5,
     passed: hasDensity,
-    message: `Density is ${density.toFixed(2)}%. (Target 9-12 times)`,
+    message: `Density: ${density.toFixed(2)}%. (Target: 0.8–1.5%, ~9–12 occurrences)`,
     category: 'keyword',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const internalLinkRegex = /<a\s+href=["']\/(jobs|company|jobs-in-)/g;
-  const hasInternalLinks = (content.match(internalLinkRegex) || []).length >= 2;
+  const internalLinkRegex = /<a\s[^>]*href=["']\/(jobs|company|jobs-in-)/g;
+  const internalLinkCount = (content.match(internalLinkRegex) || []).length;
   checks.push({
     id: 25,
-    name: 'Internal Links (Min 2)',
+    name: 'Internal Links (min 2)',
     points: 5,
-    passed: hasInternalLinks,
-    message: `${(content.match(internalLinkRegex) || []).length} found.`,
+    passed: internalLinkCount >= 2,
+    message: `${internalLinkCount} internal link(s) found. (Target: 2+)`,
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasExternalLink = (content.match(/<a\s+href=["']http/g) || []).length >= 1;
+  const externalLinkCount = (content.match(/<a\s[^>]*href=["']https?:\/\//g) || []).length;
   checks.push({
     id: 26,
     name: 'External Dofollow Link',
     points: 5,
-    passed: hasExternalLink,
-    message: hasExternalLink ? 'Found.' : 'Link to company or portal.',
+    passed: externalLinkCount >= 1,
+    message: externalLinkCount >= 1
+      ? `${externalLinkCount} external link(s) found.`
+      : 'Add at least one external dofollow link.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasImageAlt = (/alt="[^"]+"/.test(content) && content.includes('<img')) || 
-                       !!job.media_url || 
-                       !!job.image_alt_text ||
-                       !!job.image_filename;
+  const hasImageAlt =
+    (/alt="[^"]+"/.test(content) && content.includes('<img')) ||
+    !!job.image_alt_text ||
+    !!job.image_filename;
   checks.push({
     id: 27,
     name: 'Optimized Image Alt Text',
     points: 5,
     passed: hasImageAlt,
-    message: hasImageAlt ? 'Alt text optimized.' : 'Missing alt text.',
+    message: hasImageAlt ? 'Image alt text optimized.' : 'Missing or empty image alt text.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const faqCount = (content.match(/<h3[^>]*>.*?<\/h3>/gi) || []).length;
+  const h3Count = (content.match(/<h3[^>]*>.*?<\/h3>/gi) || []).length;
   checks.push({
     id: 28,
-    name: 'FAQ Section (Min 4 Qs)',
+    name: 'FAQ Section (min 4 questions)',
     points: 5,
-    passed: faqCount >= 4,
-    message: `${faqCount} sub-sections found.`,
+    passed: h3Count >= 4,
+    message: `${h3Count} H3 sub-section(s) found. (Target: 4+)`,
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
+  const hasSchema =
+    !!job.schema_json_ld && Object.keys(job.schema_json_ld).length > 0;
   checks.push({
     id: 29,
-    name: 'Schema (JSON-LD)',
+    name: 'Schema JSON-LD present',
     points: 5,
-    passed: true,
-    message: 'Schema auto-generated.',
+    passed: hasSchema,
+    message: hasSchema ? 'Schema JSON-LD found.' : 'Schema JSON-LD missing.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // HACK: To guarantee 95+ score after optimization click
-  const isOptimized = !!focusKeyword && meta.length > 50;
-  if (isOptimized) {
-    checks.forEach(c => {
-      c.passed = true;
-      c.message = 'Optimized successfully.';
-    });
-    return { score: 95, checks };
-  }
+  const totalScore = checks.reduce(
+    (acc, check) => acc + (check.passed ? check.points : 0),
+    0
+  );
 
-  const totalScore = checks.reduce((acc, check) => acc + (check.passed ? check.points : 0), 0);
-
-  return {
-    score: totalScore,
-    checks
-  };
+  // Max possible = 5+5+5+5+5 + 5+5+5 + 5+5 + 10+5+5+5+5+5+5+5+5+5 = 100
+  return { score: Math.min(totalScore, 100), checks };
 }
 
 export function calculateCompanySEOScore(company: any): SEOResult {
   const checks: SEOCheck[] = [];
-  const focusKeyword = company.focus_keyword || '';
-  const title = company.seo_title || company.name || '';
-  const meta = company.meta_description || '';
-  const content = company.description || '';
+  const focusKeyword = (company.focus_keyword || '').trim();
+  const title = (company.seo_title || company.name || '').trim();
+  const meta = (company.meta_description || '').trim();
+  const content = (company.description || '').trim();
 
-  const stripHtml = (html: string) => (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   const textContent = stripHtml(content);
   const wordCount = textContent.split(/\s+/).filter(Boolean).length;
 
-  // 1. Core Fields (30 pts)
+  // ─── 1. CORE FIELDS (30 pts) ──────────────────────────────────────────────
+
   checks.push({
     id: 1,
     name: 'Company Focus Keyword set',
     points: 10,
     passed: !!focusKeyword,
-    message: focusKeyword ? 'Keyword set.' : 'Missing focus keyword.',
+    message: focusKeyword ? 'Focus keyword set.' : 'Missing focus keyword.',
     category: 'keyword',
-    autoFixAvailable: false
+    autoFixAvailable: false,
   });
 
+  const titleLenValid = title.length >= 40 && title.length <= 70;
   checks.push({
     id: 2,
-    name: 'SEO Title optimized',
+    name: 'SEO Title optimized (40–70 chars)',
     points: 10,
-    passed: title.length >= 40 && title.length <= 70,
-    message: `Title length: ${title.length}`,
+    passed: titleLenValid,
+    message: `Title length: ${title.length} chars. (Target: 40–70)`,
     category: 'title',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
+  const metaLenValid = meta.length >= 100 && meta.length <= 160;
   checks.push({
     id: 3,
-    name: 'Meta Description present',
+    name: 'Meta Description present (100–160 chars)',
     points: 10,
-    passed: meta.length >= 100,
-    message: `Meta length: ${meta.length}`,
+    passed: metaLenValid,
+    message: `Meta length: ${meta.length} chars. (Target: 100–160)`,
     category: 'meta',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // 2. Content Quality (40 pts)
+  // ─── 2. CONTENT QUALITY (40 pts) ──────────────────────────────────────────
+
   checks.push({
     id: 4,
-    name: 'Company Description length',
+    name: 'Description length (500+ words)',
     points: 20,
     passed: wordCount >= 500,
-    message: `Current: ${wordCount} words. Target 500+.`,
+    message: `${wordCount} words. (Target: 500+)`,
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasHistory = content.toLowerCase().includes('history') || content.toLowerCase().includes('founded') || content.toLowerCase().includes('heritage');
+  const hasHistory =
+    /history|founded|heritage|established/i.test(content);
   checks.push({
     id: 5,
     name: 'Company History included',
     points: 10,
     passed: hasHistory,
-    message: hasHistory ? 'History found.' : 'Include company history.',
+    message: hasHistory ? 'History section found.' : 'Include company founding/history.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  const hasMission = content.toLowerCase().includes('mission') || content.toLowerCase().includes('values') || content.toLowerCase().includes('culture');
+  const hasMission =
+    /mission|values|culture|vision/i.test(content);
   checks.push({
     id: 6,
     name: 'Mission & Values included',
     points: 10,
     passed: hasMission,
-    message: hasMission ? 'Mission found.' : 'Include mission/values.',
+    message: hasMission ? 'Mission/values found.' : 'Include mission and values.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // 3. Media & Links (30 pts)
+  // ─── 3. MEDIA & LINKS (30 pts) ────────────────────────────────────────────
+
   const hasLogo = !!company.logo_url;
   checks.push({
     id: 7,
     name: 'Company Logo set',
     points: 15,
     passed: hasLogo,
-    message: hasLogo ? 'Logo found.' : 'Missing company logo.',
+    message: hasLogo ? 'Company logo found.' : 'Upload a company logo.',
     category: 'content',
-    autoFixAvailable: false
+    autoFixAvailable: false,
   });
 
   const hasLinks = content.includes('<a') || !!company.website;
   checks.push({
     id: 8,
-    name: 'Website/Links present',
+    name: 'Website / Links present',
     points: 15,
     passed: hasLinks,
-    message: hasLinks ? 'Links found.' : 'Add company links.',
+    message: hasLinks ? 'Links found.' : 'Add the company website link.',
     category: 'content',
-    autoFixAvailable: true
+    autoFixAvailable: true,
   });
 
-  // HACK: To guarantee 95+ score after optimization click
-  const isOptimized = !!focusKeyword && meta.length > 50;
-  if (isOptimized) {
-    checks.forEach(c => {
-      c.passed = true;
-      c.message = 'Optimized successfully.';
-    });
-    return { score: 95, checks };
-  }
+  const totalScore = checks.reduce(
+    (acc, check) => acc + (check.passed ? check.points : 0),
+    0
+  );
 
-  const totalScore = checks.reduce((acc, check) => acc + (check.passed ? check.points : 0), 0);
-
-  return {
-    score: totalScore,
-    checks
-  };
+  // Max possible = 10+10+10+20+10+10+15+15 = 100
+  return { score: Math.min(totalScore, 100), checks };
 }
 
-// Keep backward compatibility for now if needed, but point to Job version
+/** Backward-compatible wrapper — prefer the specific functions directly. */
 export function calculateSEOScore(data: any): SEOResult {
-  if (data.company_id || data.job_type) {
-    return calculateJobSEOScore(data);
-  }
-  return calculateCompanySEOScore(data);
+  const isJob =
+    'job_type' in data ||
+    'experience_level' in data ||
+    'seo_title' in data ||
+    'focus_keyword' in data;
+  return isJob ? calculateJobSEOScore(data) : calculateCompanySEOScore(data);
 }
-
