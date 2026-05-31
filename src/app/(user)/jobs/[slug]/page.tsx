@@ -36,12 +36,13 @@ import { ShareActions } from '@/components/ShareActions';
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }
 
 // Utility to check if string is UUID
 const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-async function getData(slug: string) {
+async function getData(slug: string, isPreview = false) {
   try {
     const decodedSlug = decodeURIComponent(slug);
     const searchName = decodedSlug.replace(/-/g, ' ');
@@ -55,12 +56,12 @@ async function getData(slug: string) {
     // 1. Try to find by ID
     if (isUUID(decodedSlug)) {
       console.log('Step 1: Searching by ID...');
-      const { data: job } = await supabase
+      let query = supabase
         .from('jobs')
         .select('*, companies(*)')
-        .eq('id', decodedSlug)
-        .eq('is_approved', true)
-        .maybeSingle();
+        .eq('id', decodedSlug);
+      if (!isPreview) query = query.eq('is_approved', true);
+      const { data: job } = await query.maybeSingle();
       if (job) {
         console.log('Step 1 SUCCESS: Found job by ID');
         return { type: 'job', data: job };
@@ -69,11 +70,12 @@ async function getData(slug: string) {
 
     // 2. Try to find by url_slug (Extremely Verbose)
     console.log('Step 2: Searching for url_slug =', decodedSlug);
-    const response = await supabase
+    let slugQuery = supabase
       .from('jobs')
       .select('*, companies(*)')
-      .eq('url_slug', decodedSlug)
-      .eq('is_approved', true);
+      .eq('url_slug', decodedSlug);
+    if (!isPreview) slugQuery = slugQuery.eq('is_approved', true);
+    const response = await slugQuery;
 
     console.log('Step 2 Raw Response:', {
       count: response.data?.length || 0,
@@ -89,12 +91,12 @@ async function getData(slug: string) {
     // 3. Try to find by title match (Improved Fuzzy)
     const fuzzyTitle = `%${searchName.split(/\s+/).join('%')}%`;
     console.log('Step 3: Searching by fuzzy title match:', fuzzyTitle);
-    const { data: jobByTitle } = await supabase
+    let titleQuery = supabase
       .from('jobs')
       .select('*, companies(*)')
-      .ilike('title', fuzzyTitle)
-      .eq('is_approved', true)
-      .maybeSingle();
+      .ilike('title', fuzzyTitle);
+    if (!isPreview) titleQuery = titleQuery.eq('is_approved', true);
+    const { data: jobByTitle } = await titleQuery.maybeSingle();
 
     if (jobByTitle) {
       console.log('Step 3 SUCCESS: Found job by fuzzy title match');
@@ -117,12 +119,12 @@ async function getData(slug: string) {
 
     // 4. Try to find by Category or Job Type
     console.log('Step 4: Searching by category/job_type...');
-    const { data: matchedJobs } = await supabase
+    let catQuery = supabase
       .from('jobs')
       .select('*, companies(*)')
-      .or(`category.ilike.%${searchName}%,job_type.ilike.%${searchName}%,category.ilike.%${decodedSlug}%,job_type.ilike.%${decodedSlug}%`)
-      .eq('is_approved', true)
-      .limit(20);
+      .or(`category.ilike.%${searchName}%,job_type.ilike.%${searchName}%,category.ilike.%${decodedSlug}%,job_type.ilike.%${decodedSlug}%`);
+    if (!isPreview) catQuery = catQuery.eq('is_approved', true);
+    const { data: matchedJobs } = await catQuery.limit(20);
 
     if (matchedJobs && matchedJobs.length > 0) {
       console.log('Step 4 SUCCESS: Found category matches:', matchedJobs.length);
@@ -140,9 +142,11 @@ async function getData(slug: string) {
   }
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const slug = (await params).slug;
-  const result = await getData(slug);
+  const sp = await searchParams;
+  const isPreview = sp?.preview === 'true';
+  const result = await getData(slug, isPreview);
 
   if (!result) return { title: 'Not Found' };
 
@@ -162,9 +166,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 
-export default async function SlugPage({ params }: Props) {
+export default async function SlugPage({ params, searchParams }: Props) {
   const slug = (await params).slug;
-  const result = await getData(slug);
+  const sp = await searchParams;
+  const isPreview = sp?.preview === 'true';
+  const result = await getData(slug, isPreview);
 
   if (!result) {
     notFound();

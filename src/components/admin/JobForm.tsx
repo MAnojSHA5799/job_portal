@@ -867,7 +867,7 @@ Instructions:
 
           <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-8">
              <a 
-               href={currentJob.id ? `/jobs/${currentJob.url_slug || currentJob.id}` : '#'} 
+               href={currentJob.id ? `/jobs/${currentJob.url_slug || currentJob.id}?preview=true` : '#'} 
                target={currentJob.id ? "_blank" : "_self"}
                rel="noopener noreferrer"
                className="w-full sm:w-auto"
@@ -875,9 +875,6 @@ Instructions:
                  if (!currentJob.id) {
                    e.preventDefault();
                    setShowPreview(true);
-                 } else if (!currentJob.is_approved) {
-                   e.preventDefault();
-                   alert("first appored then show the page");
                  }
                }}
              >
