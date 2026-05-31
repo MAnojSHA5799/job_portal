@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Card, Button, Input, Select, Badge } from '@/components/ui';
@@ -123,6 +123,21 @@ export function JobForm({
     h1?: string;
   }>({});
 
+  // Ref to track the exact field values when AI optimization ran
+  const aiBaselineRef = useRef<{
+    url_slug?: string;
+    meta_description?: string;
+    seo_title?: string;
+    focus_keyword?: string;
+    description?: string;
+  } | null>(initialData?.seo_score && initialData.seo_score >= 95 ? {
+    url_slug: initialData.url_slug || '',
+    meta_description: initialData.meta_description || '',
+    seo_title: initialData.seo_title || '',
+    focus_keyword: initialData.focus_keyword || '',
+    description: initialData.description || '',
+  } : null);
+
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(!!initialData?.url_slug);
 
   useEffect(() => {
@@ -147,6 +162,29 @@ export function JobForm({
       }
     }
   }, [currentJob.title, currentJob.company_id, currentJob.new_company_name, currentJob.location, isSlugManuallyEdited, companies]);
+
+  // Reset isAIOptimized if user changes any key SEO field after AI ran
+  useEffect(() => {
+    if (!isAIOptimized || !aiBaselineRef.current) return;
+    const baseline = aiBaselineRef.current;
+    const hasChanged =
+      currentJob.url_slug !== baseline.url_slug ||
+      currentJob.meta_description !== baseline.meta_description ||
+      currentJob.seo_title !== baseline.seo_title ||
+      currentJob.focus_keyword !== baseline.focus_keyword ||
+      currentJob.description !== baseline.description;
+    if (hasChanged) {
+      setIsAIOptimized(false);
+      aiBaselineRef.current = null;
+    }
+  }, [
+    isAIOptimized,
+    currentJob.url_slug,
+    currentJob.meta_description,
+    currentJob.seo_title,
+    currentJob.focus_keyword,
+    currentJob.description,
+  ]);
 
   // Real-time SEO Scoring
   const rawSeoReport = calculateSEOScore({
@@ -350,6 +388,14 @@ Instructions:
         seo_score: enhanced.seo_score
       }));
 
+      // Store baseline so we can detect when user modifies fields later
+      aiBaselineRef.current = {
+        url_slug: enhanced.url_slug,
+        meta_description: enhanced.meta_description,
+        seo_title: enhanced.seo_title,
+        focus_keyword: enhanced.focus_keyword,
+        description: enhanced.content_html,
+      };
       setIsAIOptimized(true);
     } catch (error) {
       console.error('All Checklist Enhance Error:', error);
