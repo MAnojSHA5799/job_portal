@@ -9,11 +9,11 @@ const PORT = process.env.PORT || 4000;
 // Update this with your actual frontend Vercel URL
 const allowedOrigins = [
   // 'http://localhost:3000',
-    'http://87.76.191.93:3000',
+  'http://87.76.191.93:3000',
   'http://www.hiringstores.com',
   'https://www.hiringstores.com'
   // 'https://job-portal-seven-rosy.vercel.app' 
-  
+
 ];
 
 app.use(cors({
@@ -49,7 +49,7 @@ app.post('/scrape', (req, res) => {
 
 function triggerScraper(filters = null) {
   console.log('📡 Scrape request received with filters:', filters);
-  
+
   const args = ['scraper.js'];
   if (filters) {
     // Pass filters as a base64 string to avoid shell escaping issues

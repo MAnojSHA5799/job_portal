@@ -94,6 +94,12 @@ export default function JobsQueue() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'warning' | 'success' } | null>(null);
+
+  const showToast = (message: string, type: 'error' | 'warning' | 'success' = 'warning') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const [stats, setStats] = useState({
     total: 0,
@@ -679,30 +685,19 @@ export default function JobsQueue() {
                         </td>
                         <td className="px-8 py-6 text-right">
                           <div className="flex items-center justify-end gap-2">
-                             {job.is_approved ? (
-                               <a 
-                                 href={`/jobs/${job.url_slug || job.id}`} 
-                                 target="_blank" 
-                                 rel="noopener noreferrer"
-                               >
-                                 <Button 
-                                   variant="ghost" 
-                                   size="icon" 
-                                   className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
-                                 >
-                                   <Eye className="h-4 w-4" />
-                                 </Button>
-                               </a>
-                             ) : (
+                             <a 
+                               href={`/jobs/${job.url_slug || job.id}?preview=true`} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                             >
                                <Button 
                                  variant="ghost" 
                                  size="icon" 
                                  className="h-9 w-9 rounded-xl hover:bg-indigo-50 hover:text-indigo-600"
-                                 onClick={() => alert("first appored then show the page")}
                                >
                                  <Eye className="h-4 w-4" />
                                </Button>
-                             )}
+                             </a>
                              <Link href={`/admin/jobs/${job.id}/edit`}>
                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-amber-50 hover:text-amber-600">
                                  <Pencil className="h-4 w-4" />
@@ -895,6 +890,48 @@ export default function JobsQueue() {
             </div>
           </div>
         )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '28px',
+            right: '28px',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '14px 20px',
+            borderRadius: '14px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: toast.type === 'warning' ? '#92400e' : toast.type === 'error' ? '#7f1d1d' : '#14532d',
+            background: toast.type === 'warning' ? '#fffbeb' : toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+            border: `1.5px solid ${toast.type === 'warning' ? '#fcd34d' : toast.type === 'error' ? '#fca5a5' : '#86efac'}`,
+            animation: 'slideInToast 0.35s cubic-bezier(.21,1.02,.73,1) both',
+            minWidth: '300px',
+            maxWidth: '420px',
+          }}
+        >
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>
+            {toast.type === 'warning' ? '⚠️' : toast.type === 'error' ? '❌' : '✅'}
+          </span>
+          <span style={{ flex: 1 }}>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', opacity: 0.5, padding: '0 0 0 8px', lineHeight: 1 }}
+          >×</button>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideInToast {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     // Example: 'https://job-scraper-service.onrender.com/scrape'
     // const RENDER_SCRAPER_URL = 'https://job-portal-1-xk6p.onrender.com/scrape';   
     // const RENDER_SCRAPER_URL = 'http://localhost:4000/scrape';
-const RENDER_SCRAPER_URL = 'http://87.76.191.93:4000/scrape';
+    const RENDER_SCRAPER_URL = 'http://87.76.191.93:4000/scrape';
 
     console.log(`📡 Triggering remote scraper on Render: ${RENDER_SCRAPER_URL} with filters:`, filters);
 
@@ -20,14 +20,14 @@ const RENDER_SCRAPER_URL = 'http://87.76.191.93:4000/scrape';
       body: JSON.stringify({ filters })
     }).catch(err => console.error('⚠️ Remote Trigger Error:', err.message));
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Scraper triggered on Render successfully. Monitoring will continue via logs.' 
+    return NextResponse.json({
+      success: true,
+      message: 'Scraper triggered on Render successfully. Monitoring will continue via logs.'
     });
   } catch (error: any) {
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 }
