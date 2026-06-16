@@ -15,7 +15,8 @@ export interface SEOCheck {
 
 export const POWER_WORDS = [
   'Urgent', 'Immediate', 'Certified', 'Top', 'Genuine', 'Verified',
-  'Leading', 'Direct', 'Rewarding',
+  'Leading', 'Direct', 'Rewarding', 'Fresher', 'Fresher Job', 'Apply Now',
+  'Energy', 'Best', 'Recent Year',
 ];
 
 export const SENTIMENT_WORDS = [
@@ -58,8 +59,9 @@ export function calculateJobSEOScore(job: any): SEOResult {
   });
 
   const titleWords = title.split(/\s+/).slice(0, 3).join(' ').toLowerCase();
+  const keywordFirstWord = focusKeyword.toLowerCase().split(' ')[0];
   const keywordInTitleStart =
-    hasKeyword && titleWords.includes(focusKeyword.toLowerCase().split(' ')[0]);
+    hasKeyword && title.toLowerCase().includes(focusKeyword.toLowerCase()) && titleWords.includes(keywordFirstWord);
   checks.push({
     id: 2,
     name: 'Keyword in Title (First 3 words)',
@@ -85,16 +87,17 @@ export function calculateJobSEOScore(job: any): SEOResult {
   });
 
   const normalizedKeywordSlug = focusKeyword.toLowerCase().replace(/\s+/g, '-');
+  const urlLenValid = urlSlug.length >= 60 && urlSlug.length <= 75;
   const keywordInUrl =
-    hasKeyword && urlSlug.toLowerCase().includes(normalizedKeywordSlug.slice(0, 15));
+    hasKeyword && urlSlug.toLowerCase().includes(normalizedKeywordSlug);
   checks.push({
     id: 4,
-    name: 'URL optimized with Focus Keyword',
+    name: 'URL optimized with Focus Keyword (60-75 chars)',
     points: 5,
-    passed: keywordInUrl,
-    message: keywordInUrl
-      ? 'URL is keyword-optimized.'
-      : 'URL must contain focus keyword.',
+    passed: keywordInUrl && urlLenValid,
+    message: (keywordInUrl && urlLenValid)
+      ? 'URL is keyword-optimized and correct length.'
+      : `Current length: ${urlSlug.length} chars (Target 60-75). Must also contain focus keyword.`,
     category: 'url',
     autoFixAvailable: true,
   });
@@ -122,7 +125,7 @@ export function calculateJobSEOScore(job: any): SEOResult {
     name: 'Title length 50–60 characters',
     points: 5,
     passed: titleLenValid,
-    message: `Current: ${title.length} chars. (Target 50–60)`,
+    message: `Current: ${title.length} chars. (Target 50–60, pixel wise max 580px)`,
     category: 'title',
     autoFixAvailable: true,
   });
@@ -132,40 +135,25 @@ export function calculateJobSEOScore(job: any): SEOResult {
   );
   checks.push({
     id: 9,
-    name: 'Title contains Power Word',
-    points: 5,
+    name: 'Title contains Power Word (Boosts SEO Score without just filling length)',
+    points: 10,
     passed: hasPowerWord,
     message: hasPowerWord
       ? 'Power word found.'
-      : 'Add a power word: Urgent, Immediate, Top, etc.',
-    category: 'title',
-    autoFixAvailable: true,
-  });
-
-  const hasSentimentOrNumber =
-    /\d+/.test(title) ||
-    SENTIMENT_WORDS.some((sw) => title.toLowerCase().includes(sw.toLowerCase()));
-  checks.push({
-    id: 10,
-    name: 'Title contains Number or Salary signal',
-    points: 5,
-    passed: hasSentimentOrNumber,
-    message: hasSentimentOrNumber
-      ? 'Number/sentiment found in title.'
-      : 'Add a salary figure or opening count.',
+      : 'Add a Power word (Fresher Job, Apply Now, Energy, Top, Best, Immediate, Recent Year) to increase SEO Score without just filling length.',
     category: 'title',
     autoFixAvailable: true,
   });
 
   // ─── 3. META DESCRIPTION RULES (10 pts) ───────────────────────────────────
 
-  const metaLenValid = meta.length >= 130 && meta.length <= 160;
+  const metaLenValid = meta.length >= 140 && meta.length <= 160;
   checks.push({
     id: 12,
-    name: 'Meta length 130–160 characters',
+    name: 'Meta length 140–160 characters',
     points: 5,
     passed: metaLenValid,
-    message: `Current: ${meta.length} chars. (Target 130–160)`,
+    message: `Current: ${meta.length} chars. (Target 140–160, pixel wise max 920px)`,
     category: 'meta',
     autoFixAvailable: true,
   });
@@ -248,14 +236,18 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  const internalLinkRegex = /<a\s[^>]*href=["']\/(jobs|company|jobs-in-)/g;
+  const internalLinkRegex = /<a\s[^>]*href=["'](https?:\/\/(www\.)?hiringstores\.com\.in|\/(jobs|company|jobs-in-))/g;
+  const hasCareerLink = /<a\s[^>]*href=["'][^"']*careers?[^"']*["']/i.test(content);
   const internalLinkCount = (content.match(internalLinkRegex) || []).length;
+  const passedLinks = internalLinkCount >= 2 && !hasCareerLink;
   checks.push({
     id: 25,
     name: 'Internal Links (min 2)',
     points: 5,
-    passed: internalLinkCount >= 2,
-    message: `${internalLinkCount} internal link(s) found. (Target: 2+)`,
+    passed: passedLinks,
+    message: passedLinks 
+      ? `${internalLinkCount} internal link(s) found.` 
+      : 'Add Hiringstores link and official website and not Career link.',
     category: 'content',
     autoFixAvailable: true,
   });
@@ -282,7 +274,9 @@ export function calculateJobSEOScore(job: any): SEOResult {
     name: 'Optimized Image Alt Text',
     points: 5,
     passed: hasImageAlt,
-    message: hasImageAlt ? 'Image alt text optimized.' : 'Missing or empty image alt text.',
+    message: hasImageAlt 
+      ? 'writing a concise, accurate description that includes relevant context rather than stuffing it with Focus keywords' 
+      : 'writing a concise, accurate description that includes relevant context rather than stuffing it with Focus keywords',
     category: 'content',
     autoFixAvailable: true,
   });

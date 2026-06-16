@@ -81,18 +81,18 @@ export async function enhanceJobSEO(job: any, company: any): Promise<EnhancedJob
 ════════════════════════════════════════
 STEP 1 — COMPUTE FOCUS KEYWORD FIRST
 ════════════════════════════════════════
-Focus Keyword formula: [Cleaned Job Title] + [Cleaned City Name]
+Focus Keyword formula: [Cleaned Job Title]
 
 IMPORTANT — CLEAN THE INPUTS BEFORE USING THEM:
 - If job_title contains internal codes, abbreviations, or non-English text (e.g. "DTE", "O150", "R0000367310"), resolve it to the actual job title using context from the raw_description. If you cannot resolve it, use "Production Associate" as default.
-- If city is an internal code, abbreviation, or clearly wrong (e.g. "DTE", "N/A", "null", "Lake City MN" for an Indian job), fix it: use the city mentioned in raw_description, or if the job is clearly in India (salary in ₹, Indian company), use the correct Indian city.
 - Never use a code, abbreviation, or placeholder as the focus keyword. The focus keyword must be real, searchable, human-readable.
+- DO NOT include the city or location in the focus keyword.
 
 Focus Keyword examples:
-GOOD: "Manufacturing Engineer Pune"
-GOOD: "CNC Operator Chennai"
-BAD: "DTE DTE" ← internal code, not a real search term
-BAD: "Manufacturing Engineer Lake City" ← Lake City MN is not an Indian manufacturing hub
+GOOD: "Manufacturing Engineer"
+GOOD: "CNC Operator"
+BAD: "DTE" ← internal code, not a real search term
+BAD: "Manufacturing Engineer Pune" ← Do NOT include city
 
 ════════════════════════════════════════
 STEP 2 — VALIDATE ALL INPUT DATA
@@ -126,16 +126,15 @@ company_sector:
 STEP 3 — GENERATE ALL OUTPUT FIELDS
 ════════════════════════════════════════
 
-RULE 1 — SEO TITLE (must score all 20 pts):
-Pattern: [Focus Keyword] — [Power Word] [Number/Salary Signal] | [Company]
-✓ Focus keyword in FIRST 3 words
+RULE 1 — SEO TITLE:
+Pattern Example: "[Focus Keyword] Job vacancies in [City], [State]" or "[Focus Keyword] Job opportunities in [City]"
+✓ Focus keyword MUST be in the FIRST 3 words
 ✓ Length: 50–60 characters EXACTLY (count every character including spaces)
-✓ Power word from: Urgent, Immediate, Certified, Top, Genuine, Verified, Leading, Direct, Rewarding
-✓ Sentiment word OR number: salary figure (₹15L), opening count (3 Openings), year (2026)
+✓ Power word from: Fresher, Fresher Job, Apply Now, Energy, Top, Best, Immediate, Recent Year
 ✓ NEVER exceed 60 characters — truncate company name if needed
 
 RULE 2 — META DESCRIPTION:
-✓ Length: 130–160 characters EXACTLY
+✓ Length: 140–160 characters EXACTLY
 ✓ Focus keyword appears ONCE, naturally
 ✓ Ends with CTA: "Apply now on hiringstores.com.in."
 ✓ Mentions salary if available
@@ -144,7 +143,7 @@ RULE 2 — META DESCRIPTION:
 RULE 3 — URL SLUG:
 Pattern: [company-slug]-[focus-keyword-hyphenated]
 ✓ All lowercase, hyphens only, no underscores, no IDs
-✓ Under 75 characters total
+✓ Length: 60-75 characters EXACTLY. Make sure it's unique to avoid duplicate URLs.
 
 RULE 4 — H1 TAG:
 Pattern: [Focus Keyword] Jobs | [Company] Hiring [Year]
@@ -181,17 +180,16 @@ RULE 7 — TABLE OF CONTENTS:
 ✓ <nav id="toc">...</nav> with anchor links to each H2
 
 RULE 8 — INTERNAL LINKS (minimum 2):
-✓ Link 1: href="/jobs/[job-title-slug]" — anchor: "[Job Title] jobs in India"
-✓ Link 2: href="/company/{{company_url_slug}}" — anchor: "[Company] careers"
-   CRITICAL: MUST use the exact company_url_slug variable from INPUT VARIABLES
-✓ Link 3 (bonus): href="/jobs-in-[city-slug]"
+✓ Add Hiringstores link and official website and not Career link.
+✓ Show "careers" in anchor text, but do NOT link to a Careers page (it creates a 404). Instead, link to the internal profile using the UUID provided: href="/company/[INSERT company_id HERE]".
+✓ MUST use the exact UUID from the company_id variable provided in INPUT VARIABLES. If company_id is "NEW_COMPANY", use the company_url_slug instead: href="/company/[INSERT company_url_slug HERE]".
 
 RULE 9 — EXTERNAL DOFOLLOW LINK (minimum 1):
-✓ Link to company's official website or: nsdcindia.org, msme.gov.in, ncvtmis.gov.in
+✓ MUST include a link to the company's official website.
 ✓ Natural anchor text (not "click here")
 
 RULE 10 — IMAGE:
-✓ Alt text: "[Company Name] [City] [Job Title] Jobs [Year]"
+✓ Alt text: Write a concise, accurate description that includes relevant context about the company and role, rather than stuffing it with focus keywords.
 ✓ Filename: [company-slug]-[city-slug]-logo.png
 ✓ Embed: <img src="/images/logos/[image_filename]" alt="[image_alt_text]" class="company-job-logo" />
 
@@ -209,13 +207,44 @@ RULE 12 — SALARY SECTION:
 RULE 13 — COMPANY DESCRIPTION (80–120 words):
 ✓ Correct industry sector
 ✓ Include: founded year, key products, why good employer
-✓ End with internal link
+✓ End with internal link to the company profile: <a href="/company/[INSERT company_id HERE]"> (or company_url_slug if company_id is NEW_COMPANY)
 
 RULE 14 — JSON-LD SCHEMA (JobPosting):
-Required fields: @context, @type, title, description (first 300 words plain text),
-datePosted (ISO 8601), validThrough (datePosted + 60 days), hiringOrganization,
-jobLocation, baseSalary (if available), employmentType, experienceRequirements,
-identifier, directApply: false
+Must exactly follow Google Jobs Schema standard (arthajobboard format).
+Example structure to follow exactly:
+{
+  "@context": "https://schema.org/",
+  "@type": "JobPosting",
+  "title": "[Job Title]",
+  "description": "[HTML Description]",
+  "datePosted": "[date_scraped]",
+  "validThrough": "[date_scraped + 60 days]",
+  "employmentType": "[FULL_TIME, CONTRACTOR, etc]",
+  "hiringOrganization": {
+    "@type": "Organization",
+    "name": "[Company Name]",
+    "sameAs": "[company_website]",
+    "logo": "https://hiringstores.com.in/images/logos/[image_filename]"
+  },
+  "jobLocation": {
+    "@type": "Place",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "[city_raw]",
+      "addressRegion": "[state_raw]",
+      "addressCountry": "[country]"
+    }
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "INR",
+    "value": {
+      "@type": "QuantitativeValue",
+      "value": 50000,
+      "unitText": "MONTH"
+    }
+  }
+}
 
 RULE 15 — READABILITY:
 ✓ Max 3 sentences per paragraph, avg 20 words per sentence
@@ -267,6 +296,7 @@ No markdown, no explanation, no preamble.
 job_id: ${job.id || ''}
 job_title_raw: ${job.title || ''}
 company_name: ${company.name || ''}
+company_id: ${company.id || 'NEW_COMPANY'}
 company_url_slug: ${companyUrlSlug}
 city_raw: ${job.location?.split(',')[0]?.trim() || ''}
 state_raw: ${job.location?.split(',')[1]?.trim() || ''}
@@ -318,8 +348,9 @@ RULES
 ════════════════════════════════════════
 
 FOCUS KEYWORD:
-- Formula: [Company Name] [Primary City]
+- Formula: [Company Name]
 - Must be real and searchable — never use codes or placeholders
+- DO NOT include the city or location in the focus keyword.
 
 SEO TITLE:
 - Length: 40–70 characters EXACTLY
@@ -327,7 +358,7 @@ SEO TITLE:
 - Example: "Tenneco India — Leading Automotive Manufacturer | Pune Jobs 2026"
 
 META DESCRIPTION:
-- Length: 100–160 characters EXACTLY
+- Length: 140–160 characters EXACTLY
 - Include focus keyword once, naturally
 - End with CTA: "View all openings on hiringstores.com.in."
 

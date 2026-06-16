@@ -34,8 +34,11 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
-    vus: 50, // 50 users trying to log in at the same time
-    duration: '30s',
+    stages: [
+        { duration: '10s', target: 500 },  // 10 seconds mein 500 users tak le jao
+        { duration: '10s', target: 2000 }, // Next 10 seconds mein peak 2000 users
+        { duration: '10s', target: 0 },    // Wapas 0 pe ramp-down karo
+    ],
 };
 
 export default function () {
@@ -57,6 +60,7 @@ export default function () {
         'logged in successfully': (r) => r.status === 200,
     });
 
-    sleep(1);
+    // Randomness badha di hai taaki ek hi millisecond par saare 2000 requests na aayein aur Mac ka TCP Queue overflow na ho
+    sleep(Math.random() * 10 + 5); 
 }
 

@@ -225,8 +225,7 @@ export function JobForm({
     : rawSeoReport;
 
   const generateFocusKeyword = (title: string, location: string | null | undefined) => {
-    if (!location) return title || '';
-    return `${title} ${location.split(',')[0]}`.trim();
+    return title?.trim() || '';
   };
 
 
@@ -313,10 +312,10 @@ Return ONLY the new description string. No quotes or explanation.`
             messages: [
               {
                 role: 'system',
-                content: `Generate a concise, descriptive image alt text for a job posting image. 
+                content: `Generate a concise, accurate description for a job posting image that includes relevant context rather than stuffing it with focus keywords.
 Rules:
 1. Under 100 characters.
-2. Include the focus keyword naturally.
+2. Provide relevant visual context about the company and role.
 3. Return ONLY the alt text string, no quotes.`
               },
               {
