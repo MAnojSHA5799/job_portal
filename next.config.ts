@@ -4,8 +4,12 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/jobs-in-:city',
-        destination: '/jobs-in/:city',
+        source: '/job-in-:country',
+        destination: '/locations/:country',
+      },
+      {
+        source: '/job-in-:country/job-in-:city',
+        destination: '/locations/:country/:city',
       },
     ]
   },

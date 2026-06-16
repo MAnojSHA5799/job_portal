@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cityParam = (await params).city;
   if (!cityParam) return { title: 'Jobs' };
   
-  const city = cityParam.charAt(0).toUpperCase() + cityParam.slice(1);
+  const rawCitySlug = cityParam.replace(/^job-in-/, '').replace(/-/g, ' ');
+  const city = rawCitySlug.charAt(0).toUpperCase() + rawCitySlug.slice(1);
   const title = `Manufacturing Jobs in ${city} — Hiring Now | http://www.hiringstores.com`;
   const description = `Discover top manufacturing and industrial jobs in ${city}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${city}.`;
 
@@ -42,7 +43,8 @@ export default async function LocationPage({ params }: Props) {
   const citySlug = (await params).city;
   if (!citySlug) return null;
   
-  const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+  const rawCitySlug = citySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
+  const cityName = rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   // Fetch jobs in this city
   const { data: jobs } = await supabase

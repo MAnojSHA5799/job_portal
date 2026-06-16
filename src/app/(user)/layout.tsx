@@ -37,6 +37,26 @@ const YoutubeIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
 );
 
+const getCountrySlug = (country: string) => {
+  const c = country.toLowerCase();
+  if (c === 'united states' || c === 'us') return 'usa';
+  if (c === 'united kingdom') return 'uk';
+  if (c === 'united arab emirates') return 'uae';
+  return c.replace(/\s+/g, '-');
+};
+
+const getCountryForCity = (city: string) => {
+  const cityLower = city.toLowerCase();
+  if (['dubai', 'abu dhabi', 'sharjah'].includes(cityLower)) return 'uae';
+  if (['new york', 'new york city', 'san francisco', 'chicago', 'los angeles', 'boston', 'austin', 'seattle'].includes(cityLower)) return 'usa';
+  if (['london', 'manchester', 'birmingham'].includes(cityLower)) return 'uk';
+  if (['toronto', 'vancouver', 'montreal'].includes(cityLower)) return 'canada';
+  if (['sydney', 'melbourne', 'brisbane'].includes(cityLower)) return 'australia';
+  if (['singapore'].includes(cityLower)) return 'singapore';
+  if (['remote', 'work from home'].includes(cityLower)) return 'remote';
+  return 'india'; // Most predefined cities are Indian
+};
+
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -366,7 +386,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                         {(showAllCities ? navData.cities : navData.cities.slice(0, 6)).map(city => (
                           <li key={city}>
                             <Link
-                              href={`/jobs?location=${encodeURIComponent(city)}`}
+                              href={`/job-in-${getCountryForCity(city)}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
                               className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
                             >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
@@ -394,7 +414,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                         {(showAllCountries ? navData.countries : navData.countries.slice(0, 6)).map(country => (
                           <li key={country}>
                             <Link
-                              href={`/jobs?location=${encodeURIComponent(country)}`}
+                              href={`/job-in-${getCountrySlug(country)}`}
                               className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
                             >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
