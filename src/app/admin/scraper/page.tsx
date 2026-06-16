@@ -40,6 +40,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface ScraperLog {
   id: string;
@@ -71,8 +72,10 @@ export default function ScraperManager() {
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All Status');
-  const [activeTab, setActiveTab] = useState<'logs' | 'companies'>('companies');
+  const searchParams = useSearchParams();
+  const initialStatus = searchParams?.get('status') === 'failed' ? 'Failed' : 'All Status';
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [activeTab, setActiveTab] = useState<'logs' | 'companies'>('logs');
   
   // Pagination State
   const [logsPage, setLogsPage] = useState(1);
@@ -221,6 +224,34 @@ export default function ScraperManager() {
     const to = from + itemsPerPage;
     return filteredCompanies.slice(from, to);
   }, [filteredCompanies, companiesPage]);
+
+  const exportToCSV = () => {
+    const headers = ['Run ID', 'Source / URL', 'Started At', 'Time', 'Jobs Found', 'Duration (s)', 'Status', 'Error Message'];
+    const rows = filteredLogs.map(log => [
+      `#SR-${log.id.slice(0, 8).toUpperCase()}`,
+      log.error_message?.replace('https://', '').replace('http://', '').split('/')[0] || 'Manual Scrape',
+      new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      new Date(log.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      log.jobs_found ?? 0,
+      log.duration ?? '',
+      log.status,
+      log.error_message || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const date = new Date().toISOString().split('T')[0];
+    link.download = `scraper-logs-${date}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleTriggerScraper = async () => {
     setTriggering(true);
@@ -386,6 +417,15 @@ export default function ScraperManager() {
 
       {/* Tabs */}
       <div className="flex items-center gap-4 border-b border-gray-200">
+          <button 
+          onClick={() => setActiveTab('logs')}
+          className={cn("pb-4 text-sm font-bold border-b-2 transition-colors", activeTab === 'logs' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}
+        >
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4" />
+            Scraper Logs
+          </div>
+        </button>
         <button 
           onClick={() => setActiveTab('companies')}
           className={cn("pb-4 text-sm font-bold border-b-2 transition-colors", activeTab === 'companies' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}
@@ -395,15 +435,7 @@ export default function ScraperManager() {
             Company Data
           </div>
         </button>
-        <button 
-          onClick={() => setActiveTab('logs')}
-          className={cn("pb-4 text-sm font-bold border-b-2 transition-colors", activeTab === 'logs' ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700")}
-        >
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            Scraper Logs
-          </div>
-        </button>
+      
       </div>
 
       {activeTab === 'companies' ? (
@@ -676,6 +708,15 @@ export default function ScraperManager() {
             </div>
             <Button variant="ghost" className="text-indigo-600 font-bold text-sm hover:bg-indigo-50" onClick={() => { setSearchQuery(''); setStatusFilter('All Status'); setLogsPage(1); }}>
               Clear Filters
+            </Button>
+            <Button
+              variant="outline"
+              className="h-11 px-5 rounded-xl border-indigo-100 bg-white text-indigo-600 font-bold text-sm hover:bg-indigo-50 shadow-sm shadow-gray-200/50 flex items-center gap-2 transition-all"
+              onClick={exportToCSV}
+              disabled={filteredLogs.length === 0}
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
             </Button>
           </div>
 

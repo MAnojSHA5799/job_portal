@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Clock, User, Sparkles, Loader2, Calendar, ArrowRight, ChevronRight } from 'lucide-react';
 import { Button, Badge, Card } from '@/components/ui';
@@ -27,6 +27,8 @@ interface Blog {
 export default function BlogPost() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPreview = searchParams?.get('preview') === 'true';
   const [blog, setBlog] = useState<Blog | null>(null);
   const [relatedBlogs, setRelatedBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,22 +51,16 @@ export default function BlogPost() {
 
       if (isUUID) {
         // If it's a UUID, it could be the ID or a slug that happens to look like a UUID
-        const result = await supabase
-          .from('blogs')
-          .select('*')
-          .eq('is_published', true)
-          .or(`id.eq.${id},slug.eq.${id}`)
-          .maybeSingle();
+        let query = supabase.from('blogs').select('*').or(`id.eq.${id},slug.eq.${id}`);
+        if (!isPreview) query = query.eq('is_published', true);
+        const result = await query.maybeSingle();
         data = result.data;
         error = result.error;
       } else {
         // If not a UUID, search ONLY in slug to avoid cast errors
-        const result = await supabase
-          .from('blogs')
-          .select('*')
-          .eq('is_published', true)
-          .eq('slug', id)
-          .maybeSingle();
+        let query = supabase.from('blogs').select('*').eq('slug', id);
+        if (!isPreview) query = query.eq('is_published', true);
+        const result = await query.maybeSingle();
         data = result.data;
         error = result.error;
       }

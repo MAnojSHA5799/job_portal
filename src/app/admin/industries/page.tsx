@@ -13,6 +13,7 @@ import {
   Loader2,
   Trash2,
   Edit3,
+  Upload,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -54,6 +55,35 @@ export default function IndustriesManagement() {
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+
+  const handleFileUpload = async (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploadingId(id);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `industry-logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('banners')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('banners')
+        .getPublicUrl(filePath);
+
+      await handleUpdateLogo(id, data.publicUrl);
+    } catch (error: any) {
+      alert('Error uploading logo: ' + error.message);
+    } finally {
+      setUploadingId(null);
+    }
+  };
 
   const fetchIndustries = async () => {
     try {
@@ -250,12 +280,26 @@ export default function IndustriesManagement() {
                       <div className="pt-4 border-t border-gray-50 space-y-3">
                         <div>
                           <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Logo URL (Icon)</label>
-                          <Input 
-                            defaultValue={industry.logo_url || ''} 
-                            onBlur={(e) => handleUpdateLogo(industry.id, e.target.value)}
-                            className="h-8 text-[10px] font-bold border-gray-100 bg-gray-50/50 rounded-lg focus:bg-white transition-all"
-                            placeholder="https://..."
-                          />
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              defaultValue={industry.logo_url || ''} 
+                              onBlur={(e) => handleUpdateLogo(industry.id, e.target.value)}
+                              className="h-8 text-[10px] font-bold border-gray-100 bg-gray-50/50 rounded-lg focus:bg-white transition-all flex-1"
+                              placeholder="https://..."
+                            />
+                            <div className="relative shrink-0">
+                              <input 
+                                type="file" 
+                                className="absolute inset-0 opacity-0 cursor-pointer z-20 w-8" 
+                                onChange={(e) => handleFileUpload(industry.id, e)}
+                                accept="image/*"
+                                disabled={uploadingId === industry.id}
+                              />
+                              <Button type="button" variant="outline" size="icon" className="h-8 w-8 rounded-lg border-gray-100 bg-white" disabled={uploadingId === industry.id}>
+                                {uploadingId === industry.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3 text-gray-500" />}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                   </div>

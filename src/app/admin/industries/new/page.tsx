@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, ArrowLeft, Layers, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, Layers, Sparkles, Upload } from 'lucide-react';
 import { Button, Input, Card } from '@/components/ui';
 
 export default function NewIndustryPage() {
@@ -11,6 +11,35 @@ export default function NewIndustryPage() {
   const [saving, setSaving] = useState(false);
   const [industryData, setIndustryData] = useState({ name: '', logo_url: '' });
   const [categories, setCategories] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `industry-logos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('banners')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('banners')
+        .getPublicUrl(filePath);
+
+      setIndustryData({ ...industryData, logo_url: data.publicUrl });
+    } catch (error: any) {
+      alert('Error uploading logo: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   React.useEffect(() => {
     const fetchCategories = async () => {
@@ -105,19 +134,32 @@ export default function NewIndustryPage() {
                   Logo / Icon URL
                 </label>
                 <div className="flex gap-4 items-start">
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-3">
                     <Input 
                       placeholder="https://example.com/logo.png" 
                       className="h-14 bg-gray-50/50 border-gray-200 rounded-xl focus:bg-white transition-all"
                       value={industryData.logo_url}
                       onChange={e => setIndustryData({...industryData, logo_url: e.target.value})}
                     />
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-20" 
+                        onChange={handleFileUpload}
+                        accept="image/*"
+                        disabled={uploading}
+                      />
+                      <Button type="button" variant="outline" className="h-12 w-full rounded-xl border-gray-200 bg-white hover:bg-gray-50 transition-all shadow-sm font-bold text-indigo-600 border-indigo-100" disabled={uploading}>
+                        {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                        {industryData.logo_url ? 'Change Image' : 'Upload Image'}
+                      </Button>
+                    </div>
                     <p className="text-[10px] text-gray-500 font-medium mt-2">
-                      Provide a direct link to an image (PNG, SVG, or JPG recommended).
+                      Provide a direct link or upload an image (PNG, SVG, or JPG recommended).
                     </p>
                   </div>
                   {industryData.logo_url && (
-                    <div className="w-14 h-14 shrink-0 rounded-xl border border-gray-200 p-2 bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 shrink-0 rounded-xl border border-gray-200 p-2 bg-white shadow-sm flex items-center justify-center overflow-hidden">
                       <img src={industryData.logo_url} alt="Preview" className="w-full h-full object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                     </div>
                   )}

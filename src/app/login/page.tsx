@@ -55,9 +55,10 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side: Form (40% width) */}
-      <div className="w-full h-full md:w-[40%] px-8 py-8 md:px-12 xl:px-16 flex flex-col justify-center bg-[#F4F7FB] overflow-y-auto overflow-x-hidden no-scrollbar">
-        <div className="max-w-[400px] w-full mx-auto">
-          <h2 className="text-[28px] font-black text-center mb-2 text-gray-800 tracking-wide uppercase">JOB SEEKER LOGIN</h2>
+      <div className="w-full h-full md:w-[40%] bg-[#F4F7FB] overflow-y-auto overflow-x-hidden no-scrollbar">
+        <div className="min-h-full flex flex-col justify-center px-8 py-8 md:px-12 xl:px-16">
+          <div className="max-w-[400px] w-full mx-auto">
+            <h2 className="text-[28px] font-black text-center mb-2 text-gray-800 tracking-wide uppercase">JOB SEEKER LOGIN</h2>
           <p className="text-center text-sm text-gray-500 mb-8 font-medium">Please sign in to access your account</p>
           
 
@@ -102,7 +103,7 @@ export default function LoginPage() {
                 <input type="checkbox" className="rounded border-gray-300 text-[#ADC5E3] focus:ring-[#ADC5E3] w-3.5 h-3.5" />
                 <span className="font-extrabold">Remember me</span>
               </label>
-              <Link href="/forgot-password" className="hover:text-blue-600 transition-colors text-[#ADC5E3] font-extrabold">Forgot Password?</Link>
+              {/* <Link href="/forgot-password" className="hover:text-blue-600 transition-colors text-[#ADC5E3] font-extrabold">Forgot Password?</Link> */}
             </div>
           </form>
 
@@ -110,6 +111,7 @@ export default function LoginPage() {
             Don't have an account?{' '}
             <Link href="/register" className="text-[#ADC5E3] hover:underline">Sign Up</Link>
           </p>
+        </div>
         </div>
       </div>
       

@@ -99,7 +99,7 @@ export default function AdminLoginPage() {
                 <input type="checkbox" className="rounded border-gray-300 text-[#ADC5E3] focus:ring-[#ADC5E3] w-3.5 h-3.5" />
                 <span>Remember me</span>
               </label>
-              <Link href="/forgot-password" className="hover:text-blue-500 transition-colors text-[#ADC5E3]">Forgot Password?</Link>
+              {/* <Link href="/forgot-password" className="hover:text-blue-500 transition-colors text-[#ADC5E3]">Forgot Password?</Link> */}
             </div>
           </form>
           

@@ -42,12 +42,15 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
-  const [navData, setNavData] = useState<{ cities: string[], categories: string[], types: string[], industries: string[] }>({ 
+  const [navData, setNavData] = useState<{ cities: string[], countries: string[], categories: string[], types: string[], industries: string[] }>({ 
     cities: ['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'], 
+    countries: ['India', 'United States', 'United Kingdom', 'Canada', 'Australia'],
     categories: ['IT', 'Sales', 'Marketing', 'Accounting', 'Production'],
     types: ['Full Time', 'Part Time', 'Contract', 'Remote', 'Freshers'],
     industries: ['Manufacturing', 'Technology', 'Healthcare', 'Automotive']
   });
+  const [showAllCities, setShowAllCities] = useState(false);
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -69,9 +72,58 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           .limit(300);
 
         if (data && data.length > 0) {
-          const uniqueCities = Array.from(new Set(data.map(j => j.location?.split(',')[0].trim())))
-            .filter(Boolean)
-            .slice(0, 6);
+          // Known Indian cities whitelist to avoid country names / full addresses mixing in
+          const KNOWN_CITIES = [
+            'Delhi', 'Delhi NCR', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
+            'Bangalore', 'Bengaluru', 'Mumbai', 'Pune', 'Hyderabad', 'Chennai',
+            'Kolkata', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur',
+            'Nagpur', 'Indore', 'Bhopal', 'Chandigarh', 'Coimbatore', 'Kochi',
+            'Vadodara', 'Agra', 'Nashik', 'Patna', 'Ranchi', 'Bhubaneswar',
+            'Remote', 'Work From Home'
+          ];
+
+          const KNOWN_COUNTRIES = [
+            'India', 'United States', 'US', 'USA', 'United Kingdom', 'UK', 'Canada', 'Australia', 
+            'Germany', 'Singapore', 'UAE', 'United Arab Emirates'
+          ];
+
+          // Extract city from location: take first segment before comma, then match against whitelist
+          const rawLocations = data.map(j => j.location).filter(Boolean) as string[];
+          const rawCities = rawLocations.map(l => l.split(',')[0].trim());
+
+          const matchedCities = Array.from(new Set(
+            rawCities.filter(city =>
+              KNOWN_CITIES.some(known =>
+                city.toLowerCase().includes(known.toLowerCase()) ||
+                known.toLowerCase().includes(city.toLowerCase())
+              )
+            ).map(city => {
+              // Normalize to canonical name if possible
+              const match = KNOWN_CITIES.find(known =>
+                city.toLowerCase().includes(known.toLowerCase())
+              );
+              return match || city;
+            })
+          )); // No slice — store ALL matched cities
+
+          const rawCountries = rawLocations.map(l => {
+            const parts = l.split(',');
+            return parts[parts.length - 1].trim();
+          });
+
+          const matchedCountries = Array.from(new Set(
+            rawCountries.filter(country =>
+              KNOWN_COUNTRIES.some(known =>
+                country.toLowerCase().includes(known.toLowerCase()) ||
+                known.toLowerCase().includes(country.toLowerCase())
+              )
+            ).map(country => {
+              const match = KNOWN_COUNTRIES.find(known =>
+                country.toLowerCase().includes(known.toLowerCase())
+              );
+              return match || country;
+            })
+          ));
           
           const uniqueCats = Array.from(new Set(data.map(j => j.category)))
             .filter(Boolean)
@@ -89,7 +141,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           const uniqueInd = indData ? indData.map(i => i.name).filter(Boolean) : [];
 
           setNavData({
-            cities: uniqueCities.length > 0 ? uniqueCities : navData.cities,
+            cities: matchedCities.length > 0 ? matchedCities : navData.cities,
+            countries: matchedCountries.length > 0 ? matchedCountries : navData.countries,
             categories: uniqueCats.length > 0 ? uniqueCats : navData.categories,
             types: uniqueTypes.length > 0 ? uniqueTypes : navData.types,
             industries: uniqueInd.length > 0 ? uniqueInd : navData.industries
@@ -200,25 +253,31 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="hidden sm:flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2 focus-within:ring-2 ring-primary/20 transition-all">
+              {/* <div className="hidden sm:flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2 focus-within:ring-2 ring-primary/20 transition-all">
                 <Search className="w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
                   placeholder="Quick search..." 
                   className="bg-transparent border-none focus:outline-none text-sm ml-2 w-32 lg:w-48 text-slate-600 font-medium"
                 />
-              </div>
+              </div> */}
 
               <div className="hidden md:flex items-center gap-3 ml-2">
                 {user ? (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <div className="flex flex-col items-end">
                       <span className="text-xs font-black text-slate-900 uppercase tracking-wider">{user.fullName}</span>
                       <span className="text-[10px] font-bold text-primary uppercase">{user.role}</span>
                     </div>
+                    <Link href="/profile">
+                      <button className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-primary hover:bg-primary/10 transition-all border border-slate-100" title="Edit Profile">
+                        <User className="w-5 h-5" />
+                      </button>
+                    </Link>
                     <button 
                       onClick={handleLogout}
                       className="p-2.5 rounded-xl bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all border border-slate-100"
+                      title="Logout"
                     >
                       <LogIn className="w-5 h-5 rotate-180" />
                     </button>
@@ -295,27 +354,69 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-12 gap-x-8 gap-y-12 mb-20">
                 
-                <div className="col-span-2 md:col-span-3 lg:col-span-4 space-y-6">
+                <div className="col-span-2 md:col-span-3 lg:col-span-12 xl:col-span-2 space-y-6">
                     <Link href="/" className="inline-block -mt-4">
                         <img src="/two.png" alt="JobPortal" className="w-56 md:w-72 h-auto object-contain object-left" />
                     </Link>
                 </div>
 
-                <div className="col-span-1 md:col-span-1 lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Jobs by City</h4>
                     <ul className="space-y-4 text-sm font-medium">
-                        {navData.cities.map(city => (
+                        {(showAllCities ? navData.cities : navData.cities.slice(0, 6)).map(city => (
                           <li key={city}>
-                            <Link href={`/jobs-in-${city.toLowerCase().replace(/\s+/g, '-')}`} className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group">
+                            <Link
+                              href={`/jobs?location=${encodeURIComponent(city)}`}
+                              className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
+                            >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
                               Jobs in {city}
                             </Link>
                           </li>
                         ))}
+                        {navData.cities.length > 6 && (
+                          <li>
+                            <button
+                              onClick={() => setShowAllCities(prev => !prev)}
+                              className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
+                              {showAllCities ? 'Show Less ↑' : 'See More →'}
+                            </button>
+                          </li>
+                        )}
                     </ul>
                 </div>
 
-                <div className="col-span-1 md:col-span-1 lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
+                    <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Jobs by Country</h4>
+                    <ul className="space-y-4 text-sm font-medium">
+                        {(showAllCountries ? navData.countries : navData.countries.slice(0, 6)).map(country => (
+                          <li key={country}>
+                            <Link
+                              href={`/jobs?location=${encodeURIComponent(country)}`}
+                              className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
+                              Jobs in {country}
+                            </Link>
+                          </li>
+                        ))}
+                        {navData.countries.length > 6 && (
+                          <li>
+                            <button
+                              onClick={() => setShowAllCountries(prev => !prev)}
+                              className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
+                              {showAllCountries ? 'Show Less ↑' : 'See More →'}
+                            </button>
+                          </li>
+                        )}
+                    </ul>
+                </div>
+
+                <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Popular Roles</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         {navData.categories.map(cat => (
@@ -329,7 +430,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     </ul>
                 </div>
 
-                <div className="col-span-1 md:col-span-1 lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Resources</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         <li><Link href="/companies" className="text-slate-400 hover:text-primary transition-all">Companies</Link></li>
@@ -339,7 +440,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     </ul>
                 </div>
 
-                <div className="col-span-1 md:col-span-1 lg:col-span-2">
+                <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Company</h4>
                     <ul className="space-y-4 text-sm font-medium">
                         <li><Link href="/about" className="text-slate-400 hover:text-primary transition-all">About Us</Link></li>

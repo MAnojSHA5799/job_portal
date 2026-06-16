@@ -122,7 +122,18 @@ export default function EditJobPage() {
       }
 
       // Cleanup job data
-      const { id: jobId, created_at, companies: _, new_company_name, ...updateData } = jobData;
+      const { 
+        id: jobId, 
+        created_at, 
+        companies: _, 
+        new_company_name, 
+        schema_json_ld,
+        faq_schema_json_ld,
+        image_alt_text,
+        image_filename,
+        h1,
+        ...updateData 
+      } = jobData;
 
       const { data: updatedJob, error } = await supabase
         .from('jobs')

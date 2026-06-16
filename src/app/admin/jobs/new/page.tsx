@@ -69,7 +69,15 @@ export default function NewJobPage() {
       }
 
       // Cleanup and insert job
-      const { new_company_name, ...payload } = jobData;
+      const { 
+        new_company_name, 
+        schema_json_ld,
+        faq_schema_json_ld,
+        image_alt_text,
+        image_filename,
+        h1,
+        ...payload 
+      } = jobData;
       const { data: createdJob, error } = await supabase
         .from('jobs')
         .insert([{ ...payload, company_id: finalCompanyId }])

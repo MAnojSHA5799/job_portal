@@ -65,6 +65,11 @@ interface Job {
   media_url?: string;
   media_type?: 'image' | 'video';
   media_link?: string;
+  schema_json_ld?: any;
+  faq_schema_json_ld?: any;
+  image_alt_text?: string;
+  image_filename?: string;
+  h1?: string;
 }
 
 interface JobFormProps {
@@ -116,12 +121,18 @@ export function JobForm({
   const [showPreview, setShowPreview] = useState(false);
   const [isAIOptimized, setIsAIOptimized] = useState(!!initialData?.seo_score && initialData.seo_score >= 95);
   const [seoExtras, setSeoExtras] = useState<{
-    schema_json_ld?: object;
-    faq_schema_json_ld?: object;
+    schema_json_ld?: any;
+    faq_schema_json_ld?: any;
     image_alt_text?: string;
     image_filename?: string;
     h1?: string;
-  }>({});
+  }>({
+    schema_json_ld: initialData?.schema_json_ld,
+    faq_schema_json_ld: initialData?.faq_schema_json_ld,
+    image_alt_text: initialData?.image_alt_text,
+    image_filename: initialData?.image_filename,
+    h1: initialData?.h1,
+  });
 
   // Ref to track the exact field values when AI optimization ran
   const aiBaselineRef = useRef<{
@@ -292,6 +303,58 @@ Return ONLY the new description string. No quotes or explanation.`
           .replace(/-+/g, '-') // Remove double hyphens
           .replace(/^-|-$/g, ''); // Trim hyphens
         setCurrentJob({ ...currentJob, url_slug: slug });
+      } else if (check.id === 27) {
+        // Optimized Image Alt Text
+        const response = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `Generate a concise, descriptive image alt text for a job posting image. 
+Rules:
+1. Under 100 characters.
+2. Include the focus keyword naturally.
+3. Return ONLY the alt text string, no quotes.`
+              },
+              {
+                role: 'user',
+                content: `Job Title: ${currentJob.title}, Focus Keyword: ${currentJob.focus_keyword}, Company: ${companies.find(c => c.id === currentJob.company_id)?.name || currentJob.new_company_name || 'Company'}`
+              }
+            ]
+          })
+        });
+        const data = await response.json();
+        const altText = data.choices[0].message.content.replace(/"/g, '').trim();
+        
+        const filenameResponse = await fetch('/api/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `Generate an SEO-friendly image filename (e.g. 'senior-developer-jobs-pune.jpg').
+Rules:
+1. Use only lowercase letters, numbers, and hyphens.
+2. End with .jpg or .png.
+3. Include the focus keyword.
+Return ONLY the filename.`
+              },
+              {
+                role: 'user',
+                content: `Job Title: ${currentJob.title}, Focus Keyword: ${currentJob.focus_keyword}`
+              }
+            ]
+          })
+        });
+        const filenameData = await filenameResponse.json();
+        const filename = filenameData.choices[0].message.content.replace(/"/g, '').trim();
+
+        setSeoExtras(prev => ({ ...prev, image_alt_text: altText, image_filename: filename }));
       } else if (check.category === 'content') {
         const response = await fetch('/api/openai', {
           method: 'POST',
@@ -476,9 +539,10 @@ Instructions:
     const finalJob = {
       ...currentJob,
       is_approved: isApproved,
-      seo_score: seoReport.score
+      seo_score: seoReport.score,
+      ...seoExtras
     };
-    onSave(finalJob);
+    onSave(finalJob as any);
   };
 
   const selectedCompany = companies.find(c => c.id === currentJob.company_id);

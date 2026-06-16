@@ -85,9 +85,9 @@ function JobListingContent() {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [selectedType, setSelectedType] = useState(searchParams.get('job_type') || '');
   const [selectedExperience, setSelectedExperience] = useState(searchParams.get('experience_level') || '');
-  const [selectedSkills, setSelectedSkills] = useState('');
-  const [selectedSalary, setSelectedSalary] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState(searchParams.get('skills') || '');
+  const [selectedSalary, setSelectedSalary] = useState(searchParams.get('salary') || '');
+  const [selectedLanguage, setSelectedLanguage] = useState(searchParams.get('language') || '');
   const [sortBy, setSortBy] = useState<'newest' | 'highest_salary' | 'relevant'>('newest');
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -198,6 +198,9 @@ function JobListingContent() {
     setSelectedCategory(searchParams.get('category') || '');
     setSelectedType(searchParams.get('job_type') || '');
     setSelectedExperience(searchParams.get('experience_level') || '');
+    setSelectedSkills(searchParams.get('skills') || '');
+    setSelectedSalary(searchParams.get('salary') || '');
+    setSelectedLanguage(searchParams.get('language') || '');
   }, [searchParams]);
 
   useEffect(() => {
@@ -218,7 +221,30 @@ function JobListingContent() {
 
       const matchesCategory = !selectedCategory || job.category === selectedCategory;
 
-      const matchesExperience = !selectedExperience || job.experience_level === selectedExperience;
+      const matchesExperience = !selectedExperience || (() => {
+        const expStr = (job.experience_level || '').toLowerCase();
+        if (expStr === selectedExperience.toLowerCase()) return true;
+
+        const nums = expStr.match(/\d+(\.\d+)?/g);
+        let minExp = -1;
+
+        if (nums && nums.length > 0) {
+          minExp = parseFloat(nums[0]);
+        } else {
+          if (selectedExperience === 'Fresher') return expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern');
+          if (selectedExperience === '1-3 Years') return expStr.includes('junior') || expStr.includes('associate');
+          if (selectedExperience === '3-5 Years') return expStr.includes('mid');
+          if (selectedExperience === '5+ Years') return expStr.includes('senior') || expStr.includes('lead');
+          return false;
+        }
+
+        if (selectedExperience === 'Fresher') return minExp === 0;
+        if (selectedExperience === '1-3 Years') return minExp >= 1 && minExp <= 3;
+        if (selectedExperience === '3-5 Years') return minExp >= 3 && minExp <= 5;
+        if (selectedExperience === '5+ Years') return minExp >= 5;
+
+        return false;
+      })();
 
       const matchesType = !selectedType || job.job_type === selectedType;
 
@@ -393,7 +419,7 @@ function JobListingContent() {
           <Clock className="w-3.5 h-3.5 text-emerald-500" /> Job Type
         </h4>
         <div className="space-y-1">
-          {['Full-time', 'Part-time', 'Contract', 'Remote'].map((type) => {
+          {['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'].map((type) => {
             const isSelected = selectedType === type;
             return (
               <button

@@ -86,13 +86,30 @@ export default function HomePage() {
   const [blogPageIndex, setBlogPageIndex] = useState(0);
   const blogsPerSlide = 4;
 
+  const buildFilterUrl = (overrides: Record<string, string> = {}) => {
+    const params = new URLSearchParams();
+    const q = overrides.q !== undefined ? overrides.q : searchQuery;
+    const location = overrides.location !== undefined ? overrides.location : locationQuery;
+    const category = overrides.category !== undefined ? overrides.category : selectedCategory;
+    const type = overrides.type !== undefined ? overrides.type : selectedType;
+    const salary = overrides.salary !== undefined ? overrides.salary : selectedSalary;
+    const experience = overrides.experience !== undefined ? overrides.experience : selectedExperience;
+    const skills = overrides.skills !== undefined ? overrides.skills : selectedSkills;
+    const language = overrides.language !== undefined ? overrides.language : selectedLanguage;
+    if (q) params.set('q', q);
+    if (location) params.set('location', location);
+    if (category) params.set('category', category);
+    if (type) params.set('job_type', type);        // /jobs page reads 'job_type'
+    if (salary) params.set('salary', salary);
+    if (experience) params.set('experience_level', experience); // /jobs page reads 'experience_level'
+    if (skills) params.set('skills', skills);
+    if (language) params.set('language', language);
+    return `/jobs?${params.toString()}`;
+  };
+
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (locationQuery) params.set('location', locationQuery);
-    const url = `/jobs?${params.toString()}`;
-    window.open(url, '_blank');
+    router.push(buildFilterUrl());
   };
 
   useEffect(() => {
@@ -343,7 +360,7 @@ export default function HomePage() {
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedCategory ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">📂 Job Category</option>
                       {Object.keys(categoryCounts).sort().map(cat => (
@@ -358,7 +375,7 @@ export default function HomePage() {
                     <select
                       value={locationQuery}
                       onChange={(e) => setLocationQuery(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${locationQuery ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">🌍 Your Location</option>
                       <option value="Delhi">Delhi NCR</option>
@@ -377,7 +394,7 @@ export default function HomePage() {
                     <select
                       value={selectedExperience}
                       onChange={(e) => setSelectedExperience(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedExperience ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">⭐ Experience</option>
                       <option value="Fresher">Fresher</option>
@@ -393,7 +410,7 @@ export default function HomePage() {
                     <select
                       value={selectedType}
                       onChange={(e) => setSelectedType(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedType ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">💼 Employment Type</option>
                       <option value="Full-time">Full-time</option>
@@ -409,7 +426,7 @@ export default function HomePage() {
                     <select
                       value={selectedSkills}
                       onChange={(e) => setSelectedSkills(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedSkills ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">🛠️ Skills</option>
                       <option value="React">React / Frontend</option>
@@ -427,7 +444,7 @@ export default function HomePage() {
                     <select
                       value={selectedSalary}
                       onChange={(e) => setSelectedSalary(e.target.value)}
-                      className="w-full appearance-none pl-6 pr-10 py-3 bg-white border border-gray-100 rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none"
+                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedSalary ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">💰 Minimum Salary</option>
                       <option value="10000">₹10k+</option>
@@ -438,24 +455,30 @@ export default function HomePage() {
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
                   </div>
 
-
-
-                  {/* Clear Filters (Optional but good) */}
+                  {/* Search Jobs Button - shown when any filter is active */}
                   {(selectedCategory || locationQuery || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage) && (
-                    <button
-                      onClick={() => {
-                        setSelectedCategory('');
-                        setLocationQuery('');
-                        setSelectedExperience('');
-                        setSelectedType('');
-                        setSelectedSalary('');
-                        setSelectedSkills('');
-                        setSelectedLanguage('');
-                      }}
-                      className="px-4 py-3.5 text-xs font-black text-red-500 uppercase tracking-widest hover:bg-red-50 rounded-full transition-all"
-                    >
-                      ✕ Clear All
-                    </button>
+                    <>
+                      <button
+                        onClick={() => router.push(buildFilterUrl())}
+                        className="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-black text-xs uppercase tracking-widest rounded-full shadow-lg shadow-primary/25 hover:scale-[1.03] active:scale-95 transition-all flex items-center gap-2"
+                      >
+                        🔍 Search Jobs
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedCategory('');
+                          setLocationQuery('');
+                          setSelectedExperience('');
+                          setSelectedType('');
+                          setSelectedSalary('');
+                          setSelectedSkills('');
+                          setSelectedLanguage('');
+                        }}
+                        className="px-4 py-3 text-xs font-black text-red-500 uppercase tracking-widest hover:bg-red-50 rounded-full transition-all"
+                      >
+                        ✕ Clear
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

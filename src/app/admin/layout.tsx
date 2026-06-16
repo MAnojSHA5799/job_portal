@@ -41,7 +41,7 @@ const menuItems = [
   { icon: AppWindow, label: 'Static Pages', href: '/admin/pages' },
   { icon: Newspaper, label: 'Blogs', href: '/admin/blogs' },
   { icon: ImageIcon, label: 'Banners', href: '/admin/banners' },
-  { icon: Settings, label: 'Settings', href: '/admin/settings' },
+  // { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 
 import { supabase } from '@/lib/supabase';
@@ -156,23 +156,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Top Navbar */}
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
           <div className="flex items-center gap-4">
-            <button 
+            {/* <button 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-            <div className="hidden md:flex relative max-w-sm w-64">
+            </button> */}
+            {/* <div className="hidden md:flex relative max-w-sm w-64">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <Input placeholder="Search everything..." className="pl-10 h-9 bg-gray-50 border-0" />
-            </div>
+            </div> */}
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
+            {/* <button className="relative p-2 text-gray-400 hover:bg-gray-50 rounded-lg">
               <Bell className="h-5 w-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full border-2 border-white"></span>
-            </button>
+            </button> */}
             <div className="flex items-center gap-3 pl-4 border-l border-gray-100">
                <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-gray-900">Admin User</p>

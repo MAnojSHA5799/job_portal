@@ -620,6 +620,19 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
           </div>
 
           <div className="flex justify-end gap-4 pt-4">
+            {currentBlog.id && (
+              <a href={`/blog/${currentBlog.id}?preview=true`} target="_blank" rel="noopener noreferrer">
+                <Button 
+                  variant="outline"
+                  size="lg"
+                  className="h-14 px-8 border-gray-200 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 flex items-center"
+                  type="button"
+                >
+                  <Eye className="h-5 w-5 mr-2" />
+                  PREVIEW
+                </Button>
+              </a>
+            )}
             <Button 
               variant="outline"
               onClick={() => onSave({...currentBlog, is_published: false})} 

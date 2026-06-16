@@ -83,7 +83,8 @@ export default function JobsQueue() {
   const [enhancingProgress, setEnhancingProgress] = useState({ current: 0, total: 0 });
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(initialCompanyId);
-  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'drafts' | 'trash' | 'expired'>('all');
+  const initialTab = (searchParams?.get('tab') as 'all' | 'published' | 'drafts' | 'trash' | 'expired') || 'all';
+  const [activeTab, setActiveTab] = useState<'all' | 'published' | 'drafts' | 'trash' | 'expired'>(initialTab);
   const [selectedValidity, setSelectedValidity] = useState<'all' | 'valid' | 'expired'>('all');
   const [dateRange, setDateRange] = useState({
     start: '',

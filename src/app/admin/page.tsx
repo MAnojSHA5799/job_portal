@@ -38,10 +38,10 @@ const data = [
 export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState([
-    { label: 'Total Jobs', value: '...', icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', trend: '+0%' },
-    { label: 'Pending Jobs', value: '...', icon: Clock, color: 'text-accent', bg: 'bg-accent/10', trend: '0%' },
-    { label: 'Approved Jobs', value: '...', icon: CheckCircle, color: 'text-secondary', bg: 'bg-secondary/10', trend: '0%' },
-    { label: 'Failed Scrapes', value: '...', icon: XCircle, color: 'text-danger', bg: 'bg-danger/10', trend: '0%' },
+    { label: 'Total Jobs', value: '...', icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', trend: '+0%', href: '/admin/jobs' },
+    { label: 'Pending Jobs', value: '...', icon: Clock, color: 'text-accent', bg: 'bg-accent/10', trend: '0%', href: '/admin/jobs?tab=drafts' },
+    { label: 'Approved Jobs', value: '...', icon: CheckCircle, color: 'text-secondary', bg: 'bg-secondary/10', trend: '0%', href: '/admin/jobs?tab=published' },
+    { label: 'Failed Scrapes', value: '...', icon: XCircle, color: 'text-danger', bg: 'bg-danger/10', trend: '0%', href: '/admin/scraper?status=failed' },
   ]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
@@ -84,10 +84,10 @@ export default function AdminDashboard() {
         ]);
 
         setStats([
-          { label: 'Total Jobs', value: total.toLocaleString(), icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', trend: '+12.5%' },
-          { label: 'Pending Jobs', value: pending.toLocaleString(), icon: Clock, color: 'text-accent', bg: 'bg-accent/10', trend: '-5.2%' },
-          { label: 'Approved Jobs', value: approved.toLocaleString(), icon: CheckCircle, color: 'text-secondary', bg: 'bg-secondary/10', trend: '+8.1%' },
-          { label: 'Failed Scrapes', value: failed.toLocaleString(), icon: XCircle, color: 'text-danger', bg: 'bg-danger/10', trend: '+2.4%' },
+          { label: 'Total Jobs', value: total.toLocaleString(), icon: Briefcase, color: 'text-primary', bg: 'bg-primary/10', trend: '+12.5%', href: '/admin/jobs' },
+          { label: 'Pending Jobs', value: pending.toLocaleString(), icon: Clock, color: 'text-accent', bg: 'bg-accent/10', trend: '-5.2%', href: '/admin/jobs?tab=drafts' },
+          { label: 'Approved Jobs', value: approved.toLocaleString(), icon: CheckCircle, color: 'text-secondary', bg: 'bg-secondary/10', trend: '+8.1%', href: '/admin/jobs?tab=published' },
+          { label: 'Failed Scrapes', value: failed.toLocaleString(), icon: XCircle, color: 'text-danger', bg: 'bg-danger/10', trend: '+2.4%', href: '/admin/scraper?status=failed' },
         ]);
 
         // Fetch Chart Data
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
         setChartData(groupedData);
 
         // Fetch Recent Activity
-        const activityLimit = showAllActivity ? 50 : 5;
+        const activityLimit = 50; // Always fetch 50, slice in UI
         const [ { data: latestJobs }, { data: latestLogs } ] = await Promise.all([
           supabase.from('jobs').select('id, url_slug, title, created_at, is_approved').order('created_at', { ascending: false }).limit(activityLimit),
           supabase.from('scraper_logs').select('status, jobs_found, created_at').order('created_at', { ascending: false }).limit(activityLimit)
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
             type: j.is_approved ? 'approval' : 'new_job',
             text: j.is_approved ? `Job approved: ${j.title}` : `New job found: ${j.title}`,
             time: new Date(j.created_at),
-            href: `/jobs/${j.url_slug || j.id}`
+            href: j.is_approved ? `/jobs/${j.url_slug || j.id}` : `/jobs/${j.url_slug || j.id}?preview=true`
           })),
           ...(latestLogs || []).map(l => ({
             type: 'scraper',
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-  }, [dateRange, chartDays, showAllActivity]);
+  }, [dateRange, chartDays]);
 
   if (!mounted) return null;
 
@@ -260,10 +260,12 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
-          <div
+          <Link
             key={i}
+            href={stat.href}
+            className="block h-full focus:outline-none"
           >
-            <Card className="p-6 h-full border-gray-100 transition-all">
+            <Card className="p-6 h-full border-gray-100 hover:border-primary/20 hover:shadow-md cursor-pointer transition-all">
               <div className="flex justify-between items-start">
                 <div className={cn("p-2 rounded-lg", stat.bg)}>
                   <stat.icon className={cn("h-6 w-6", stat.color)} />
@@ -280,7 +282,7 @@ export default function AdminDashboard() {
                 <h3 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h3>
               </div>
             </Card>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -357,13 +359,13 @@ export default function AdminDashboard() {
                   <p className="text-gray-400 text-sm">Loading activity...</p>
                 </div>
               ) : activities.length > 0 ? (
-                activities.map((activity, i) => (
+                (showAllActivity ? activities : activities.slice(0, 5)).map((activity, i, arr) => (
                   <div key={i} className="flex gap-4">
                     <div className="relative">
                       <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-500">
                         {i + 1}
                       </div>
-                      {i < activities.length - 1 && <div className="absolute top-8 left-4 w-0.5 h-6 bg-gray-100 -ml-[1px]"></div>}
+                      {i < arr.length - 1 && <div className="absolute top-8 left-4 w-0.5 h-6 bg-gray-100 -ml-[1px]"></div>}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900 leading-tight">
