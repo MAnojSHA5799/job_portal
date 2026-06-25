@@ -31,21 +31,29 @@
 
 
 import http from 'k6/http';
-import { check, sleep } from 'k6';
+import { check } from 'k6';
 
 export const options = {
     stages: [
-        { duration: '10s', target: 500 },  // 10 seconds mein 500 users tak le jao
-        { duration: '10s', target: 2000 }, // Next 10 seconds mein peak 2000 users
-        { duration: '10s', target: 0 },    // Wapas 0 pe ramp-down karo
+        { duration: '30s', target: 1000 },  // Ramp to 1000 users
+        { duration: '30s', target: 3000 },  // Ramp to 3000 users
+        { duration: '30s', target: 5000 },  // Ramp to 5000 users
+        { duration: '60s', target: 5000 },  // Hold 5000 users
+        { duration: '30s', target: 0 },     // Ramp down
     ],
+
+    thresholds: {
+        http_req_failed: ['rate<0.01'], // <1% errors
+        http_req_duration: ['p(95)<1000'],
+    },
 };
 
 export default function () {
     const url = 'http://localhost:3000/api/auth/login';
+
     const payload = JSON.stringify({
         email: 'manoj-final-test@admin.com',
-        password: 'password123'
+        password: 'password123',
     });
 
     const params = {
@@ -59,8 +67,4 @@ export default function () {
     check(res, {
         'logged in successfully': (r) => r.status === 200,
     });
-
-    // Randomness badha di hai taaki ek hi millisecond par saare 2000 requests na aayein aur Mac ka TCP Queue overflow na ho
-    sleep(Math.random() * 10 + 5); 
 }
-

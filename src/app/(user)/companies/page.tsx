@@ -178,6 +178,7 @@ export default function CompaniesDirectory() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 z-20 relative">
+        <h2 className="sr-only">Company Directory</h2>
         {loading ? (
           <div className="flex items-center justify-center py-40">
             <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -269,6 +270,7 @@ export default function CompaniesDirectory() {
         className="mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       >
           <div className="bg-gray-900 rounded-[32px] p-8 md:p-12 text-center relative overflow-hidden border border-white/5">
+               <h2 className="sr-only">Platform Statistics</h2>
                <div className="relative z-10 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-32">
                    {[
                        { label: 'Verified Partners', value: 840, suffix: '+', icon: Building2 },
@@ -279,10 +281,10 @@ export default function CompaniesDirectory() {
                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-primary mx-auto border border-white/5">
                                <stat.icon className="h-5 w-5" />
                            </div>
-                           <h4 className="text-3xl md:text-4xl font-black text-white leading-none flex items-center justify-center">
+                           <h3 className="text-3xl md:text-4xl font-black text-white leading-none flex items-center justify-center">
                                {stat.value}
                                <span className="text-primary ml-1">{stat.suffix}</span>
-                           </h4>
+                           </h3>
                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">{stat.label}</p>
                        </div>
                    ))}

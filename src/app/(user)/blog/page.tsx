@@ -106,6 +106,7 @@ export default function BlogListing() {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
             {/* Sidebar Filters */}
             <aside className="w-full lg:w-64 space-y-8 lg:space-y-12 bg-white p-6 lg:p-8 rounded-[24px] lg:rounded-[32px] shadow-xl lg:shadow-2xl shadow-gray-100 border border-gray-100 shrink-0 h-fit lg:sticky lg:top-28">
+                <h2 className="sr-only">Sidebar</h2>
                 <div>
                     <h3 className="text-xs font-black text-gray-900 border-b border-gray-50 pb-4 mb-4 uppercase tracking-widest">Categories</h3>
                     <div className="flex lg:flex-col gap-3 lg:gap-4 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 no-scrollbar">
@@ -133,7 +134,7 @@ export default function BlogListing() {
                 <Card className="p-6 bg-primary rounded-2xl border-0 shadow-lg shadow-primary/20 text-white group cursor-pointer overflow-hidden relative">
                     <div className="relative z-10">
                         <TrendingUp className="h-8 w-8 mb-4 opacity-50 group-hover:opacity-100 transition-opacity" />
-                        <h4 className="font-bold text-lg mb-2">Build a stunning Resume.</h4>
+                        <h3 className="font-bold text-lg mb-2">Build a stunning Resume.</h3>
                         <p className="text-xs text-white/70 font-medium mb-6">Launch our interactive resume builder now.</p>
                         <Button className="w-full bg-white text-primary font-black text-[10px] tracking-widest h-9">LAUNCH BUILDER <ChevronRight className="h-3 w-3 ml-1" /></Button>
                     </div>
@@ -143,6 +144,7 @@ export default function BlogListing() {
 
             {/* Post Feed */}
             <div className="flex-1 space-y-12">
+                <h2 className="sr-only">Articles</h2>
                 {loading ? (
                   <div className="flex items-center justify-center py-20">
                     <Loader2 className="w-12 h-12 animate-spin text-primary/20" />

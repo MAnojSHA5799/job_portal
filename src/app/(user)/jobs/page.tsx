@@ -339,9 +339,9 @@ function JobListingContent() {
     <div className="space-y-7 pb-6">
       {/* Clear all header */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-        <span className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
+        <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
           <Filter className="w-4 h-4 text-primary" /> Filter Jobs
-        </span>
+        </h2>
         {(selectedCategory || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage || searchQuery || locationQuery) && (
           <button
             onClick={() => {
@@ -364,9 +364,9 @@ function JobListingContent() {
 
       {/* Category Section */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
           <Building2 className="w-3.5 h-3.5 text-indigo-500" /> Category
-        </h4>
+        </h3>
         <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
           <button
             onClick={() => {
@@ -415,9 +415,9 @@ function JobListingContent() {
 
       {/* Job Type Section */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-emerald-500" /> Job Type
-        </h4>
+        </h3>
         <div className="space-y-1">
           {['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'].map((type) => {
             const isSelected = selectedType === type;
@@ -451,9 +451,9 @@ function JobListingContent() {
 
       {/* Experience Level */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
           <Briefcase className="w-3.5 h-3.5 text-amber-500" /> Experience
-        </h4>
+        </h3>
         <div className="space-y-1">
           {['Fresher', '1-3 Years', '3-5 Years', '5+ Years'].map((exp) => {
             const isSelected = selectedExperience === exp;
@@ -487,9 +487,9 @@ function JobListingContent() {
 
       {/* Min Salary */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
           <Banknote className="w-3.5 h-3.5 text-rose-500" /> Min Salary
-        </h4>
+        </h3>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: '₹10k+', value: '10000' },
@@ -520,9 +520,9 @@ function JobListingContent() {
 
       {/* Skills */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
           <Zap className="w-3.5 h-3.5 text-violet-500" /> Skills
-        </h4>
+        </h3>
         <div className="flex flex-wrap gap-1.5">
           {[
             { label: 'React', value: 'React' },
@@ -695,6 +695,7 @@ function JobListingContent() {
 
           {/* Main Listings Column */}
           <div className="lg:col-span-3 space-y-6">
+            <h2 className="sr-only">Job Listings</h2>
             <div className="flex items-center justify-between mb-6">
               <div className="text-sm text-gray-500 font-medium">
                 Showing <span className="font-black text-gray-900">{Math.min((currentPage - 1) * itemsPerPage + 1, sortedJobs.length)}-{Math.min(currentPage * itemsPerPage, sortedJobs.length)}</span> of <span className="font-black text-gray-900">{sortedJobs.length}</span> jobs

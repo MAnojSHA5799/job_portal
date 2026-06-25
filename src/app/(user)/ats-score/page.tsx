@@ -402,7 +402,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
 
                     {!isManualEntry ? (
                       <div className="text-center w-full z-20 bg-white/60 p-6 rounded-3xl shadow-sm backdrop-blur-md border border-white/50">
-                        <h3 className="text-3xl font-black text-gray-900 mb-2 truncate px-2 tracking-tight">
+                        <h2 className="text-3xl font-black text-gray-900 mb-2 truncate px-2 tracking-tight">
                           {isVerifyingResume ? (
                             <span className="flex items-center justify-center gap-2 text-indigo-600">
                               <Brain className="w-6 h-6 animate-pulse" /> Verifying document...
@@ -414,7 +414,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                           ) : (
                             file ? file.name : "Drag and drop your resume"
                           )}
-                        </h3>
+                        </h2>
                         <p className="text-gray-600 font-bold">
                           {isVerifyingResume
                             ? 'AI is checking if this is a resume…'
@@ -427,7 +427,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                       </div>
                     ) : (
                       <div className="w-full z-20 bg-white/80 p-6 rounded-3xl shadow-sm backdrop-blur-md border border-white/50">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Paste Resume Text</h3>
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 text-center">Paste Resume Text</h2>
                         <textarea
                           value={resumeText}
                           onChange={(e) => setResumeText(e.target.value)}
@@ -526,7 +526,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                     <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4">
                       <item.icon className="w-6 h-6" />
                     </div>
-                    <h4 className="font-bold text-gray-900 mb-1">{item.title}</h4>
+                    <h3 className="font-bold text-gray-900 mb-1">{item.title}</h3>
                     <p className="text-sm text-gray-500 font-medium">{item.desc}</p>
                   </div>
                 ))}
@@ -563,7 +563,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
             {/* Left Column: Score & Categories */}
             <div className="lg:col-span-4 space-y-6">
               <Card className="p-8 border-gray-100 shadow-xl rounded-[32px] bg-white text-center">
-                <h3 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Your Score</h3>
+                <h2 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Your Score</h2>
                 <div className="relative w-40 h-40 mx-auto mb-8 flex items-center justify-center">
                   <svg className="w-full h-full -rotate-90">
                     {/* Background Circle */}
@@ -714,9 +714,9 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
             <div className="lg:col-span-8">
               <Card className="p-6 md:p-8 border-gray-100 shadow-xl rounded-[32px] bg-white">
                 <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                  <div className="flex items-center gap-2 font-bold text-gray-700">
+                  <h2 className="flex items-center gap-2 font-bold text-gray-700 text-base">
                     <FileText className="w-5 h-5" /> Resume Preview
-                  </div>
+                  </h2>
                   <div className="flex bg-gray-100 p-1 rounded-xl">
                     <button
                       onClick={() => setActiveTab('original')}
