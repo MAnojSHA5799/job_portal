@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, Button, Input } from '@/components/ui';
 import { 
@@ -82,6 +82,15 @@ export function CompanyForm({
   const [isFixingAll, setIsFixingAll] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [fixingCheckId, setFixingCheckId] = useState<number | null>(null);
+  const [industries, setIndustries] = useState<{name: string}[]>([]);
+
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      const { data } = await supabase.from('industries').select('name').order('name');
+      if (data) setIndustries(data);
+    };
+    fetchIndustries();
+  }, []);
 
   // Real-time SEO Scoring
   const seoReport = calculateSEOScore({
@@ -311,12 +320,9 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
                   list="industry-options"
                 />
                 <datalist id="industry-options">
-                  <option value="Technology" />
-                  <option value="Fintech" />
-                  <option value="Healthcare" />
-                  <option value="E-commerce" />
-                  <option value="Social Media" />
-                  <option value="Entertainment" />
+                  {industries.map((ind, i) => (
+                    <option key={i} value={ind.name} />
+                  ))}
                 </datalist>
               </div>
               <div>

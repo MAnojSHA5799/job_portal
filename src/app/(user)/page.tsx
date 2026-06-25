@@ -154,7 +154,7 @@ export default function HomePage() {
         .from('companies')
         .select(`
           *,
-          jobs(id)
+          jobs(id, is_approved)
         `)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -856,7 +856,7 @@ export default function HomePage() {
                     )}
                   </div>
                   <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
-                  <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
+                  <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.filter((j: any) => j.is_approved)?.length || 0} Jobs</p>
                 </div>
               </Link>
             ))}
@@ -879,7 +879,7 @@ export default function HomePage() {
                         )}
                       </div>
                       <h3 className="text-[13px] font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
-                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.length || 0} Jobs</p>
+                      <p className="text-[10px] font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.filter((j: any) => j.is_approved)?.length || 0} Jobs</p>
                     </div>
                   </Link>
                 ))}

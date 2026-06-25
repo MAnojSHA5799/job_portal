@@ -73,7 +73,7 @@ export default function ScraperManager() {
   const [triggering, setTriggering] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
-  const initialStatus = searchParams?.get('status') === 'failed' ? 'Failed' : 'All Status';
+  const initialStatus = searchParams?.get('status') === 'failed' ? 'Failed Runs' : 'Total Scraper Runs';
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [activeTab, setActiveTab] = useState<'logs' | 'companies'>('logs');
   
@@ -204,7 +204,12 @@ export default function ScraperManager() {
     return logs.filter(log => {
       const matchesSearch = log.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            (log.error_message || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'All Status' || log.status === statusFilter.toLowerCase();
+      
+      let matchesStatus = true;
+      if (statusFilter === 'Completed Runs') matchesStatus = log.status === 'completed';
+      if (statusFilter === 'Failed Runs') matchesStatus = log.status === 'failed';
+      if (statusFilter === 'In Progress Runs') matchesStatus = log.status === 'running';
+
       return matchesSearch && matchesStatus;
     });
   }, [logs, searchQuery, statusFilter]);
@@ -700,13 +705,13 @@ export default function ScraperManager() {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="h-11 px-4 rounded-xl border-none bg-white shadow-sm shadow-gray-200/50 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 min-w-[140px]"
               >
-                <option>All Status</option>
-                <option>Completed</option>
-                <option>Failed</option>
-                <option>In Progress</option>
+                <option>Total Scraper Runs</option>
+                <option>Completed Runs</option>
+                <option>In Progress Runs</option>
+                <option>Failed Runs</option>
               </select>
             </div>
-            <Button variant="ghost" className="text-indigo-600 font-bold text-sm hover:bg-indigo-50" onClick={() => { setSearchQuery(''); setStatusFilter('All Status'); setLogsPage(1); }}>
+            <Button variant="ghost" className="text-indigo-600 font-bold text-sm hover:bg-indigo-50" onClick={() => { setSearchQuery(''); setStatusFilter('Total Scraper Runs'); setLogsPage(1); }}>
               Clear Filters
             </Button>
             <Button
