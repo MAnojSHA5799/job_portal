@@ -102,14 +102,38 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'Remote', 'Work From Home'
           ];
 
-          const KNOWN_COUNTRIES = [
-            'India', 'United States', 'US', 'USA', 'United Kingdom', 'UK', 'Canada', 'Australia', 
-            'Germany', 'Singapore', 'UAE', 'United Arab Emirates'
-          ];
+          const COUNTRY_MAPPING: Record<string, string> = {
+            'us': 'United States',
+            'usa': 'United States',
+            'united states': 'United States',
+            'uk': 'United Kingdom',
+            'united kingdom': 'United Kingdom',
+            'in': 'India',
+            'india': 'India',
+            'uae': 'United Arab Emirates',
+            'united arab emirates': 'United Arab Emirates',
+            'canada': 'Canada',
+            'australia': 'Australia',
+            'germany': 'Germany',
+            'singapore': 'Singapore'
+          };
 
           // Extract city from location: take first segment before comma, then match against whitelist
           const rawLocations = data.map(j => j.location).filter(Boolean) as string[];
           const rawCities = rawLocations.map(l => l.split(',')[0].trim());
+
+          const CITY_ALIASES: Record<string, string> = {
+            'gurgaon': 'Gurugram',
+            'gurugram': 'Gurugram',
+            'bangalore': 'Bangalore',
+            'bengaluru': 'Bangalore',
+            'delhi': 'Delhi NCR',
+            'new delhi': 'Delhi NCR',
+            'delhi ncr': 'Delhi NCR',
+            'remote': 'Remote',
+            'work from home': 'Remote',
+            'wfh': 'Remote'
+          };
 
           const matchedCities = Array.from(new Set(
             rawCities.filter(city =>
@@ -118,13 +142,18 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 known.toLowerCase().includes(city.toLowerCase())
               )
             ).map(city => {
-              // Normalize to canonical name if possible
+              const c = city.toLowerCase();
+              if (CITY_ALIASES[c]) return CITY_ALIASES[c];
+              
               const match = KNOWN_CITIES.find(known =>
-                city.toLowerCase().includes(known.toLowerCase())
+                c.includes(known.toLowerCase())
               );
-              return match || city;
+              if (match) {
+                 return CITY_ALIASES[match.toLowerCase()] || match;
+              }
+              return city;
             })
-          )); // No slice — store ALL matched cities
+          ));
 
           const rawCountries = rawLocations.map(l => {
             const parts = l.split(',');
@@ -132,17 +161,14 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           });
 
           const matchedCountries = Array.from(new Set(
-            rawCountries.filter(country =>
-              KNOWN_COUNTRIES.some(known =>
-                country.toLowerCase().includes(known.toLowerCase()) ||
-                known.toLowerCase().includes(country.toLowerCase())
-              )
-            ).map(country => {
-              const match = KNOWN_COUNTRIES.find(known =>
-                country.toLowerCase().includes(known.toLowerCase())
-              );
-              return match || country;
-            })
+            rawCountries
+              .map(c => c.toLowerCase())
+              .map(c => {
+                if (COUNTRY_MAPPING[c]) return COUNTRY_MAPPING[c];
+                const match = Object.keys(COUNTRY_MAPPING).find(k => c.includes(k) && k.length > 2);
+                return match ? COUNTRY_MAPPING[match] : null;
+              })
+              .filter(Boolean) as string[]
           ));
           
           const uniqueCats = Array.from(new Set(data.map(j => j.category)))

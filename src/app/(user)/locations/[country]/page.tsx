@@ -3,6 +3,9 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, Globe } from 'lucide-react';
 import { Card } from '@/components/ui';
+import { supabase } from '@/lib/supabase';
+
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ country: string }>;
@@ -28,23 +31,30 @@ export default async function CountryPage({ params }: Props) {
   const rawCountrySlug = countrySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
   const countryName = rawCountrySlug.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-  // Mapped cities for specific countries
+  const COUNTRY_MAPPING: Record<string, string[]> = {
+    'usa': ['United States', 'USA', 'US'],
+    'uk': ['United Kingdom', 'UK'],
+    'uae': ['United Arab Emirates', 'UAE'],
+    'india': ['India', 'IN'],
+    'canada': ['Canada'],
+    'australia': ['Australia'],
+    'germany': ['Germany'],
+    'singapore': ['Singapore']
+  };
+
+  const searchTerms = COUNTRY_MAPPING[rawCountrySlug.toLowerCase()] || [rawCountrySlug];
+  const orQuery = searchTerms.map(term => `location.ilike.%${term}%`).join(',');
+
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('location')
+    .eq('is_approved', true)
+    .or(orQuery);
+
   let cities: string[] = [];
-  
-  if (countryName.toLowerCase() === 'india' || countryName.toLowerCase() === 'in') {
-      cities = ['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai', 'Noida', 'Gurugram', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Indore'];
-  } else if (countryName.toLowerCase() === 'usa' || countryName.toLowerCase() === 'united states') {
-      cities = ['New York', 'New York City', 'San Francisco', 'Chicago', 'Los Angeles', 'Boston', 'Austin', 'Seattle'];
-  } else if (countryName.toLowerCase() === 'uae' || countryName.toLowerCase() === 'united arab emirates') {
-      cities = ['Dubai', 'Abu Dhabi', 'Sharjah'];
-  } else if (countryName.toLowerCase() === 'uk' || countryName.toLowerCase() === 'united kingdom') {
-      cities = ['London', 'Manchester', 'Birmingham'];
-  } else if (countryName.toLowerCase() === 'canada') {
-      cities = ['Toronto', 'Vancouver', 'Montreal'];
-  } else if (countryName.toLowerCase() === 'australia') {
-      cities = ['Sydney', 'Melbourne', 'Brisbane'];
-  } else {
-      cities = ['Major City 1', 'Major City 2']; // Fallback
+  if (jobs && jobs.length > 0) {
+    const rawLocations = jobs.map(j => j.location).filter(Boolean) as string[];
+    cities = Array.from(new Set(rawLocations.map(l => l.split(',')[0].trim()))).sort();
   }
 
   return (
@@ -63,25 +73,35 @@ export default async function CountryPage({ params }: Props) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cities.map(city => (
-                <Link 
-                    key={city} 
-                    href={`/job-in-${countrySlug.replace(/^job-in-/, '')}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
-                    className="block group"
-                >
-                    <Card className="p-8 border border-gray-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all bg-white rounded-3xl flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-50 group-hover:bg-indigo-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-indigo-600 transition-colors">
-                            <MapPin className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
-                                Jobs in {city}
-                            </h3>
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">View Openings →</p>
-                        </div>
-                    </Card>
-                </Link>
-            ))}
+            {cities.length > 0 ? (
+              cities.map(city => (
+                  <Link 
+                      key={city} 
+                      href={`/job-in-${countrySlug.replace(/^job-in-/, '')}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
+                      className="block group"
+                  >
+                      <Card className="p-8 border border-gray-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all bg-white rounded-3xl flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gray-50 group-hover:bg-indigo-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-indigo-600 transition-colors">
+                              <MapPin className="w-6 h-6" />
+                          </div>
+                          <div>
+                              <h3 className="text-lg font-black text-gray-900 group-hover:text-indigo-600 transition-colors">
+                                  Jobs in {city}
+                              </h3>
+                              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">View Openings →</p>
+                          </div>
+                      </Card>
+                  </Link>
+              ))
+            ) : (
+                <div className="col-span-full bg-white p-12 rounded-3xl text-center border-2 border-dashed border-gray-100">
+                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                        <MapPin className="w-8 h-8" />
+                     </div>
+                     <h3 className="text-xl font-black text-gray-900 mb-2">No jobs available in {countryName} yet</h3>
+                     <p className="text-gray-500 font-medium text-sm">Check back later as we are constantly adding new opportunities.</p>
+                </div>
+            )}
         </div>
       </div>
     </div>

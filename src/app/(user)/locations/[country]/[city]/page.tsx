@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { supabase } from '@/lib/supabase';
+export const dynamic = 'force-dynamic';
 import { Card, Badge, Button } from '@/components/ui';
 import { 
   MapPin, 
@@ -44,14 +45,43 @@ export default async function LocationPage({ params }: Props) {
   if (!citySlug) return null;
   
   const rawCitySlug = citySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
-  const cityName = rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const KNOWN_CITIES = [
+    'Delhi NCR', 'Delhi', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
+    'Bangalore', 'Bengaluru', 'Mumbai', 'Pune', 'Hyderabad', 'Chennai',
+    'Kolkata', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur',
+    'Nagpur', 'Indore', 'Bhopal', 'Chandigarh', 'Coimbatore', 'Kochi',
+    'Vadodara', 'Agra', 'Nashik', 'Patna', 'Ranchi', 'Bhubaneswar',
+    'New York', 'New York City', 'San Francisco', 'Chicago', 'Los Angeles', 'Boston', 'Austin', 'Seattle',
+    'Dubai', 'Abu Dhabi', 'Sharjah',
+    'London', 'Manchester', 'Birmingham',
+    'Toronto', 'Vancouver', 'Montreal',
+    'Sydney', 'Melbourne', 'Brisbane',
+    'Remote', 'Work From Home'
+  ];
+
+  const CITY_ALIASES: Record<string, string[]> = {
+    'gurugram': ['Gurugram', 'Gurgaon'],
+    'gurgaon': ['Gurugram', 'Gurgaon'],
+    'bangalore': ['Bangalore', 'Bengaluru'],
+    'bengaluru': ['Bangalore', 'Bengaluru'],
+    'delhi ncr': ['Delhi NCR', 'Delhi', 'New Delhi'],
+    'delhi': ['Delhi NCR', 'Delhi', 'New Delhi'],
+    'new delhi': ['Delhi NCR', 'Delhi', 'New Delhi'],
+    'remote': ['Remote', 'Work From Home', 'WFH'],
+  };
+
+  const canonicalCity = KNOWN_CITIES.find(c => c.toLowerCase() === rawCitySlug.toLowerCase());
+  const cityName = canonicalCity || rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  const searchTerms = CITY_ALIASES[rawCitySlug.toLowerCase()] || [rawCitySlug];
+  const orQuery = searchTerms.map(term => `location.ilike.%${term}%`).join(',');
 
   // Fetch jobs in this city
   const { data: jobs } = await supabase
     .from('jobs')
     .select('*, companies(*)')
-    .ilike('location', `%${cityName}%`)
     .eq('is_approved', true)
+    .or(orQuery)
     .order('created_at', { ascending: false });
 
   // Fetch city content override
@@ -66,8 +96,8 @@ export default async function LocationPage({ params }: Props) {
   const { data: cityRoles } = await supabase
     .from('jobs')
     .select('category')
-    .ilike('location', `%${cityName}%`)
-    .eq('is_approved', true);
+    .eq('is_approved', true)
+    .or(orQuery);
 
   const topRoles = Array.from(new Set(cityRoles?.map(j => j.category).filter(Boolean))).slice(0, 5);
 
@@ -75,7 +105,7 @@ export default async function LocationPage({ params }: Props) {
   const { data: topCompanies } = await supabase
     .from('companies')
     .select('*')
-    .ilike('location', `%${cityName}%`)
+    .or(orQuery)
     .limit(3);
 
   const jobCount = jobs?.length || 0;
