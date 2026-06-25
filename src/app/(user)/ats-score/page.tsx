@@ -850,7 +850,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                           ) : (
                             <>
                               <div className="text-center mb-6">
-                                <h1 className="text-xl font-bold underline mb-2">RESUME</h1>
+                                <h3 className="text-xl font-bold underline mb-2">RESUME</h3>
                                 <h2 className="text-lg font-bold uppercase">{originalResume.name}</h2>
                                 <div className="text-sm mt-2 leading-tight">
                                   <p>{originalResume.contact.location}</p>
@@ -912,7 +912,7 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                       <div className="bg-white p-8 md:p-12 shadow-2xl mx-auto max-w-3xl font-sans text-gray-800 min-h-[800px] rounded-sm">
                         <div className="flex justify-between items-start mb-8">
                           <div>
-                            <h1 className="text-4xl font-black uppercase text-gray-900 tracking-tight mb-1">{enhancedResume.name}</h1>
+                            <h2 className="text-4xl font-black uppercase text-gray-900 tracking-tight mb-1">{enhancedResume.name}</h2>
                             <h2 className="text-lg font-bold text-blue-500 mb-4">{enhancedResume.title}</h2>
                             <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-600">
                               <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-blue-500" /> {enhancedResume.contact.phone.split(',')[0]}</span>

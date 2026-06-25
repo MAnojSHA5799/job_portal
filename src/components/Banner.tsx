@@ -90,7 +90,7 @@ export const Banner = () => {
          
 
           <div className="space-y-4">
-            <h1 
+            <h2 
               className="text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight"
             >
               {banner.title.split(' ').map((word, i) => (
@@ -101,7 +101,7 @@ export const Banner = () => {
                   {word}
                 </span>
               ))}
-            </h1>
+            </h2>
             
             <p 
               className="text-sm md:text-base text-slate-300 font-medium max-w-xl leading-relaxed"
