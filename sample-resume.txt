@@ -1,0 +1,44 @@
+JOHN DOE
+Software Engineer
+New York, NY | (555) 123-4567 | john.doe@example.com | linkedin.com/in/johndoe
+
+SUMMARY
+Detail-oriented and innovative Software Engineer with 5+ years of experience in full-stack web development. Proven track record of developing scalable, high-performance web applications using modern JavaScript frameworks. Excellent problem-solving skills and a strong commitment to team collaboration and continuous learning.
+
+SKILLS
+- Languages: JavaScript, TypeScript, HTML5, CSS3, Python
+- Frontend: React.js, Next.js, Redux, Tailwind CSS
+- Backend: Node.js, Express, Python, Django
+- Databases: PostgreSQL, MongoDB, Supabase
+- Tools & Other: Git, Docker, AWS, RESTful APIs, Agile/Scrum
+
+PROFESSIONAL EXPERIENCE
+
+Senior Frontend Developer
+Tech Solutions Inc., New York, NY
+Jan 2021 – Present
+- Led a team of 4 developers to build a modern e-commerce platform using Next.js and React, resulting in a 40% increase in user engagement.
+- Implemented state management using Redux, significantly improving the performance of data-heavy applications.
+- Collaborated closely with UI/UX designers to translate complex wireframes into responsive, accessible web components.
+- Reduced page load times by 30% through advanced code splitting and image optimization techniques.
+
+Software Developer
+Creative Web Agency, Boston, MA
+Jun 2018 – Dec 2020
+- Developed and maintained over 15 client websites using React and Node.js.
+- Integrated third-party payment gateways (Stripe, PayPal) resulting in a seamless checkout experience.
+- Wrote comprehensive unit and integration tests using Jest and React Testing Library, achieving 85% code coverage.
+- Participated in daily stand-ups and sprint planning as part of an Agile development team.
+
+EDUCATION
+Bachelor of Science in Computer Science
+University of Massachusetts, Amherst, MA
+Graduated: May 2018
+
+CERTIFICATIONS
+- AWS Certified Developer – Associate (2022)
+- React Developer Certification (2020)
+
+PROJECTS
+- TaskMaster: A productivity app built with React and Firebase featuring real-time updates and offline support.
+- Portfolio Website: A personal showcase built with Next.js and Tailwind CSS, optimized for perfect Lighthouse scores.

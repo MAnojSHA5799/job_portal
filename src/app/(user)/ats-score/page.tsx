@@ -120,7 +120,17 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
       const isValidType = ALLOWED_RESUME_TYPES.includes(selectedFile.type) || ALLOWED_EXTENSIONS.includes(ext);
 
       if (!isValidType) {
-        setError('⚠️ Invalid file type. Please upload only a Resume file (PDF, DOCX, DOC, or TXT).');
+        setError('⚠️ Invalid file type. Please upload only a Resume/CV or Cover Letter file (PDF, DOCX, DOC, or TXT).');
+        setFile(null);
+        setResumeText('');
+        setIsResumeVerified(null);
+        if (e.target) e.target.value = '';
+        return;
+      }
+
+      // ✅ Validate file size (< 2MB)
+      if (selectedFile.size > 2 * 1024 * 1024) {
+        setError('⚠️ File size exceeds 2 MB. Please upload a smaller file.');
         setFile(null);
         setResumeText('');
         setIsResumeVerified(null);
@@ -290,7 +300,8 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
       if (result.error) throw new Error(typeof result.error === 'object' ? result.error.message : result.error);
       if (!result.choices?.[0]?.message?.content) throw new Error('OpenAI returned an empty response. Please try again.');
 
-      const parsedContent = JSON.parse(result.choices[0].message.content);
+      const rawContent = result.choices[0].message.content;
+      const parsedContent = JSON.parse(rawContent.replace(/```json|```/g, '').trim());
 
       // 2. Save scan result to database
       await supabase.from('resume_scans').insert({
@@ -310,7 +321,12 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
 
     } catch (err: any) {
       console.error(err);
-      setError("Analysis failed. Please ensure you have pasted the resume text correctly.");
+      const errMsg = err?.message || 'Unknown error occurred.';
+      if (errMsg.includes('Unexpected token') || errMsg.includes('JSON')) {
+        setError("Analysis failed to parse properly. Please try again or check your resume text.");
+      } else {
+        setError(`Analysis failed: ${errMsg}`);
+      }
       setIsScanning(false);
     }
   };
@@ -563,7 +579,14 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-4xl font-black text-gray-900 tracking-tighter">{analysis?.overallScore || 69}/100</span>
-                    <span className="text-[10px] font-black text-gray-500 mt-1">{100 - (analysis?.overallScore || 69) > 0 ? `${Math.ceil((100 - (analysis?.overallScore || 69)) / 5)} Issues` : 'No Issues'}</span>
+                    <span className="text-[10px] font-black mt-1">
+                       {(() => {
+                          const score = analysis?.overallScore || 69;
+                          if (score >= 80) return <span className="text-emerald-500">Excellent / Green Zone</span>;
+                          if (score >= 70) return <span className="text-amber-500">Good / Yellow Zone</span>;
+                          return <span className="text-red-500">Risk / Red Zone</span>;
+                       })()}
+                    </span>
                   </div>
                 </div>
 
@@ -662,9 +685,21 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                       </div>
                     </button>
                     {expandedCategory === 'tailoring' && (
-                      <p className="text-xs text-gray-500 font-semibold leading-relaxed py-2">
-                        Match your resume specifically against a targeted job description to see tailoring score.
-                      </p>
+                      <div className="py-2 space-y-3 text-sm">
+                        <ul className="space-y-2 text-gray-600 font-medium">
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Hard Skills</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Soft Skills</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Action Verbs</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-indigo-500" /> Tailored Title</li>
+                        </ul>
+                        <div className="pt-3 border-t border-gray-100 mt-3">
+                           <button onClick={() => {
+                             window.scrollTo({ top: 0, behavior: 'smooth' });
+                           }} className="text-indigo-600 hover:text-indigo-700 hover:underline font-bold text-sm w-full text-left flex items-center gap-2 transition-all">
+                             <Upload className="w-4 h-4" /> Update YOUR Details/Resume
+                           </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -691,9 +726,9 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                     </button>
                     <button
                       onClick={() => setActiveTab('enhancv')}
-                      className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'enhancv' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`px-6 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-2 ${activeTab === 'enhancv' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
-                      Enhancv
+                      Enhance <Badge className="bg-amber-100 text-amber-700 border-0 hover:bg-amber-200 uppercase tracking-widest text-[9px] px-1.5 py-0">Paid</Badge>
                     </button>
                   </div>
                 </div>
