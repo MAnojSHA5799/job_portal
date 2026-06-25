@@ -22,17 +22,22 @@ import { AnimatedJobList } from '@/components/AnimatedJobList';
 import Link from 'next/link';
 
 interface Props {
-  params: Promise<{ city: string }>;
+  params: Promise<{ country: string, city: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const cityParam = (await params).city;
+  const resolvedParams = await params;
+  const cityParam = resolvedParams.city;
+  const countryParam = resolvedParams.country || '';
+  
   if (!cityParam) return { title: 'Jobs' };
   
   const rawCitySlug = cityParam.replace(/^job-in-/, '').replace(/-/g, ' ');
   const city = rawCitySlug.charAt(0).toUpperCase() + rawCitySlug.slice(1);
-  const title = `Manufacturing Jobs in ${city} — Hiring Now | http://www.hiringstores.com`;
-  const description = `Discover top manufacturing and industrial jobs in ${city}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${city}.`;
+  const rawCountrySlug = countryParam.replace(/^job-in-/, '').replace(/-/g, ' ');
+  const countryName = rawCountrySlug.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const title = `Manufacturing Jobs in ${city}, ${countryName} — Hiring Now | http://www.hiringstores.com`;
+  const description = `Discover top manufacturing and industrial jobs in ${city}, ${countryName}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${city}.`;
 
   return {
     title,
@@ -41,9 +46,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function LocationPage({ params }: Props) {
-  const citySlug = (await params).city;
+  const resolvedParams = await params;
+  const citySlug = resolvedParams.city;
+  const countrySlug = resolvedParams.country || '';
   if (!citySlug) return null;
   
+  const rawCountrySlug = countrySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
+  const countryName = rawCountrySlug.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   const rawCitySlug = citySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
   const KNOWN_CITIES = [
     'Delhi NCR', 'Delhi', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
@@ -228,7 +237,7 @@ export default async function LocationPage({ params }: Props) {
                             .replace('{jobCount}', jobCount.toString())
                             .replace('{majorIndustry}', majorIndustry)
                     ) : (
-                        `With ${jobCount} active job openings, ${cityName} continues to be a destination for skilled workers in India. The local industry is characterized by a strong presence of ${majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.`
+                        `With ${jobCount} active job openings, ${cityName} continues to be a destination for skilled workers in ${countryName}. The local industry is characterized by a strong presence of ${majorIndustry} companies, offering roles ranging from production and operations to specialized engineering.`
                     )}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-10 not-prose">
@@ -245,7 +254,7 @@ export default async function LocationPage({ params }: Props) {
                     <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100">
                         <Landmark className="w-8 h-8 text-amber-600 mb-3" />
                         <h4 className="font-black text-amber-900 text-sm mb-1">Location</h4>
-                        <p className="text-xs text-amber-700 font-bold">{cityName}, India</p>
+                        <p className="text-xs text-amber-700 font-bold">{cityName}, {countryName}</p>
                     </div>
                 </div>
                 <h3 className="text-xl font-black text-gray-900 mb-4">

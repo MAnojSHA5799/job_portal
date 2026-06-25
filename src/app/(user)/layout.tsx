@@ -62,12 +62,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [jobsDropdownOpen, setJobsDropdownOpen] = useState(false);
   const [user, setUser] = useState<{fullName: string, role: string} | null>(null);
-  const [navData, setNavData] = useState<{ cities: string[], countries: string[], categories: string[], types: string[], industries: string[] }>({ 
+  const [navData, setNavData] = useState<{ cities: string[], countries: string[], categories: string[], types: string[], industries: string[], cityCountryMap: Record<string, string> }>({ 
     cities: ['Delhi NCR', 'Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai'], 
     countries: ['India', 'United States', 'United Kingdom', 'Canada', 'Australia'],
     categories: ['IT', 'Sales', 'Marketing', 'Accounting', 'Production'],
     types: ['Full Time', 'Part Time', 'Contract', 'Remote', 'Freshers'],
-    industries: ['Manufacturing', 'Technology', 'Healthcare', 'Automotive']
+    industries: ['Manufacturing', 'Technology', 'Healthcare', 'Automotive'],
+    cityCountryMap: {}
   });
   const [showAllCities, setShowAllCities] = useState(false);
   const [showAllCountries, setShowAllCountries] = useState(false);
@@ -89,39 +90,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           .from('jobs')
           .select('location, category, job_type')
           .eq('is_approved', true)
-          .limit(300);
+          .limit(500);
 
         if (data && data.length > 0) {
-          // Known Indian cities whitelist to avoid country names / full addresses mixing in
-          const KNOWN_CITIES = [
-            'Delhi', 'Delhi NCR', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
-            'Bangalore', 'Bengaluru', 'Mumbai', 'Pune', 'Hyderabad', 'Chennai',
-            'Kolkata', 'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur',
-            'Nagpur', 'Indore', 'Bhopal', 'Chandigarh', 'Coimbatore', 'Kochi',
-            'Vadodara', 'Agra', 'Nashik', 'Patna', 'Ranchi', 'Bhubaneswar',
-            'Remote', 'Work From Home'
-          ];
-
-          const COUNTRY_MAPPING: Record<string, string> = {
-            'us': 'United States',
-            'usa': 'United States',
-            'united states': 'United States',
-            'uk': 'United Kingdom',
-            'united kingdom': 'United Kingdom',
-            'in': 'India',
-            'india': 'India',
-            'uae': 'United Arab Emirates',
-            'united arab emirates': 'United Arab Emirates',
-            'canada': 'Canada',
-            'australia': 'Australia',
-            'germany': 'Germany',
-            'singapore': 'Singapore'
-          };
-
-          // Extract city from location: take first segment before comma, then match against whitelist
-          const rawLocations = data.map(j => j.location).filter(Boolean) as string[];
-          const rawCities = rawLocations.map(l => l.split(',')[0].trim());
-
+          // City name aliases for normalization
           const CITY_ALIASES: Record<string, string> = {
             'gurgaon': 'Gurugram',
             'gurugram': 'Gurugram',
@@ -132,44 +104,181 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'delhi ncr': 'Delhi NCR',
             'remote': 'Remote',
             'work from home': 'Remote',
-            'wfh': 'Remote'
+            'wfh': 'Remote',
           };
 
-          const matchedCities = Array.from(new Set(
-            rawCities.filter(city =>
-              KNOWN_CITIES.some(known =>
-                city.toLowerCase().includes(known.toLowerCase()) ||
-                known.toLowerCase().includes(city.toLowerCase())
-              )
-            ).map(city => {
-              const c = city.toLowerCase();
-              if (CITY_ALIASES[c]) return CITY_ALIASES[c];
-              
-              const match = KNOWN_CITIES.find(known =>
-                c.includes(known.toLowerCase())
-              );
-              if (match) {
-                 return CITY_ALIASES[match.toLowerCase()] || match;
-              }
-              return city;
-            })
-          ));
+          // Country name normalization map
+          const COUNTRY_MAPPING: Record<string, string> = {
+            'us': 'United States', 'usa': 'United States', 'united states': 'United States',
+            'uk': 'United Kingdom', 'united kingdom': 'United Kingdom',
+            'in': 'India', 'india': 'India',
+            'uae': 'United Arab Emirates', 'united arab emirates': 'United Arab Emirates',
+            'canada': 'Canada', 'australia': 'Australia', 'germany': 'Germany',
+            'singapore': 'Singapore', 'netherlands': 'Netherlands', 'france': 'France',
+            'saudi arabia': 'Saudi Arabia', 'qatar': 'Qatar', 'oman': 'Oman',
+            'kuwait': 'Kuwait', 'bahrain': 'Bahrain', 'malaysia': 'Malaysia',
+            'japan': 'Japan', 'china': 'China', 'south korea': 'South Korea',
+            'ireland': 'Ireland', 'new zealand': 'New Zealand', 'south africa': 'South Africa',
+            'brazil': 'Brazil', 'mexico': 'Mexico', 'spain': 'Spain', 'italy': 'Italy',
+            'switzerland': 'Switzerland', 'sweden': 'Sweden', 'norway': 'Norway',
+            'denmark': 'Denmark', 'finland': 'Finland', 'poland': 'Poland',
+            'belgium': 'Belgium', 'portugal': 'Portugal', 'greece': 'Greece',
+            'turkey': 'Turkey', 'philippines': 'Philippines', 'indonesia': 'Indonesia',
+            'thailand': 'Thailand', 'vietnam': 'Vietnam', 'taiwan': 'Taiwan',
+            'argentina': 'Argentina', 'chile': 'Chile', 'colombia': 'Colombia',
+            'nigeria': 'Nigeria', 'kenya': 'Kenya', 'egypt': 'Egypt',
+          };
 
-          const rawCountries = rawLocations.map(l => {
-            const parts = l.split(',');
-            return parts[parts.length - 1].trim();
+          // Country name → URL slug map
+          const COUNTRY_SLUG_MAP: Record<string, string> = {
+            'United States': 'usa', 'United Kingdom': 'uk', 'India': 'india',
+            'United Arab Emirates': 'uae', 'Canada': 'canada', 'Australia': 'australia',
+            'Germany': 'germany', 'Singapore': 'singapore', 'Netherlands': 'netherlands',
+            'France': 'france', 'Saudi Arabia': 'saudi-arabia', 'Qatar': 'qatar',
+            'Oman': 'oman', 'Kuwait': 'kuwait', 'Bahrain': 'bahrain', 'Malaysia': 'malaysia',
+            'Japan': 'japan', 'China': 'china', 'South Korea': 'south-korea',
+            'Ireland': 'ireland', 'New Zealand': 'new-zealand', 'South Africa': 'south-africa',
+            'Brazil': 'brazil', 'Mexico': 'mexico', 'Spain': 'spain', 'Italy': 'italy',
+            'Switzerland': 'switzerland', 'Sweden': 'sweden', 'Norway': 'norway',
+            'Denmark': 'denmark', 'Finland': 'finland', 'Poland': 'poland',
+            'Belgium': 'belgium', 'Portugal': 'portugal', 'Greece': 'greece',
+            'Turkey': 'turkey', 'Philippines': 'philippines', 'Indonesia': 'indonesia',
+            'Thailand': 'thailand', 'Vietnam': 'vietnam', 'Taiwan': 'taiwan',
+            'Argentina': 'argentina', 'Chile': 'chile', 'Colombia': 'colombia',
+            'Nigeria': 'nigeria', 'Kenya': 'kenya', 'Egypt': 'egypt',
+          };
+
+          // Words that should NEVER appear as city names
+          const CITY_BLACKLIST = new Set([
+            'location', 'locations', 'n/a', 'na', 'tbd', 'various', 'multiple',
+            'india', 'usa', 'uk', 'uae', 'canada', 'australia', 'germany',
+            'netherlands', 'france', 'singapore', 'unknown', 'other', 'pan india',
+            'anywhere', 'flexible', 'negotiable',
+          ]);
+
+          // Indian state names — should not appear as city
+          const INDIAN_STATES = new Set([
+            'gujarat', 'maharashtra', 'karnataka', 'telangana', 'tamil nadu',
+            'uttar pradesh', 'rajasthan', 'west bengal', 'bihar', 'madhya pradesh',
+            'andhra pradesh', 'kerala', 'odisha', 'jharkhand', 'haryana', 'punjab',
+            'assam', 'chhattisgarh', 'uttarakhand', 'himachal pradesh', 'goa',
+            'tripura', 'meghalaya', 'manipur', 'nagaland', 'arunachal pradesh',
+            'mizoram', 'sikkim', 'delhi', 'jammu', 'kashmir', 'ladakh',
+          ]);
+
+          // Clean a raw city string — returns null if it's garbage
+          const cleanCity = (raw: string): string | null => {
+            // Normalize pipe-separated formats: "India | Pune" → take last meaningful part
+            if (raw.includes('|')) {
+              const pipeParts = raw.split('|').map(p => p.trim()).filter(Boolean);
+              // Pick the last part (most specific)
+              raw = pipeParts[pipeParts.length - 1] || raw;
+            }
+
+            // Remove parenthetical content: "Bawal (rewari)" → "Bawal"
+            raw = raw.replace(/\([^)]*\)/g, '').trim();
+
+            // Remove trailing street address fragments (numbers + anything after):
+            // "Vadodara 73 East Ave" → "Vadodara"
+            raw = raw.replace(/\s+\d+.*$/, '').trim();
+
+            // Remove special chars except hyphen and space
+            raw = raw.replace(/[|_/\\@#]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+            // Basic validity checks
+            if (!raw || raw.length < 2 || raw.length > 40) return null;
+            if (/^\d/.test(raw)) return null; // starts with number
+
+            const lower = raw.toLowerCase();
+
+            // Blacklist check
+            if (CITY_BLACKLIST.has(lower)) return null;
+
+            // State name check
+            if (INDIAN_STATES.has(lower)) return null;
+
+            // Must contain at least one letter
+            if (!/[a-zA-Z]/.test(raw)) return null;
+
+            return raw;
+          };
+
+          const rawLocations = data.map(j => j.location).filter(Boolean) as string[];
+
+          // Build city set and city→country map dynamically from all approved job locations
+          // Use a lowercase key map for case-insensitive deduplication
+          const cityKeyMap: Record<string, string> = {}; // lowercase → canonical name
+          const cityCountryMap: Record<string, string> = {};
+          const countrySet = new Set<string>();
+
+          rawLocations.forEach(loc => {
+            // Normalize pipe separator to comma first for uniform handling
+            const normalizedLoc = loc.replace(/\|/g, ',');
+            const parts = normalizedLoc.split(',').map(p => p.trim());
+            let rawCity = parts[0];
+
+            if (!rawCity) return;
+
+            // ── Detect trailing country embedded in city field ──────────────
+            // e.g. "Goes Netherlands" → city="Goes", country="Netherlands"
+            let embeddedCountryName: string | null = null;
+            let embeddedCountrySlug: string | null = null;
+            const rawCityLower = rawCity.toLowerCase();
+            for (const [key, value] of Object.entries(COUNTRY_MAPPING)) {
+              if (key.length > 3 && rawCityLower.endsWith(' ' + key)) {
+                embeddedCountryName = value;
+                embeddedCountrySlug = COUNTRY_SLUG_MAP[value] || key.replace(/\s+/g, '-');
+                // Strip the country name from the city string
+                rawCity = rawCity.slice(0, rawCity.length - key.length - 1).trim();
+                break;
+              }
+            }
+
+            const cleaned = cleanCity(rawCity);
+            if (!cleaned) return;
+
+            const lower = cleaned.toLowerCase();
+            // Apply alias normalization
+            const normalizedCity = CITY_ALIASES[lower] ||
+              cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            // Dedup case-insensitively — first occurrence wins canonical name
+            if (!cityKeyMap[normalizedCity.toLowerCase()]) {
+              cityKeyMap[normalizedCity.toLowerCase()] = normalizedCity;
+            }
+
+            // Determine country: prefer embedded country, then scan remaining parts
+            let countrySlug = embeddedCountrySlug || 'india';
+            let countryName = embeddedCountryName || 'India';
+
+            if (!embeddedCountryName) {
+              for (let i = parts.length - 1; i >= 1; i--) {
+                const part = parts[i].trim().toLowerCase();
+                if (COUNTRY_MAPPING[part]) {
+                  countryName = COUNTRY_MAPPING[part];
+                  countrySlug = COUNTRY_SLUG_MAP[countryName] || part.replace(/\s+/g, '-');
+                  break;
+                }
+                const matchedKey = Object.keys(COUNTRY_MAPPING).find(k => k.length > 3 && part.includes(k));
+                if (matchedKey) {
+                  countryName = COUNTRY_MAPPING[matchedKey];
+                  countrySlug = COUNTRY_SLUG_MAP[countryName] || matchedKey.replace(/\s+/g, '-');
+                  break;
+                }
+              }
+            }
+
+            const canonicalCity = cityKeyMap[normalizedCity.toLowerCase()];
+            if (canonicalCity && !cityCountryMap[canonicalCity]) {
+              cityCountryMap[canonicalCity] = countrySlug;
+            }
+            countrySet.add(countryName);
           });
 
-          const matchedCountries = Array.from(new Set(
-            rawCountries
-              .map(c => c.toLowerCase())
-              .map(c => {
-                if (COUNTRY_MAPPING[c]) return COUNTRY_MAPPING[c];
-                const match = Object.keys(COUNTRY_MAPPING).find(k => c.includes(k) && k.length > 2);
-                return match ? COUNTRY_MAPPING[match] : null;
-              })
-              .filter(Boolean) as string[]
-          ));
+          if (countrySet.size === 0) countrySet.add('India');
+
+          const matchedCities = Object.values(cityKeyMap);
+          const matchedCountries = Array.from(countrySet);
           
           const uniqueCats = Array.from(new Set(data.map(j => j.category)))
             .filter(Boolean)
@@ -191,7 +300,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             countries: matchedCountries.length > 0 ? matchedCountries : navData.countries,
             categories: uniqueCats.length > 0 ? uniqueCats : navData.categories,
             types: uniqueTypes.length > 0 ? uniqueTypes : navData.types,
-            industries: uniqueInd.length > 0 ? uniqueInd : navData.industries
+            industries: uniqueInd.length > 0 ? uniqueInd : navData.industries,
+            cityCountryMap,
           });
         }
       } catch (error) {
@@ -412,7 +522,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                         {(showAllCities ? navData.cities : navData.cities.slice(0, 6)).map(city => (
                           <li key={city}>
                             <Link
-                              href={`/job-in-${getCountryForCity(city)}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
+                              href={`/job-in-${navData.cityCountryMap[city] || getCountryForCity(city)}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
                               className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
                             >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
@@ -427,7 +537,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                               className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
                             >
                               <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
-                              {showAllCities ? 'Show Less ↑' : 'See More →'}
+                              {showAllCities ? 'Show Less ↑' : `See More (${navData.cities.length - 6}+) →`}
                             </button>
                           </li>
                         )}
@@ -455,7 +565,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                               className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
                             >
                               <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
-                              {showAllCountries ? 'Show Less ↑' : 'See More →'}
+                              {showAllCountries ? 'Show Less ↑' : `See More (${navData.countries.length - 6}+) →`}
                             </button>
                           </li>
                         )}

@@ -152,15 +152,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 
   if (result.type === 'job') {
     const job = result.data;
-    const city = job.location?.split(',')[0] || 'India';
+    const locationParts = job.location?.split(',') || ['Unknown'];
+    const city = locationParts[0].trim();
     const year = new Date().getFullYear();
     const title = `${job.title} Jobs in ${city} | ${job.companies?.name || 'Gethyrd'} Hiring ${year}`;
     const description = job.meta_description || job.description?.slice(0, 160);
     return { title, description };
   } else {
     const categoryName = result.name;
-    const title = `${categoryName} Jobs in India — ${result.data.length} Active Openings`;
-    const description = `Find the best ${categoryName} jobs in India. Verified manufacturing and industrial job openings with salary details.`;
+    const title = `${categoryName} Jobs — ${result.data.length} Active Openings`;
+    const description = `Find the best ${categoryName} jobs. Verified manufacturing and industrial job openings with salary details.`;
     return { title, description };
   }
 }
@@ -185,7 +186,9 @@ export default async function SlugPage({ params, searchParams }: Props) {
       redirect(`/jobs/${canonicalSlug}`);
     }
 
-    const city = job.location?.split(',')[0] || 'India';
+    const locationParts = job.location?.split(',') || ['Unknown'];
+    const city = locationParts[0].trim();
+    const country = locationParts.length > 1 ? locationParts[locationParts.length - 1].trim() : '';
     const year = new Date().getFullYear();
 
     // Fetch related jobs
@@ -216,9 +219,9 @@ export default async function SlugPage({ params, searchParams }: Props) {
         "@type": "Place",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": job.location || 'India',
+          "streetAddress": job.location || '',
           "addressLocality": city,
-          "addressCountry": "IN"
+          "addressCountry": country || "IN"
         }
       },
       "baseSalary": job.salary_range ? {
@@ -535,7 +538,7 @@ export default async function SlugPage({ params, searchParams }: Props) {
                   <MapPin className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
                     <p className="text-xs font-bold text-gray-400 uppercase">Address</p>
-                    <p className="text-sm font-bold text-gray-700 leading-relaxed">{job.location}, India</p>
+                    <p className="text-sm font-bold text-gray-700 leading-relaxed">{job.location}</p>
                   </div>
                 </div>
               </div>
@@ -609,10 +612,10 @@ export default async function SlugPage({ params, searchParams }: Props) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <Badge className="mb-4 bg-indigo-600 text-white border-0 font-bold px-4 py-1">Career Category</Badge>
             <h1 className="text-4xl md:text-6xl font-black text-gray-900 mb-6 tracking-tighter">
-              {categoryName} Jobs in India — {jobs.length} Active Openings
+              {categoryName} Jobs — {jobs.length} Active Openings
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto font-medium leading-relaxed">
-              Explore {jobs.length} active opportunities for {categoryName} roles across India's industrial hubs.
+              Explore {jobs.length} active opportunities for {categoryName} roles across top industrial hubs.
             </p>
           </div>
         </div>
