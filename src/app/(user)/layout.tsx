@@ -316,6 +316,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    // Redirect to home so profile page data is not visible after logout
+    window.location.href = '/';
   };
 
   const navigation = [
@@ -479,7 +481,34 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               ))}
             </div>
-            {!user && (
+
+            {/* Mobile Menu — logged-in user section */}
+            {user ? (
+              <div className="pt-4 border-t border-gray-100 space-y-3">
+                <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl">
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-sm shrink-0">
+                    {user.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-black text-slate-900 truncate">{user.fullName}</p>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{user.role}</p>
+                  </div>
+                </div>
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 text-sm font-bold text-slate-700 hover:text-primary hover:bg-slate-50 rounded-xl transition-all"
+                >
+                  <User className="w-4 h-4" /> My Profile
+                </Link>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                >
+                  <LogIn className="w-4 h-4 rotate-180" /> Logout
+                </button>
+              </div>
+            ) : (
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                   <button className="w-full py-3 text-sm font-black text-slate-600 border border-slate-100 rounded-xl uppercase tracking-widest">Login</button>

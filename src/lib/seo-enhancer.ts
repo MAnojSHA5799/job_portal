@@ -184,14 +184,15 @@ RULE 7 — TABLE OF CONTENTS:
 ✓ Auto-generated after H1, before first paragraph
 ✓ <nav id="toc">...</nav> with anchor links to each H2
 
-RULE 8 — INTERNAL LINKS (minimum 2):
-✓ Add Hiringstores link and official website and not Career link.
-✓ Show "careers" in anchor text, but do NOT link to a Careers page (it creates a 404). Instead, link to the internal profile using the UUID provided: href="/company/[INSERT company_id HERE]".
-✓ MUST use the exact UUID from the company_id variable provided in INPUT VARIABLES. If company_id is "NEW_COMPANY", use the company_url_slug instead: href="/company/[INSERT company_url_slug HERE]".
+RULE 8 — INTERNAL LINKS (exactly 1 required):
+✓ MUST include exactly ONE link to the website blog page ('/blog') OR the main website home page ('/').
+✓ NO OTHER internal links are allowed. Do not link to /careers or /company.
 
-RULE 9 — EXTERNAL DOFOLLOW LINK (minimum 1):
-✓ MUST include a link to the company's official website.
-✓ Natural anchor text (not "click here")
+RULE 9 — EXTERNAL DOFOLLOW LINK (exactly 1 required):
+✓ MUST include a link to the company's official external website (e.g. https://www.example.com).
+✓ MUST place this link in the "About Us" paragraph of the company.
+✓ MUST NOT redirect to the main website (hiringstores). It must be the true official website of the employer.
+✓ Natural anchor text (not "click here").
 
 RULE 10 — IMAGE:
 ✓ Alt text: Write a concise, accurate description that includes relevant context about the company and role, rather than stuffing it with focus keywords.

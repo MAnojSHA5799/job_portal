@@ -174,7 +174,45 @@ export default async function SlugPage({ params, searchParams }: Props) {
   const result = await getData(slug, isPreview);
 
   if (!result) {
-    notFound();
+    const { data: latestJobs } = await supabase
+      .from('jobs')
+      .select('*, companies(*)')
+      .eq('is_approved', true)
+      .order('created_at', { ascending: false })
+      .limit(6);
+      
+    return (
+      <div className="min-h-[70vh] bg-gray-50 flex flex-col items-center justify-center px-4 py-20 text-center">
+        <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+          <Briefcase className="w-10 h-10 text-gray-400" />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">Job Expired or Unavailable</h1>
+        <p className="text-gray-500 font-medium max-w-lg mx-auto mb-12">
+          The job you are looking for is no longer active or has been filled. Explore these other recent openings instead:
+        </p>
+        {latestJobs && latestJobs.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto w-full text-left">
+            {latestJobs.map((j) => (
+              <Link key={j.id} href={`/jobs/${j.url_slug || j.id}`}>
+                <Card className="p-6 hover:shadow-xl transition-all h-full bg-white border-0 shadow-sm rounded-2xl group flex flex-col">
+                  <h3 className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 mb-2">{j.title}</h3>
+                  <p className="text-sm text-gray-500 line-clamp-1 mb-4 flex-1">{j.companies?.name || 'Company'}</p>
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                      <MapPin className="w-3 h-3" /> {j.location?.split(',')[0]}
+                    </div>
+                    <Badge className="bg-indigo-50 text-indigo-700 border-0 uppercase tracking-widest text-[9px] font-black">View Job</Badge>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+        <Link href="/jobs" className="mt-12 block">
+          <Button className="font-bold rounded-xl px-8 py-6 shadow-xl shadow-indigo-600/20 bg-indigo-600 hover:bg-indigo-700 text-white">View All Jobs</Button>
+        </Link>
+      </div>
+    );
   }
 
   if (result.type === 'job') {

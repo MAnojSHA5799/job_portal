@@ -24,6 +24,57 @@ interface Blog {
   faqs?: { question: string; answer: string }[];
 }
 
+// ── FAQ Accordion Item ──────────────────────────────────────────────────────
+function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={cn(
+        'border rounded-2xl overflow-hidden transition-all duration-300',
+        open ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-100 bg-white hover:border-indigo-100'
+      )}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left group"
+        aria-expanded={open}
+      >
+        <span className={cn(
+          'font-bold text-sm md:text-base leading-snug transition-colors',
+          open ? 'text-indigo-700' : 'text-gray-900 group-hover:text-indigo-600'
+        )}>
+          {question}
+        </span>
+        <span className={cn(
+          'shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300',
+          open ? 'bg-indigo-600 text-white rotate-180' : 'bg-gray-100 text-gray-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'
+        )}>
+          <ChevronRight className="w-4 h-4 rotate-90" />
+        </span>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="px-6 pb-6 text-sm md:text-base text-gray-600 font-medium leading-relaxed border-t border-indigo-100 pt-4">
+              {answer}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 export default function BlogPost() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -310,6 +361,33 @@ export default function BlogPost() {
                     </aside>
                 </div>
             </article>
+
+            {/* ── FAQ Section ── */}
+            {blog.faqs && blog.faqs.length > 0 && (
+              <section className="mt-20 pt-16 border-t border-gray-100" id="faq">
+                <div className="max-w-3xl mx-auto">
+                  <div className="flex items-center gap-3 mb-10">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                        Frequently Asked Questions
+                      </h2>
+                      <p className="text-sm text-gray-400 font-medium mt-0.5">
+                        {blog.faqs.length} questions answered
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {blog.faqs.map((faq, idx) => (
+                      <FAQItem key={idx} question={faq.question} answer={faq.answer} index={idx} />
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Related Articles Section */}
             {relatedBlogs.length > 0 && (

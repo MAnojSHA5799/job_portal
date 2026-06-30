@@ -149,7 +149,7 @@ export default function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   if (!userData) {

@@ -577,8 +577,8 @@ export default function JobsQueue() {
             </div>
           </div>
 
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white rounded-[32px] overflow-hidden">
-            <div className="overflow-x-auto">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white rounded-[32px] overflow-visible">
+            <div className="overflow-x-auto overflow-visible min-h-[400px] pb-32">
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">

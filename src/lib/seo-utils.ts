@@ -17,6 +17,8 @@ export const POWER_WORDS = [
   'Urgent', 'Immediate', 'Certified', 'Top', 'Genuine', 'Verified',
   'Leading', 'Direct', 'Rewarding', 'Fresher', 'Fresher Job', 'Apply Now',
   'Energy', 'Best', 'Recent Year',
+  // Job intent words (matches new title pattern: "Job Vacancies/Opportunities in City")
+  'vacancy', 'vacancies', 'opportunity', 'opportunities',
 ];
 
 export const SENTIMENT_WORDS = [
@@ -130,17 +132,20 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  const hasPowerWord = POWER_WORDS.some((pw) =>
-    title.toLowerCase().includes(pw.toLowerCase())
-  );
+  // Power word check: also accept current/next year number as a power signal
+  const currentYear = new Date().getFullYear();
+  const yearPattern = new RegExp(`\\b(${currentYear - 1}|${currentYear}|${currentYear + 1})\\b`);
+  const hasPowerWord =
+    POWER_WORDS.some((pw) => title.toLowerCase().includes(pw.toLowerCase())) ||
+    yearPattern.test(title);
   checks.push({
     id: 9,
-    name: 'Title contains Power Word (Boosts SEO Score without just filling length)',
+    name: 'Title contains Power Word / Intent Word',
     points: 10,
     passed: hasPowerWord,
     message: hasPowerWord
-      ? 'Power word found.'
-      : 'Add a Power word (Fresher Job, Apply Now, Energy, Top, Best, Immediate, Recent Year) to increase SEO Score without just filling length.',
+      ? 'Power / intent word found in title.'
+      : `Add an intent word: "Job Vacancies", "Job Opportunities", "Job Vacancy" or a year (${currentYear}) to the title.`,
     category: 'title',
     autoFixAvailable: true,
   });
@@ -225,22 +230,27 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  // Keyword Density: three-zone logic
-  // < 0.5%  → Too Low
-  // 0.5–2.0% → Sweet Spot ✅
-  // > 3.0%  → Keyword Stuffing ⚠️
+  // Keyword Density: four-zone logic
+  // < 0.5%       → Too Low
+  // 0.5% – 2.0%  → Sweet Spot ✅  (PASS)
+  // 2.1% – 3.0%  → Slightly High ⚠️ (FAIL)
+  // > 3.0%       → Keyword Stuffing 🚨 (FAIL)
   const densityPass = density >= 0.5 && density <= 2.0;
   let densityMsg = '';
   if (!focusKeyword) {
     densityMsg = 'Set a focus keyword to measure density.';
   } else if (wordCount === 0) {
     densityMsg = 'No content to analyse. Add a job description.';
+  } else if (density === 0) {
+    densityMsg = `⚠️ Too Low — keyword "${focusKeyword}" not found in description (0%). Add it at least 5–10 times.`;
   } else if (density < 0.5) {
     densityMsg = `⚠️ Too Low — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Add the keyword a few more times. Target: 0.5–2.0%.`;
   } else if (density > 3.0) {
-    densityMsg = `🚨 Keyword Stuffing! — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Remove some occurrences. Target: 0.5–2.0%.`;
+    densityMsg = `🚨 Keyword Stuffing! — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Delete some occurrences. Target: 0.5–2.0%.`;
+  } else if (density > 2.0) {
+    densityMsg = `⚠️ Slightly High — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Reduce a few occurrences. Target: 0.5–2.0%.`;
   } else {
-    densityMsg = `✅ Perfect — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Sweet spot: 0.5–2.0%.`;
+    densityMsg = `✅ Perfect — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Sweet spot 0.5–2.0%.`;
   }
   checks.push({
     id: 7,
@@ -252,47 +262,68 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  const internalLinkRegex = /<a\s[^>]*href=["'](https?:\/\/(www\.)?hiringstores\.com\.in|\/(jobs|company|jobs-in-))/g;
-  const hasCareerLink = /<a\s[^>]*href=["'][^"']*careers?[^"']*["']/i.test(content);
+  // Internal links: strictly check for /blog or / (Home)
+  const internalLinkRegex = /<a\s[^>]*href=["'](https?:\/\/(www\.)?hiringstores\.com\.in\/?(blog\/?|$)|\/?(blog\/?|))["']/gi;
   const internalLinkCount = (content.match(internalLinkRegex) || []).length;
-  const passedLinks = internalLinkCount >= 2 && !hasCareerLink;
+  
+  const passedLinks = internalLinkCount >= 1;
+  let internalLinksMsg = '';
+  if (!passedLinks) {
+    internalLinksMsg = 'Missing internal link. Add exactly 1 link to /blog or the home page (/).';
+  } else {
+    internalLinksMsg = `✅ ${internalLinkCount} internal link(s) found to /blog or home page.`;
+  }
   checks.push({
     id: 25,
-    name: 'Internal Links (min 2)',
+    name: 'Internal Link (to /blog or /)',
     points: 5,
     passed: passedLinks,
-    message: passedLinks 
-      ? `${internalLinkCount} internal link(s) found.` 
-      : 'Add Hiringstores link and official website and not Career link.',
+    message: internalLinksMsg,
     category: 'content',
     autoFixAvailable: true,
   });
 
-  const externalLinkCount = (content.match(/<a\s[^>]*href=["']https?:\/\//g) || []).length;
+  // External dofollow: must be truly external (not hiringstores.com.in itself)
+  const allExternalMatches = [...content.matchAll(/<a\s[^>]*href=["'](https?:\/\/[^"']+)["']/gi)];
+  const externalLinkCount = allExternalMatches.filter(
+    (m) => !m[1].includes('hiringstores.com')
+  ).length;
   checks.push({
     id: 26,
-    name: 'External Dofollow Link',
+    name: 'External Dofollow Link (company website)',
     points: 5,
     passed: externalLinkCount >= 1,
     message: externalLinkCount >= 1
-      ? `${externalLinkCount} external link(s) found.`
-      : 'Add at least one external dofollow link.',
+      ? `✅ ${externalLinkCount} external dofollow link(s) found (company website).`
+      : '❌ Add the company official website as an external dofollow link.',
     category: 'content',
     autoFixAvailable: true,
   });
 
-  const hasImageAlt =
-    (/alt="[^"]+"/.test(content) && content.includes('<img')) ||
-    !!job.image_alt_text ||
-    !!job.image_filename;
+  // Image Alt Text: must exist AND contain focus keyword (not stuffed, but present once)
+  const imgAltInContent = content.match(/<img[^>]*alt="([^"]+)"/i)?.[1] || '';
+  const effectiveAltText = (imgAltInContent || job.image_alt_text || '').toLowerCase();
+  const effectiveFilename = (job.image_filename || '').toLowerCase();
+  const hasImage = content.includes('<img') || !!job.image_alt_text;
+  const altHasKeyword = hasKeyword && (
+    effectiveAltText.includes(focusKeyword.toLowerCase()) ||
+    effectiveFilename.includes(focusKeyword.toLowerCase().replace(/\s+/g, '-'))
+  );
+  const imageAltPassed = hasImage && altHasKeyword;
+  let imageAltMsg = '';
+  if (!hasImage) {
+    imageAltMsg = '❌ No image found. Add a company/job image with an SEO alt text.';
+  } else if (!altHasKeyword) {
+    imageAltMsg = `⚠️ Image found but focus keyword "${focusKeyword}" missing from alt text or filename. Add it naturally.`;
+  } else {
+    imageAltMsg = `✅ Focus keyword found in image alt text. Concise & relevant description detected.`;
+  }
   checks.push({
     id: 27,
-    name: 'Optimized Image Alt Text',
+    name: 'Optimized Image Alt Text (keyword present)',
     points: 5,
-    passed: hasImageAlt,
-    message: hasImageAlt 
-      ? 'writing a concise, accurate description that includes relevant context rather than stuffing it with Focus keywords' 
-      : 'writing a concise, accurate description that includes relevant context rather than stuffing it with Focus keywords',
+    passed: imageAltPassed,
+    message: imageAltMsg,
     category: 'content',
     autoFixAvailable: true,
   });
@@ -308,14 +339,32 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  const hasSchema =
-    !!job.schema_json_ld && Object.keys(job.schema_json_ld).length > 0;
+  // Schema JSON-LD: handle both string and object; validate @type === 'JobPosting'
+  let schemaData: any = {};
+  try {
+    schemaData = typeof job.schema_json_ld === 'string'
+      ? JSON.parse(job.schema_json_ld || '{}')
+      : (job.schema_json_ld || {});
+  } catch { schemaData = {}; }
+  const schemaKeys = Object.keys(schemaData);
+  const hasJobPostingType = schemaData['@type'] === 'JobPosting';
+  const hasSchema = schemaKeys.length > 0 && hasJobPostingType;
+  let schemaMsg = '';
+  if (schemaKeys.length === 0) {
+    schemaMsg = '❌ Schema JSON-LD missing. Run Full SEO Optimization to generate it.';
+  } else if (!hasJobPostingType) {
+    schemaMsg = `⚠️ Schema found but @type is not "JobPosting" (got: "${schemaData['@type']}"). Re-run SEO Optimization.`;
+  } else {
+    const hasLocation = !!schemaData.jobLocation;
+    const hasSalary = !!schemaData.baseSalary;
+    schemaMsg = `✅ JobPosting schema valid.${!hasLocation ? ' ⚠️ jobLocation missing.' : ''}${!hasSalary ? ' ⚠️ baseSalary missing.' : ''}`;
+  }
   checks.push({
     id: 29,
-    name: 'Schema JSON-LD present',
+    name: 'Schema JSON-LD (JobPosting)',
     points: 5,
     passed: hasSchema,
-    message: hasSchema ? 'Schema JSON-LD found.' : 'Schema JSON-LD missing.',
+    message: schemaMsg,
     category: 'content',
     autoFixAvailable: true,
   });

@@ -312,18 +312,16 @@ MANDATORY: 130-160 chars. Include focus keyword. Return ONLY the meta string.`
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Industry</label>
-                <Input 
-                  className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
-                  placeholder="e.g. Technology" 
+                <select 
+                  className="w-full h-12 px-4 rounded-xl border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold text-sm outline-none text-gray-700"
                   value={currentCompany.industry}
                   onChange={e => setCurrentCompany({...currentCompany, industry: e.target.value})}
-                  list="industry-options"
-                />
-                <datalist id="industry-options">
+                >
+                  <option value="" disabled>Select an Industry</option>
                   {industries.map((ind, i) => (
-                    <option key={i} value={ind.name} />
+                    <option key={i} value={ind.name}>{ind.name}</option>
                   ))}
-                </datalist>
+                </select>
               </div>
               <div>
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Team Size</label>
