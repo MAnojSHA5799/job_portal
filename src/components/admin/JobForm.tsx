@@ -155,9 +155,11 @@ export function JobForm({
     if (!isSlugManuallyEdited) {
       const selectedCompany = companies.find(c => c.id === currentJob.company_id);
       const compName = currentJob.company_id === 'new' ? currentJob.new_company_name : selectedCompany?.name;
+      // Extract only city name (before comma) e.g. "Pune, Maharashtra" → "Pune"
+      const cityOnly = currentJob.location?.split(',')?.[0]?.trim() || '';
       
-      if (currentJob.title || compName || currentJob.location) {
-        const parts = [compName, currentJob.title, currentJob.location];
+      if (currentJob.title || compName || cityOnly) {
+        const parts = [compName, currentJob.title, cityOnly];
         const newSlug = parts
           .filter(Boolean)
           .join(' ')
@@ -243,13 +245,16 @@ export function JobForm({
             messages: [
               {
                 role: 'system',
-                content: `Rewrite this SEO title for http://www.hiringstores.com.
+                content: `Rewrite this SEO title for hiringstores.com.in.
 MANDATORY RULES:
-1. Length MUST BE BETWEEN 50 AND 60 CHARACTERS. (VERY IMPORTANT)
-2. Must start with the focus keyword.
-3. MUST include a power word (Urgent, Top, Verified).
-4. MUST include a sentiment word (Best, Exciting) OR a number (salary/openings).
-Return ONLY the string. No quotes.`
+1. Pattern MUST be: "[Focus Keyword] Job [intent_word] in [City], [State]"
+   Where [intent_word] is ONE of: opportunity | opportunities | vacancy | vacancies
+   Example: "Sales Officer Job Vacancies in Lucknow, Uttar Pradesh"
+   Example: "CNC Operator Job Opportunities in Pune, Maharashtra"
+2. Focus keyword MUST be the first words.
+3. Length MUST BE BETWEEN 50 AND 60 CHARACTERS (count every char including spaces).
+4. If title exceeds 60 chars, abbreviate State (e.g. "Uttar Pradesh" → "UP").
+Return ONLY the final string. No quotes, no explanation.`
               },
               {
                 role: 'user',
@@ -290,7 +295,9 @@ Return ONLY the new description string. No quotes or explanation.`
       } else if (check.category === 'url') {
         const selectedCompany = companies.find(c => c.id === currentJob.company_id);
         const compName = currentJob.company_id === 'new' ? currentJob.new_company_name : selectedCompany?.name;
-        const parts = [compName, currentJob.title, currentJob.location];
+        // Extract only city name (before comma) e.g. "Pune, Maharashtra" → "Pune"
+        const cityOnly = currentJob.location?.split(',')?.[0]?.trim() || '';
+        const parts = [compName, currentJob.title, cityOnly];
         const slug = parts
           .filter(Boolean)
           .join(' ')
@@ -1215,12 +1222,12 @@ Instructions:
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 block">URL Slug</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 block">URL Slug — 60 to 75 Chars · No Duplicate</label>
                 <div className="relative">
                   <Zap className="absolute left-4 top-3.5 h-4 w-4 text-gray-500" />
                   <Input 
                     className="h-12 pl-11 bg-white/5 border-white/10 text-white placeholder:text-white/20 rounded-xl focus:ring-indigo-500/50"
-                    placeholder="cnc-operator-pune"
+                    placeholder="company-cnc-operator-pune"
                     value={currentJob.url_slug || ''}
                     onChange={e => {
                         const val = e.target.value.toLowerCase()
@@ -1231,6 +1238,17 @@ Instructions:
                         setIsSlugManuallyEdited(true);
                     }}
                   />
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[9px] text-gray-600 font-medium">Include city name for SEO</span>
+                  <span className={cn(
+                    "text-[10px] font-black",
+                    (currentJob.url_slug?.length || 0) >= 60 && (currentJob.url_slug?.length || 0) <= 75
+                      ? "text-emerald-400"
+                      : "text-orange-400"
+                  )}>
+                    {currentJob.url_slug?.length || 0} / 60–75
+                  </span>
                 </div>
               </div>
 

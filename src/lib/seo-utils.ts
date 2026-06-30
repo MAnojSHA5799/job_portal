@@ -225,13 +225,29 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  const hasDensity = density >= 0.8 && density <= 1.5;
+  // Keyword Density: three-zone logic
+  // < 0.5%  → Too Low
+  // 0.5–2.0% → Sweet Spot ✅
+  // > 3.0%  → Keyword Stuffing ⚠️
+  const densityPass = density >= 0.5 && density <= 2.0;
+  let densityMsg = '';
+  if (!focusKeyword) {
+    densityMsg = 'Set a focus keyword to measure density.';
+  } else if (wordCount === 0) {
+    densityMsg = 'No content to analyse. Add a job description.';
+  } else if (density < 0.5) {
+    densityMsg = `⚠️ Too Low — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Add the keyword a few more times. Target: 0.5–2.0%.`;
+  } else if (density > 3.0) {
+    densityMsg = `🚨 Keyword Stuffing! — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Remove some occurrences. Target: 0.5–2.0%.`;
+  } else {
+    densityMsg = `✅ Perfect — ${density.toFixed(2)}% (${keywordCount}× in ${wordCount} words). Sweet spot: 0.5–2.0%.`;
+  }
   checks.push({
     id: 7,
     name: 'Keyword Density (~1%)',
     points: 5,
-    passed: hasDensity,
-    message: `Density: ${density.toFixed(2)}%. (Target: 0.8–1.5%, ~9–12 occurrences)`,
+    passed: densityPass,
+    message: densityMsg,
     category: 'keyword',
     autoFixAvailable: true,
   });

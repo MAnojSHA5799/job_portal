@@ -374,10 +374,15 @@ export default async function SlugPage({ params, searchParams }: Props) {
             </div>
           </div>
 
+          {/* AdSense Job Details 1 (After 1st section) */}
+          <div id="adsense-job-details-1" className="w-full my-4"></div>
+
           {/* Detailed Sections Card */}
           <Card className="p-6 border border-gray-100 shadow-sm rounded-2xl bg-white space-y-10">
             {/* Job Description */}
             <section>
+              {/* AdSense Job Details 2 (Before Job Description) */}
+              <div id="adsense-job-details-2" className="w-full mb-6"></div>
               <h3 className="text-lg font-bold text-gray-900 mb-4 border-b border-gray-50 pb-4">Job Description</h3>
 
               <div className="text-sm text-gray-600 leading-relaxed font-medium html-content prose prose-sm max-w-none">
@@ -558,6 +563,9 @@ export default async function SlugPage({ params, searchParams }: Props) {
               />
               <ShareActions title={job.title} />
             </div>
+
+            {/* AdSense Job Details 3 (After Apply Now) */}
+            <div id="adsense-job-details-3" className="w-full mt-6"></div>
           </Card>
 
           {/* Related Jobs - Compact */}

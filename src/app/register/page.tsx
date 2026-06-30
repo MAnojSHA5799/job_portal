@@ -37,6 +37,8 @@ export default function RegisterPage() {
   const [countryCode, setCountryCode] = useState('+91');
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [skills, setSkills] = useState('');
+  const [experience, setExperience] = useState('');
   const [location, setLocation] = useState('');
   const [resume, setResume] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +78,8 @@ export default function RegisterPage() {
       formData.append('password', password);
       formData.append('fullName', fullName);
       formData.append('phone', `${countryCode}${phone}`);
+      formData.append('skills', skills);
+      formData.append('experience', experience);
       formData.append('location', location);
       formData.append('role', 'user');
       if (resume) formData.append('resume', resume);
@@ -170,6 +174,32 @@ export default function RegisterPage() {
               {phone.length === 10 && !phoneError && (
                 <p className="text-[10px] text-emerald-600 font-bold px-1">✓ Valid number: {countryCode} {phone}</p>
               )}
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 block px-1">Skills (e.g. React, Node.js)</label>
+              <Input
+                type="text"
+                className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm"
+                required
+                value={skills}
+                onChange={(e) => setSkills(e.target.value)}
+                placeholder="e.g. React, Node.js"
+              />
+            </div>
+
+            {/* Experience */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 block px-1">Experience (Years)</label>
+              <Input
+                type="text"
+                className="w-full h-[46px] bg-transparent border-2 border-gray-200 focus:border-blue-400 focus:ring-0 rounded-xl font-medium px-4 text-sm"
+                required
+                value={experience}
+                onChange={(e) => setExperience(e.target.value)}
+                placeholder="e.g. 2, 5+"
+              />
             </div>
 
             {/* Location */}

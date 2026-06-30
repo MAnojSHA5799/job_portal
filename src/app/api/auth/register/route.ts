@@ -10,6 +10,8 @@ export async function POST(req: Request) {
     const fullName = formData.get('fullName') as string;
     const phone = formData.get('phone') as string;
     const location = formData.get('location') as string;
+    const skills = formData.get('skills') as string;
+    const experience = formData.get('experience') as string;
     const role = formData.get('role') as string;
     const resume = formData.get('resume') as File | null;
 
@@ -57,6 +59,8 @@ export async function POST(req: Request) {
         password_hash: passwordHash,
         phone,
         location,
+        skills,
+        experience,
         resume_url: resumeUrl,
         role: role || ((email === 'admin@gmail.com' || email.endsWith('@admin.com')) ? 'admin' : 'user')
       });

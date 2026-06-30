@@ -752,75 +752,87 @@ function JobListingContent() {
                 <p className="text-gray-500 mt-2">Try adjusting your filters or search keywords.</p>
               </div>
             ) : (
-              <div className={viewMode === 'list' ? 'space-y-4 w-full' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}>
+              <>
+                <div className={viewMode === 'list' ? 'space-y-4 w-full' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'}>
                 <AnimatePresence mode='popLayout'>
                   {currentJobs.map((job, i) => (
-                    <motion.div
-                      key={job.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      layout
-                    >
-                      <Link href={`/jobs/${job.url_slug || job.id}`} target="_blank">
-                        <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white relative group cursor-pointer h-full flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-sm">
-                                  {job.companies?.logo_url ? (
-                                    <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center font-bold text-primary text-xl bg-indigo-50">
-                                      {job.companies?.name?.charAt(0) || 'J'}
-                                    </div>
-                                  )}
+                    <React.Fragment key={job.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        layout
+                      >
+                        <Link href={`/jobs/${job.url_slug || job.id}`} target="_blank">
+                          <Card className="p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white relative group cursor-pointer h-full flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-start gap-4">
+                                  <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-sm">
+                                    {job.companies?.logo_url ? (
+                                      <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center font-bold text-primary text-xl bg-indigo-50">
+                                        {job.companies?.name?.charAt(0) || 'J'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <h3 className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">
+                                      {job.title}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 font-semibold mt-0.5">{job.companies?.name}</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <h3 className="text-base font-bold text-gray-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">
-                                    {job.title}
-                                  </h3>
-                                  <p className="text-xs text-gray-500 font-semibold mt-0.5">{job.companies?.name}</p>
+                                <ChevronRight className="w-5 h-5 text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+
+                              <div className="space-y-2 mb-4">
+                                <div className="flex items-center gap-2 text-gray-500">
+                                  <MapPin className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm font-semibold">{job.location || 'India'}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-500">
+                                  <Banknote className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm font-semibold">{job.salary_range || 'Not disclosed'}</span>
                                 </div>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
 
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center gap-2 text-gray-500">
-                                <MapPin className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-semibold">{job.location || 'India'}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-gray-500">
-                                <Banknote className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-semibold">{job.salary_range || 'Not disclosed'}</span>
-                              </div>
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50 mt-4">
+                              {job.job_type && (
+                                <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-indigo-600 border border-indigo-100/50">
+                                  <Clock className="w-3.5 h-3.5" /> {job.job_type}
+                                </div>
+                              )}
+                              {job.category && (
+                                <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-emerald-600 border border-emerald-100/50">
+                                  <Zap className="w-3.5 h-3.5" /> {job.category}
+                                </div>
+                              )}
+                              {job.experience_level && (
+                                <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-amber-600 border border-amber-100/50">
+                                  <Briefcase className="w-3.5 h-3.5" /> {job.experience_level}
+                                </div>
+                              )}
                             </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50 mt-4">
-                            {job.job_type && (
-                              <div className="flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-indigo-600 border border-indigo-100/50">
-                                <Clock className="w-3.5 h-3.5" /> {job.job_type}
-                              </div>
-                            )}
-                            {job.category && (
-                              <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-emerald-600 border border-emerald-100/50">
-                                <Zap className="w-3.5 h-3.5" /> {job.category}
-                              </div>
-                            )}
-                            {job.experience_level && (
-                              <div className="flex items-center gap-1.5 bg-amber-50 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-amber-600 border border-amber-100/50">
-                                <Briefcase className="w-3.5 h-3.5" /> {job.experience_level}
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      </Link>
-                    </motion.div>
+                          </Card>
+                        </Link>
+                      </motion.div>
+                      
+                      {/* AdSense Job List 1 (after 1st job) */}
+                      {i === 0 && <div id="adsense-job-list-1" className="col-span-full w-full"></div>}
+                      
+                      {/* AdSense Job List 2 (after 5th job) */}
+                      {i === 4 && <div id="adsense-job-list-2" className="col-span-full w-full"></div>}
+                    </React.Fragment>
                   ))}
                 </AnimatePresence>
               </div>
+              
+              {/* AdSense Job List 3 (End of page, before pagination) */}
+              <div id="adsense-job-list-3" className="w-full mt-8"></div>
+              </>
             )}
 
             {/* Pagination UI */}

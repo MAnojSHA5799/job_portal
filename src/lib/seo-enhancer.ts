@@ -127,11 +127,16 @@ STEP 3 — GENERATE ALL OUTPUT FIELDS
 ════════════════════════════════════════
 
 RULE 1 — SEO TITLE:
-Pattern Example: "[Focus Keyword] Job vacancies in [City], [State]" or "[Focus Keyword] Job opportunities in [City]"
+Mandatory Pattern: "[Focus Keyword] Job [intent_word] in [City], [State]"
+Where [intent_word] MUST be ONE of: opportunity | opportunities | vacancy | vacancies
+Examples:
+  "Sales Officer Job Vacancies in Lucknow, Uttar Pradesh"
+  "CNC Operator Job Opportunities in Pune, Maharashtra"
+  "Production Engineer Job Vacancy in Surat, Gujarat"
 ✓ Focus keyword MUST be in the FIRST 3 words
 ✓ Length: 50–60 characters EXACTLY (count every character including spaces)
-✓ Power word from: Fresher, Fresher Job, Apply Now, Energy, Top, Best, Immediate, Recent Year
-✓ NEVER exceed 60 characters — truncate company name if needed
+✓ NEVER exceed 60 characters — truncate state name if needed (e.g. use "UP" instead of "Uttar Pradesh")
+✓ NEVER use power words like "Top", "Best", "Urgent" that inflate the title — the city + intent word is the power signal
 
 RULE 2 — META DESCRIPTION:
 ✓ Length: 140–160 characters EXACTLY
@@ -141,7 +146,7 @@ RULE 2 — META DESCRIPTION:
 ✓ No exclamation marks, no all-caps words
 
 RULE 3 — URL SLUG:
-Pattern: [company-slug]-[focus-keyword-hyphenated]
+Pattern: [company-slug]-[focus-keyword-hyphenated]-[city-slug]
 ✓ All lowercase, hyphens only, no underscores, no IDs
 ✓ Length: 60-75 characters EXACTLY. Make sure it's unique to avoid duplicate URLs.
 
