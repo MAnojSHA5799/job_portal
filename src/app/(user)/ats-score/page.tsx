@@ -248,6 +248,21 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
     "contact": { "score": 90, "feedback": "Contact info complete", "fixes": [] }
   },
   "summary": "Overall ATS analysis summary here",
+  "missingSkills": [
+    { "skill": "Project Management", "reason": "Commonly required in this role but absent from resume", "priority": "high" },
+    { "skill": "Data Analysis", "reason": "Needed for quantifying impact", "priority": "medium" }
+  ],
+  "missingKeywords": [
+    { "keyword": "cross-functional", "reason": "ATS systems look for this collaboration keyword", "section": "experience" },
+    { "keyword": "KPI", "reason": "Important performance tracking term missing", "section": "experience" }
+  ],
+  "improvementPoints": [
+    { "category": "skills", "issue": "No technical tools listed", "fix": "Add specific tools like Excel, SAP, AutoCAD relevant to your domain", "severity": "high" },
+    { "category": "experience", "issue": "Bullet points lack measurable results", "fix": "Add numbers: e.g. Reduced defect rate by 18% instead of Reduced defects", "severity": "high" },
+    { "category": "keywords", "issue": "Industry-standard keywords missing", "fix": "Include terms like lean manufacturing, process optimization, root cause analysis", "severity": "medium" },
+    { "category": "formatting", "issue": "Summary section is too vague", "fix": "Rewrite summary with specific achievements, years of experience, and target role", "severity": "medium" },
+    { "category": "contact", "issue": "LinkedIn profile URL missing", "fix": "Add your LinkedIn profile link to the contact section", "severity": "low" }
+  ],
   "resumeData": {
     "name": "Full Name",
     "title": "Job Title",
@@ -558,8 +573,10 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+            className="space-y-8"
           >
+            {/* Top Score + Preview Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Score & Categories */}
             <div className="lg:col-span-4 space-y-6">
               <Card className="p-8 border-gray-100 shadow-xl rounded-[32px] bg-white text-center">
@@ -1090,6 +1107,199 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                 </div>
               </Card>
             </div>
+          </div>
+          {/* ===== RESUME FIX REPORT ===== */}
+          {analysis && (
+            <motion.div
+              initial={{ opacity: 0, y: 32 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Card className="p-8 md:p-10 border-gray-100 shadow-xl rounded-[32px] bg-white">
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center shrink-0">
+                    <AlertCircle className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-gray-900 tracking-tight">Resume Fix Report</h2>
+                    <p className="text-sm text-gray-500 font-medium">
+                      Aapke resume mein ye cheezein missing hain — inhe fix karo aur ATS score badhao
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                  {/* ---- MISSING SKILLS ---- */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-7 h-7 bg-violet-100 rounded-xl flex items-center justify-center">
+                        <Target className="w-3.5 h-3.5 text-violet-600" />
+                      </div>
+                      <h3 className="font-black text-sm text-gray-800 uppercase tracking-widest">Missing Skills</h3>
+                      <span className="ml-auto text-xs font-bold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">
+                        {(analysis?.missingSkills?.length || 0)} found
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {(analysis?.missingSkills?.length
+                        ? analysis.missingSkills
+                        : [
+                            { skill: 'Quantitative Metrics', reason: 'Missing numbers/KPIs in achievements', priority: 'high' },
+                            { skill: 'Technical Tools', reason: 'No domain-specific tools listed', priority: 'high' },
+                            { skill: 'Certifications', reason: 'No professional certs mentioned', priority: 'medium' },
+                          ]
+                      ).map((item: any, i: number) => (
+                        <div
+                          key={i}
+                          className={`rounded-2xl p-4 border ${
+                            item.priority === 'high'   ? 'bg-rose-50 border-rose-100'   :
+                            item.priority === 'medium' ? 'bg-amber-50 border-amber-100' :
+                            'bg-gray-50 border-gray-100'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <span className="font-bold text-sm text-gray-900">{item.skill}</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 ${
+                              item.priority === 'high'   ? 'bg-rose-500 text-white'   :
+                              item.priority === 'medium' ? 'bg-amber-400 text-white'  :
+                              'bg-gray-300 text-gray-700'
+                            }`}>{item.priority}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium leading-relaxed">{item.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ---- MISSING KEYWORDS ---- */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-7 h-7 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <Search className="w-3.5 h-3.5 text-blue-600" />
+                      </div>
+                      <h3 className="font-black text-sm text-gray-800 uppercase tracking-widest">Missing Keywords</h3>
+                      <span className="ml-auto text-xs font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                        {(analysis?.missingKeywords?.length || 0)} found
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {(analysis?.missingKeywords?.length
+                        ? analysis.missingKeywords
+                        : [
+                            { keyword: 'cross-functional', reason: 'ATS looks for this collaboration keyword', section: 'experience' },
+                            { keyword: 'KPI / metrics', reason: 'Performance indicator terms absent', section: 'experience' },
+                            { keyword: 'stakeholder management', reason: 'Leadership keyword missing', section: 'summary' },
+                          ]
+                      ).map((item: any, i: number) => (
+                        <div key={i} className="rounded-2xl p-4 border bg-blue-50 border-blue-100">
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <span className="font-bold text-sm text-gray-900 font-mono">"{item.keyword}"</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-200 text-blue-800 shrink-0">
+                              {item.section}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 font-medium leading-relaxed">{item.reason}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ---- HOW TO FIX ---- */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-7 h-7 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Zap className="w-3.5 h-3.5 text-emerald-600" />
+                      </div>
+                      <h3 className="font-black text-sm text-gray-800 uppercase tracking-widest">How To Fix</h3>
+                      <span className="ml-auto text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                        {(analysis?.improvementPoints?.length || 0)} tips
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {(analysis?.improvementPoints?.length
+                        ? analysis.improvementPoints
+                        : [
+                            { category: 'experience', issue: 'Bullet points lack measurable results', fix: 'Add numbers: e.g. "Reduced defect rate by 18%"', severity: 'high' },
+                            { category: 'skills',     issue: 'No domain-specific tools listed',       fix: 'Add tools like Excel, AutoCAD, SAP, JIRA',            severity: 'high' },
+                            { category: 'formatting', issue: 'Summary is too generic',                fix: 'Start with years of experience + specialization',       severity: 'medium' },
+                            { category: 'contact',    issue: 'LinkedIn URL missing',                  fix: 'Add LinkedIn profile link to contact section',          severity: 'low' },
+                          ]
+                      ).map((item: any, i: number) => (
+                        <div
+                          key={i}
+                          className={`rounded-2xl p-4 border ${
+                            item.severity === 'high'   ? 'bg-rose-50 border-rose-100'     :
+                            item.severity === 'medium' ? 'bg-amber-50 border-amber-100'   :
+                            'bg-emerald-50 border-emerald-100'
+                          }`}
+                        >
+                          <div className="mb-1.5">
+                            <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${
+                              item.category === 'skills'     ? 'bg-violet-500 text-white' :
+                              item.category === 'experience' ? 'bg-indigo-500 text-white' :
+                              item.category === 'keywords'   ? 'bg-blue-500 text-white'   :
+                              item.category === 'formatting' ? 'bg-orange-400 text-white'  :
+                              'bg-gray-400 text-white'
+                            }`}>{item.category}</span>
+                          </div>
+                          <p className="text-xs font-bold text-gray-700 mb-1.5">⚠ {item.issue}</p>
+                          <div className="flex items-start gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
+                            <p className="text-xs text-gray-600 font-medium leading-relaxed">{item.fix}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Priority Summary Bar */}
+                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
+                    <span className="font-bold text-gray-600">High Priority:</span>
+                    <span className="font-black text-gray-900">
+                      {[
+                        ...(analysis?.missingSkills || []).filter((s: any) => s.priority === 'high'),
+                        ...(analysis?.improvementPoints || []).filter((p: any) => p.severity === 'high'),
+                      ].length} items
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                    <span className="font-bold text-gray-600">Medium Priority:</span>
+                    <span className="font-black text-gray-900">
+                      {[
+                        ...(analysis?.missingSkills || []).filter((s: any) => s.priority === 'medium'),
+                        ...(analysis?.improvementPoints || []).filter((p: any) => p.severity === 'medium'),
+                      ].length} items
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>
+                    <span className="font-bold text-gray-600">Low Priority:</span>
+                    <span className="font-black text-gray-900">
+                      {[
+                        ...(analysis?.missingSkills || []).filter((s: any) => s.priority === 'low'),
+                        ...(analysis?.improvementPoints || []).filter((p: any) => p.severity === 'low'),
+                      ].length} items
+                    </span>
+                  </div>
+                  <div className="ml-auto">
+                    <button
+                      onClick={reset}
+                      className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black text-sm hover:underline transition-all"
+                    >
+                      <RefreshCcw className="w-4 h-4" /> Scan Another Resume
+                    </button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          )}
           </motion.div>
         )}
       </div>

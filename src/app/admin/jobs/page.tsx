@@ -730,7 +730,7 @@ export default function JobsQueue() {
                                           {job.is_approved ? 'Suspend Listing' : 'Approve Posting'}
                                         </button>
                                         <button 
-                                          onClick={() => { window.open(job.source_url, '_blank'); setOpenDropdownId(null); }}
+                                          onClick={() => { window.open(job.apply_link, '_blank'); setOpenDropdownId(null); }}
                                           className="flex items-center w-full px-4 py-3 text-xs font-bold text-gray-600 hover:bg-gray-50 rounded-xl transition-colors mb-1"
                                         >
                                           <ExternalLink className="h-4 w-4 mr-3" /> View Source
