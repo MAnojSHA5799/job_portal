@@ -164,7 +164,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 pb-16">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+        {/* <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to Home
           </Link>
@@ -174,7 +174,7 @@ export default function ProfilePage() {
           >
             <LogOut className="w-4 h-4" /> Logout
           </button>
-        </div>
+        </div> */}
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pt-10">

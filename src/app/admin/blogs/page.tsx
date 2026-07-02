@@ -241,7 +241,7 @@ export default function BlogsManagement() {
                       );
                     })()}
                   </Link>
-                  <Link href={`/blog/${blog.id}?preview=true`} target="_blank">
+                  {/* <Link href={`/blog/${blog.id}?preview=true`} target="_blank">
                     <Button 
                       size="icon" 
                       variant="outline" 
@@ -249,7 +249,7 @@ export default function BlogsManagement() {
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </Button>
-                  </Link>
+                  </Link> */}
                   <Link href={`/admin/blogs/${blog.id}/edit`}>
                     <Button 
                       size="icon" 

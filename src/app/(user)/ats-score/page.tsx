@@ -172,10 +172,30 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
           setIsParsing(false);
         }
       } else {
-        // DOCX — prompt manual paste
-        setResumeText('');
-        setIsManualEntry(true);
-        setIsResumeVerified(null);
+        // DOCX / DOC — parse via mammoth API
+        setIsParsing(true);
+        setIsManualEntry(false);
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          const res = await fetch('/api/parse-docx', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          console.log('📄 [SUCCESS] EXTRACTED DOCX TEXT:', data.text);
+          setResumeText(data.text);
+          setIsParsing(false);
+          await checkIfResume(data.text); // 🔍 AI verification
+        } catch (err: any) {
+          console.error('Error parsing DOCX:', err);
+          setError('Failed to extract text from DOCX. Please paste your resume text manually.');
+          setIsManualEntry(true);
+          setIsResumeVerified(null);
+        } finally {
+          setIsParsing(false);
+        }
       }
     }
   };
@@ -436,8 +456,8 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
                             : isParsing
                             ? 'Reading text content...'
                             : file
-                            ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB`
-                            : 'Support for PDF, DOCX (Max 5MB)'}
+                            ? `Size: ${(file.size / 1024 / 1024).toFixed(2)} MB · ${file.name.split('.').pop()?.toUpperCase()}`
+                            : 'PDF, DOCX, DOC, TXT supported · Max 2 MB'}
                         </p>
                       </div>
                     ) : (

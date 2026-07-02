@@ -573,33 +573,58 @@ export default function ScraperManager() {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
-              { title: 'Total Scraper Runs', value: stats.total, trend: '+ 12.5%', icon: History, color: 'bg-indigo-50 text-indigo-600', trendColor: 'text-emerald-500' },
-              { title: 'Completed', value: stats.completed, trend: '75.0%', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600', trendColor: 'text-emerald-500' },
-              { title: 'In Progress', value: stats.inProgress, trend: '6.3%', icon: Clock, color: 'bg-orange-50 text-orange-600', trendColor: 'text-orange-500' },
-              { title: 'Failed', value: stats.failed, trend: '3.1%', icon: XCircle, color: 'bg-rose-50 text-rose-600', trendColor: 'text-rose-500' },
-              { title: 'Avg. Duration', value: formatDuration(stats.avgDuration), trend: '- 18s faster', icon: Zap, color: 'bg-purple-50 text-purple-600', trendColor: 'text-emerald-500' },
-            ].map((item, idx) => (
-              <Card key={idx} className="p-5 border-none shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className={cn("p-2 rounded-lg", item.color)}>
-                        <item.icon className="h-4 w-4" />
+              { title: 'Total Scraper Runs', value: stats.total, trend: '+ 12.5%', icon: History, color: 'bg-indigo-50 text-indigo-600', trendColor: 'text-emerald-500', filter: 'Total Scraper Runs', ringColor: 'ring-indigo-400' },
+              { title: 'Completed', value: stats.completed, trend: '75.0%', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600', trendColor: 'text-emerald-500', filter: 'Completed Runs', ringColor: 'ring-emerald-400' },
+              { title: 'In Progress', value: stats.inProgress, trend: '6.3%', icon: Clock, color: 'bg-orange-50 text-orange-600', trendColor: 'text-orange-500', filter: 'In Progress Runs', ringColor: 'ring-orange-400' },
+              { title: 'Failed', value: stats.failed, trend: '3.1%', icon: XCircle, color: 'bg-rose-50 text-rose-600', trendColor: 'text-rose-500', filter: 'Failed Runs', ringColor: 'ring-rose-400' },
+              { title: 'Avg. Duration', value: formatDuration(stats.avgDuration), trend: '- 18s faster', icon: Zap, color: 'bg-purple-50 text-purple-600', trendColor: 'text-emerald-500', filter: null, ringColor: 'ring-purple-400' },
+            ].map((item, idx) => {
+              const isActive = statusFilter === item.filter;
+              return (
+                <Card
+                  key={idx}
+                  onClick={() => {
+                    if (item.filter) {
+                      setStatusFilter(item.filter);
+                      setActiveTab('logs');
+                      setLogsPage(1);
+                    }
+                  }}
+                  className={cn(
+                    'p-5 border-none shadow-sm transition-all relative overflow-hidden group',
+                    item.filter ? 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5' : 'cursor-default hover:shadow-md',
+                    isActive ? `ring-2 ${item.ringColor} shadow-md` : ''
+                  )}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn("p-2 rounded-lg transition-transform", item.color, isActive && 'scale-110')}>
+                          <item.icon className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{item.title}</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{item.title}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-black text-gray-900 tracking-tight">{item.value}</h3>
-                      <div className={cn("flex items-center text-[10px] font-bold mt-1", item.trendColor)}>
-                        {item.trend.includes('+') ? <TrendingUp className="h-3 w-3 mr-1" /> : item.trend.includes('-') ? <TrendingDown className="h-3 w-3 mr-1" /> : null}
-                        {item.trend}
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">{item.value}</h3>
+                        <div className={cn("flex items-center text-[10px] font-bold mt-1", item.trendColor)}>
+                          {item.trend.includes('+') ? <TrendingUp className="h-3 w-3 mr-1" /> : item.trend.includes('-') ? <TrendingDown className="h-3 w-3 mr-1" /> : null}
+                          {item.trend}
+                        </div>
                       </div>
                     </div>
+                    {item.filter && (
+                      <span className={cn(
+                        'text-[9px] font-bold px-2 py-0.5 rounded-full transition-all',
+                        isActive ? `${item.color} opacity-100` : 'text-gray-400 opacity-0 group-hover:opacity-100'
+                      )}>
+                        {isActive ? 'Active' : 'Filter'}
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-10" />
-              </Card>
-            ))}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-current to-transparent opacity-10" />
+                </Card>
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
