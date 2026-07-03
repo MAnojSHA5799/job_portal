@@ -171,7 +171,7 @@ export function calculateJobSEOScore(job: any): SEOResult {
     passed: hasCTA,
     message: hasCTA
       ? 'CTA found in meta.'
-      : 'Add CTA: "Apply now on hiringstores.com.in."',
+      : 'Add CTA: "Apply now on hiringstores.com."',
     category: 'meta',
     autoFixAvailable: true,
   });
@@ -283,7 +283,7 @@ export function calculateJobSEOScore(job: any): SEOResult {
     autoFixAvailable: true,
   });
 
-  // External dofollow: must be truly external (not hiringstores.com.in itself)
+  // External dofollow: must be truly external (not hiringstores.com itself)
   const allExternalMatches = [...content.matchAll(/<a\s[^>]*href=["'](https?:\/\/[^"']+)["']/gi)];
   const externalLinkCount = allExternalMatches.filter(
     (m) => !m[1].includes('hiringstores.com')

@@ -76,7 +76,7 @@ export async function enhanceJobSEO(job: any, company: any): Promise<EnhancedJob
   const companyUrlSlug =
     company.url_slug || toUrlSlug(company.name || 'company');
 
-  const systemPrompt = `You are an expert SEO copywriter for hiringstores.com.in, a job portal for manufacturing, industrial, and production jobs in India, UAE, and Canada. You generate complete, SEO-optimised job post pages that score 95+ on the hiringstores.com SEO Scoring System.
+  const systemPrompt = `You are an expert SEO copywriter for hiringstores.com, a job portal for manufacturing, industrial, and production jobs in India, UAE, and Canada. You generate complete, SEO-optimised job post pages that score 95+ on the hiringstores.com SEO Scoring System.
 
 ════════════════════════════════════════
 STEP 1 — COMPUTE FOCUS KEYWORD FIRST
@@ -141,7 +141,7 @@ Examples:
 RULE 2 — META DESCRIPTION:
 ✓ Length: 140–160 characters EXACTLY
 ✓ Focus keyword appears ONCE, naturally
-✓ Ends with CTA: "Apply now on hiringstores.com.in."
+✓ Ends with CTA: "Apply now on hiringstores.com."
 ✓ Mentions salary if available
 ✓ No exclamation marks, no all-caps words
 
@@ -230,7 +230,7 @@ Example structure to follow exactly:
     "@type": "Organization",
     "name": "[Company Name]",
     "sameAs": "[company_website]",
-    "logo": "https://hiringstores.com.in/images/logos/[image_filename]"
+    "logo": "https://hiringstores.com/images/logos/[image_filename]"
   },
   "jobLocation": {
     "@type": "Place",
@@ -345,7 +345,7 @@ raw_description: ${job.description || ''}`,
 // ─── Company SEO Enhancement ──────────────────────────────────────────────────
 
 export async function enhanceCompanySEO(company: any): Promise<EnhancedCompanyData> {
-  const systemPrompt = `You are an SEO Expert for hiringstores.com.in, a job portal for manufacturing, industrial, and production jobs in India, UAE, and Canada.
+  const systemPrompt = `You are an SEO Expert for hiringstores.com, a job portal for manufacturing, industrial, and production jobs in India, UAE, and Canada.
 
 Generate a premium company profile page that scores 95+ on the hiringstores.com SEO Scoring System.
 
@@ -366,7 +366,7 @@ SEO TITLE:
 META DESCRIPTION:
 - Length: 140–160 characters EXACTLY
 - Include focus keyword once, naturally
-- End with CTA: "View all openings on hiringstores.com.in."
+- End with CTA: "View all openings on hiringstores.com."
 
 URL SLUG:
 - Pattern: [company-slug]-careers  e.g. "tenneco-india-careers"
@@ -385,7 +385,7 @@ Rules:
 ✓ Focus keyword in first 100 words
 ✓ Correct industry sector (never "Technology" for a manufacturing company)
 ✓ Include company website as an external <a> link (rel="dofollow") in About section
-✓ End content with: <p>View all <a href="/company/[url_slug]">[Company Name] jobs</a> on hiringstores.com.in.</p>
+✓ End content with: <p>View all <a href="/company/[url_slug]">[Company Name] jobs</a> on hiringstores.com.</p>
 ✓ Max 3 sentences per paragraph
 
 ════════════════════════════════════════

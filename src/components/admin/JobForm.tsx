@@ -245,7 +245,7 @@ export function JobForm({
             messages: [
               {
                 role: 'system',
-                content: `Rewrite this SEO title for hiringstores.com.in.
+                content: `Rewrite this SEO title for hiringstores.com.
 MANDATORY RULES:
 1. Pattern MUST be: "[Focus Keyword] Job [intent_word] in [City], [State]"
    Where [intent_word] is ONE of: opportunity | opportunities | vacancy | vacancies
