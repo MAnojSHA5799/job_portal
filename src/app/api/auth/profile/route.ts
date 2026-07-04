@@ -11,7 +11,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, location, resume_url, role, created_at')
+      .select('id, email, full_name, phone, location, resume_url, role, created_at, skills, experience')
       .eq('id', userId)
       .single();
 
@@ -30,6 +30,8 @@ export async function PUT(req: Request) {
     const fullName = formData.get('fullName') as string;
     const phone = formData.get('phone') as string;
     const location = formData.get('location') as string;
+    const skills = formData.get('skills') as string | null;
+    const experience = formData.get('experience') as string | null;
     const newPassword = formData.get('newPassword') as string | null;
     const resume = formData.get('resume') as File | null;
 
@@ -39,6 +41,8 @@ export async function PUT(req: Request) {
       full_name: fullName,
       phone,
       location,
+      skills: skills || '',
+      experience: experience || '',
     };
 
     // Handle resume upload
@@ -63,7 +67,7 @@ export async function PUT(req: Request) {
     // Return updated user
     const { data: updated } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, location, resume_url, role, created_at')
+      .select('id, email, full_name, phone, location, resume_url, role, created_at, skills, experience')
       .eq('id', userId)
       .single();
 

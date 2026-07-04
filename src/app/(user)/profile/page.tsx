@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input } from '@/components/ui';
 import {
   User, Mail, Phone, MapPin, FileText, Lock,
   CheckCircle2, XCircle, Eye, EyeOff, ArrowLeft,
-  Save, Upload, LogOut
+  Save, Upload, LogOut, Briefcase, Code, X, Plus
 } from 'lucide-react';
 
 const COUNTRY_CODES = [
@@ -39,6 +39,8 @@ interface UserData {
   resume_url?: string;
   role: string;
   created_at: string;
+  skills?: string;
+  experience?: string;
 }
 
 export default function ProfilePage() {
@@ -55,6 +57,14 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [resume, setResume] = useState<File | null>(null);
+
+  // Skills
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState('');
+  const skillInputRef = useRef<HTMLInputElement>(null);
+
+  // Experience
+  const [experience, setExperience] = useState('');
 
   // Password
   const [newPassword, setNewPassword] = useState('');
@@ -81,6 +91,12 @@ export default function ProfilePage() {
           setUserData(u);
           setFullName(u.full_name || '');
           setLocation(u.location || '');
+          // Parse skills
+          if (u.skills) {
+            setSkills(u.skills.split(',').map((s: string) => s.trim()).filter(Boolean));
+          }
+          // Parse experience
+          setExperience(u.experience || '');
           // Parse phone
           if (u.phone) {
             const matched = COUNTRY_CODES.find(c => u.phone.startsWith(c.code));
@@ -122,6 +138,8 @@ export default function ProfilePage() {
     formData.append('fullName', fullName);
     formData.append('location', location);
     formData.append('phone', phone ? `${countryCode}${phone}` : '');
+    formData.append('skills', skills.join(', '));
+    formData.append('experience', experience);
     if (newPassword) formData.append('newPassword', newPassword);
     if (resume) formData.append('resume', resume);
 
@@ -277,6 +295,80 @@ export default function ProfilePage() {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
+                  className="w-full h-[46px] border-2 border-gray-200 focus:border-blue-400 rounded-xl font-medium pl-11 pr-4 text-sm outline-none bg-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 block">Skills (e.g. React, Node.js)</label>
+              <div
+                className="min-h-[46px] w-full border-2 border-gray-200 focus-within:border-blue-400 rounded-xl px-3 py-2 flex flex-wrap gap-2 cursor-text transition-colors"
+                onClick={() => skillInputRef.current?.focus()}
+              >
+                <Code className="w-4 h-4 text-gray-300 self-center shrink-0" />
+                {skills.map((skill, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-lg border border-blue-100"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setSkills(skills.filter((_, idx) => idx !== i)); }}
+                      className="text-blue-400 hover:text-blue-700 transition-colors ml-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  ref={skillInputRef}
+                  type="text"
+                  value={skillInput}
+                  placeholder={skills.length === 0 ? 'e.g. React, Node.js' : 'Add more...'}
+                  className="flex-1 min-w-[120px] text-sm font-medium outline-none bg-transparent py-0.5"
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && skillInput.trim()) {
+                      e.preventDefault();
+                      const newSkill = skillInput.replace(/,$/, '').trim();
+                      if (newSkill && !skills.includes(newSkill)) {
+                        setSkills([...skills, newSkill]);
+                      }
+                      setSkillInput('');
+                    } else if (e.key === 'Backspace' && !skillInput && skills.length > 0) {
+                      setSkills(skills.slice(0, -1));
+                    }
+                  }}
+                  onBlur={() => {
+                    if (skillInput.trim()) {
+                      const newSkill = skillInput.replace(/,$/, '').trim();
+                      if (newSkill && !skills.includes(newSkill)) {
+                        setSkills([...skills, newSkill]);
+                      }
+                      setSkillInput('');
+                    }
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 font-medium">Press Enter or comma to add a skill</p>
+            </div>
+
+            {/* Experience Years */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-gray-500 block">Experience (Years)</label>
+              <div className="relative">
+                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  step="0.5"
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  placeholder="e.g. 2"
                   className="w-full h-[46px] border-2 border-gray-200 focus:border-blue-400 rounded-xl font-medium pl-11 pr-4 text-sm outline-none bg-transparent"
                 />
               </div>
