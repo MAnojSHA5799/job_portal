@@ -40,8 +40,9 @@ export function AdSenseUnit({ publisherId, slotId, className = '' }: AdSenseUnit
       />
       {/* Dev placeholder for localhost */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="absolute inset-0 border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center -z-10 text-gray-400 font-medium text-sm">
-          AdSense Unit ({slotId})
+        <div className="absolute inset-0 border-2 border-dashed border-gray-400 bg-gray-100/50 flex flex-col items-center justify-center text-gray-500 font-bold text-sm z-0 pointer-events-none">
+          <span>AdSense Unit</span>
+          <span className="text-xs font-medium text-gray-400">Slot: {slotId}</span>
         </div>
       )}
     </div>
