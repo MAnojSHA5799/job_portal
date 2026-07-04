@@ -72,6 +72,7 @@ const defaultFilters = [
 ];
 
 import { ApplyButton } from '@/components/ApplyButton';
+import { AdSenseUnit } from '@/components/AdSenseUnit';
 
 function JobListingContent() {
   const searchParams = useSearchParams();
@@ -102,6 +103,10 @@ function JobListingContent() {
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [companySuggestions, setCompanySuggestions] = useState<string[]>([]);
   const [showCompanySuggestions, setShowCompanySuggestions] = useState(false);
+
+  // AdSense settings
+  const [adsensePublisherId, setAdsensePublisherId] = useState('');
+  const [adsenseSlots, setAdsenseSlots] = useState({ slot1: '', slot2: '', slot3: '' });
 
   const fetchCompanyNames = async () => {
     try {
@@ -190,6 +195,20 @@ function JobListingContent() {
   useEffect(() => {
     fetchCompanyNames();
     fetchJobs();
+    // Fetch AdSense settings from admin
+    fetch('/api/admin/site-settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data.settings) {
+          setAdsensePublisherId(data.settings.adsense_publisher_id || '');
+          setAdsenseSlots({
+            slot1: data.settings.adsense_slot_job_list_1 || '',
+            slot2: data.settings.adsense_slot_job_list_2 || '',
+            slot3: data.settings.adsense_slot_job_list_3 || '',
+          });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -821,17 +840,35 @@ function JobListingContent() {
                       </motion.div>
                       
                       {/* AdSense Job List 1 (after 1st job) */}
-                      {i === 0 && <div id="adsense-job-list-1" className="col-span-full w-full"></div>}
-                      
+                      {i === 0 && adsensePublisherId && adsenseSlots.slot1 && (
+                        <AdSenseUnit
+                          publisherId={adsensePublisherId}
+                          slotId={adsenseSlots.slot1}
+                          className="col-span-full w-full my-4 min-h-[100px] relative"
+                        />
+                      )}
+
                       {/* AdSense Job List 2 (after 5th job) */}
-                      {i === 4 && <div id="adsense-job-list-2" className="col-span-full w-full"></div>}
+                      {i === 4 && adsensePublisherId && adsenseSlots.slot2 && (
+                        <AdSenseUnit
+                          publisherId={adsensePublisherId}
+                          slotId={adsenseSlots.slot2}
+                          className="col-span-full w-full my-4 min-h-[100px] relative"
+                        />
+                      )}
                     </React.Fragment>
                   ))}
                 </AnimatePresence>
               </div>
               
               {/* AdSense Job List 3 (End of page, before pagination) */}
-              <div id="adsense-job-list-3" className="w-full mt-8"></div>
+              {adsensePublisherId && adsenseSlots.slot3 && (
+                <AdSenseUnit
+                  publisherId={adsensePublisherId}
+                  slotId={adsenseSlots.slot3}
+                  className="w-full mt-8 min-h-[100px] relative"
+                />
+              )}
               </>
             )}
 

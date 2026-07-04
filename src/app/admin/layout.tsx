@@ -41,7 +41,7 @@ const menuItems = [
   { icon: AppWindow, label: 'Static Pages', href: '/admin/pages' },
   { icon: Newspaper, label: 'Blogs', href: '/admin/blogs' },
   { icon: ImageIcon, label: 'Banners', href: '/admin/banners' },
-  // { icon: Settings, label: 'Settings', href: '/admin/settings' },
+  { icon: Settings, label: 'Settings', href: '/admin/settings' },
 ];
 
 import { supabase } from '@/lib/supabase';
@@ -98,12 +98,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user) return <div className="h-screen w-screen bg-white flex items-center justify-center font-bold text-primary italic">Verifying Secure Session...</div>;
 
   return (
-    <div className="flex h-screen bg-background-gray">
+    <div className="flex h-screen bg-background-gray overflow-hidden">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-gray-900/50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-white border-r border-gray-100 flex flex-col transition-all duration-300 ease-in-out z-20",
-          sidebarOpen ? "w-64" : "w-20"
+          "bg-white border-r border-gray-100 flex flex-col transition-all duration-300 ease-in-out z-40 fixed md:relative h-full top-0 left-0",
+          sidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full md:w-20 md:translate-x-0"
         )}
       >
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
@@ -120,6 +128,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link 
                 key={item.href} 
                 href={item.href}
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    setSidebarOpen(false);
+                  }
+                }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-all group relative",
                   isActive 
@@ -154,14 +167,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 z-10">
+        <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-10 w-full shrink-0">
           <div className="flex items-center gap-4">
-            {/* <button 
+            <button 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 text-gray-400 hover:bg-gray-50 rounded-lg"
             >
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button> */}
+            </button>
             {/* <div className="hidden md:flex relative max-w-sm w-64">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               <Input placeholder="Search everything..." className="pl-10 h-9 bg-gray-50 border-0" />
