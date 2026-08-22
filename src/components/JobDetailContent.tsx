@@ -8,6 +8,7 @@ import {
   TrendingUp, ShieldCheck
 } from 'lucide-react';
 import { ApplyButton } from '@/components/ApplyButton';
+import { getProxiedImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
 interface JobDetailContentProps {
@@ -28,7 +29,7 @@ export const JobDetailContent = ({ job, relatedJobs }: JobDetailContentProps) =>
                 className="w-20 h-20 rounded-2xl bg-white border border-gray-50 flex items-center justify-center overflow-hidden p-2 shrink-0 shadow-sm group-hover:border-primary/20"
               >
                   {job.companies?.logo_url ? (
-                      <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                      <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                   ) : (
                       <div className="w-full h-full flex items-center justify-center font-black text-primary text-3xl bg-primary/5">
                           {job.companies?.name?.charAt(0) || 'J'}
@@ -172,7 +173,7 @@ export const JobDetailContent = ({ job, relatedJobs }: JobDetailContentProps) =>
                   <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center p-1 shadow-sm">
                           {job.companies?.logo_url ? (
-                              <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                              <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                           ) : (
                               <Building2 className="w-6 h-6 text-gray-400" />
                           )}
@@ -220,8 +221,8 @@ export const JobDetailContent = ({ job, relatedJobs }: JobDetailContentProps) =>
                           <Card className="p-6 border-0 shadow-sm bg-white rounded-3xl hover:shadow-xl hover:shadow-indigo-50 transition-all flex items-center justify-between group cursor-pointer relative overflow-hidden">
                               <div className="absolute top-0 left-0 h-full w-1 bg-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                               <div className="flex items-center gap-4">
-                                 <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center overflow-hidden p-1">
-                                    {rj.companies?.logo_url ? <img src={rj.companies.logo_url} className="w-full h-full object-contain" /> : <Briefcase className="w-5 h-5 text-gray-400" />}
+                                 <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm p-1">
+                                    {rj.companies?.logo_url ? <img src={getProxiedImageUrl(rj.companies.logo_url)} className="w-full h-full object-contain" /> : <Briefcase className="w-5 h-5 text-gray-400" />}
                                  </div>
                                  <div>
                                     <h4 className="font-black text-gray-900 group-hover:text-indigo-600 transition-colors">{rj.title}</h4>

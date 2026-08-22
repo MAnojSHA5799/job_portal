@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, Badge, Button } from '@/components/ui';
 import { MapPin, Briefcase } from 'lucide-react';
 import { ApplyButton } from '@/components/ApplyButton';
+import { getProxiedImageUrl } from '@/lib/utils';
 
 interface AnimatedJobListProps {
   jobs: any[];
@@ -41,7 +42,7 @@ export const AnimatedJobList = ({ jobs, cityName }: AnimatedJobListProps) => {
               <div className="flex flex-col md:flex-row gap-6 md:gap-8 relative z-10">
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-white flex items-center justify-center text-3xl font-black text-indigo-600 border border-gray-50 transition-all shrink-0 overflow-hidden shadow-sm p-2 group-hover:border-indigo-100">
                   {job.companies?.logo_url ? (
-                    <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                    <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                   ) : (
                     job.companies?.name?.charAt(0) || 'G'
                   )}

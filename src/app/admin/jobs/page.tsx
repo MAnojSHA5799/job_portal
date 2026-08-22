@@ -521,24 +521,24 @@ export default function JobsQueue() {
         <div 
           className="space-y-6"
         >
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-lg group">
-              <Search className="absolute left-4 top-3.5 h-4 w-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="relative w-full lg:max-w-md group">
+              <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
               <Input 
                 placeholder="Search jobs, categories, or cities..." 
-                className="h-12 pl-11 bg-white border-0 shadow-sm rounded-2xl focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-bold"
+                className="w-full h-12 pl-12 bg-white border-0 shadow-sm rounded-2xl focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-bold"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
               {/* Company Filter */}
-              <div className="flex items-center gap-2 bg-white px-4 h-12 rounded-2xl shadow-sm border border-transparent focus-within:border-indigo-100 transition-all">
-                <Building2 className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 bg-white px-3 h-12 rounded-2xl shadow-sm border border-transparent focus-within:border-indigo-100 transition-all w-full sm:w-auto">
+                <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
                 <select 
                   value={selectedCompanyId}
                   onChange={(e) => setSelectedCompanyId(e.target.value)}
-                  className="bg-transparent border-0 text-sm font-bold text-gray-900 focus:ring-0 outline-none min-w-[140px]"
+                  className="bg-transparent border-0 text-sm font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto min-w-[120px] max-w-[160px] cursor-pointer"
                 >
                   <option value="all">All Companies</option>
                   {companies.map(company => (
@@ -548,21 +548,21 @@ export default function JobsQueue() {
               </div>
 
               {/* Date Range Filter */}
-              <div className="flex items-center gap-3 bg-white px-4 h-12 rounded-2xl shadow-sm border border-transparent transition-all">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 bg-white px-4 h-12 rounded-2xl shadow-sm border border-transparent transition-all w-full sm:w-auto">
+                <Calendar className="w-5 h-5 text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2 flex-1">
                   <input 
                     type="date" 
                     value={dateRange.start}
                     onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                    className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none"
+                    className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto p-0 cursor-pointer"
                   />
                   <span className="text-gray-300 text-xs font-black">-</span>
                   <input 
                     type="date" 
                     value={dateRange.end}
                     onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                    className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none"
+                    className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto p-0 cursor-pointer"
                   />
                 </div>
                 {(dateRange.start || dateRange.end) && (
@@ -570,7 +570,7 @@ export default function JobsQueue() {
                     onClick={() => setDateRange({ start: '', end: '' })}
                     className="ml-2 text-gray-400 hover:text-rose-500 transition-colors"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>

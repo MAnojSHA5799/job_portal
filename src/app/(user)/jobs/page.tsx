@@ -4,6 +4,9 @@ import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Badge, Button, Input } from '@/components/ui';
+import { ApplyButton } from '@/components/ApplyButton';
+import { AdSenseUnit } from '@/components/AdSenseUnit';
+import { getProxiedImageUrl } from '@/lib/utils';
 import {
   Search,
   MapPin,
@@ -70,9 +73,6 @@ const defaultFilters = [
   { id: 'job_type', name: 'Job Type', options: ['Full-time', 'Part-time', 'Contract', 'Remote'] },
   { id: 'experience_level', name: 'Experience Level', options: ['Fresher', '1-3 Years', '3-5 Years', '5+ Years', '5 to 8 years', '8 to 10', '10 to 15', '16+'] },
 ];
-
-import { ApplyButton } from '@/components/ApplyButton';
-import { AdSenseUnit } from '@/components/AdSenseUnit';
 
 function JobListingContent() {
   const searchParams = useSearchParams();
@@ -789,7 +789,7 @@ function JobListingContent() {
                                 <div className="flex items-start gap-4">
                                   <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-sm">
                                     {job.companies?.logo_url ? (
-                                      <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                                      <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                                     ) : (
                                       <div className="w-full h-full flex items-center justify-center font-bold text-primary text-xl bg-indigo-50">
                                         {job.companies?.name?.charAt(0) || 'J'}
@@ -844,7 +844,7 @@ function JobListingContent() {
                         <AdSenseUnit
                           publisherId={adsensePublisherId}
                           slotId={adsenseSlots.slot1}
-                          className="col-span-full w-full my-4 min-h-[100px] relative"
+                          className="col-span-full w-full my-1 relative"
                         />
                       )}
 
@@ -853,7 +853,7 @@ function JobListingContent() {
                         <AdSenseUnit
                           publisherId={adsensePublisherId}
                           slotId={adsenseSlots.slot2}
-                          className="col-span-full w-full my-4 min-h-[100px] relative"
+                          className="col-span-full w-full my-1 relative"
                         />
                       )}
                     </React.Fragment>
@@ -866,7 +866,7 @@ function JobListingContent() {
                 <AdSenseUnit
                   publisherId={adsensePublisherId}
                   slotId={adsenseSlots.slot3}
-                  className="w-full mt-8 min-h-[100px] relative"
+                  className="w-full mt-2 relative"
                 />
               )}
               </>

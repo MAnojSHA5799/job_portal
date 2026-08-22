@@ -82,9 +82,14 @@ export default function ScraperManager() {
   const [companiesPage, setCompaniesPage] = useState(1);
   const itemsPerPage = 10;
 
+  const getLocalDateString = (d: Date) => {
+    const offset = d.getTimezoneOffset();
+    return new Date(d.getTime() - offset * 60 * 1000).toISOString().split('T')[0];
+  };
+
   const [dateRange, setDateRange] = useState({
-    start: new Date().toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
+    start: getLocalDateString(new Date()),
+    end: getLocalDateString(new Date())
   });
 
   // Scraper Filters
@@ -101,10 +106,11 @@ export default function ScraperManager() {
       // Fetch Logs
       let logsQuery = supabase.from('scraper_logs').select('*');
       
-      const start = new Date(dateRange.start);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(dateRange.end);
-      end.setHours(23, 59, 59, 999);
+      const [startYear, startMonth, startDay] = dateRange.start.split('-').map(Number);
+      const start = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
+      
+      const [endYear, endMonth, endDay] = dateRange.end.split('-').map(Number);
+      const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
 
       logsQuery = logsQuery.gte('created_at', start.toISOString())
                            .lte('created_at', end.toISOString());
@@ -372,8 +378,8 @@ export default function ScraperManager() {
           </div>
           <Button size="sm" className="hidden sm:flex" onClick={() => {
             setDateRange({
-              start: new Date().toISOString().split('T')[0],
-              end: new Date().toISOString().split('T')[0]
+              start: getLocalDateString(new Date()),
+              end: getLocalDateString(new Date())
             });
             setLogsPage(1);
             setCompaniesPage(1);
@@ -384,8 +390,8 @@ export default function ScraperManager() {
             const last7 = new Date();
             last7.setDate(last7.getDate() - 7);
             setDateRange({
-              start: last7.toISOString().split('T')[0],
-              end: new Date().toISOString().split('T')[0]
+              start: getLocalDateString(last7),
+              end: getLocalDateString(new Date())
             });
             setLogsPage(1);
             setCompaniesPage(1);

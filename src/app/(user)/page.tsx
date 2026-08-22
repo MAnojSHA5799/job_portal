@@ -28,6 +28,7 @@ import { ApplyButton } from '@/components/ApplyButton';
 import { Banner } from '@/components/Banner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getProxiedImageUrl } from '@/lib/utils';
 
 const BRANDS = [
   { name: 'Teleperformance', logo: 'https://logo.clearbit.com/teleperformance.com' },
@@ -493,7 +494,7 @@ export default function HomePage() {
                       {[...dbCompanies, ...dbCompanies, ...dbCompanies].map((company, i) => (
                         <img
                           key={`${company.name}-${i}`}
-                          src={company.logo_url}
+                          src={getProxiedImageUrl(company.logo_url)}
                           alt={company.name}
                           className="h-8 w-auto object-contain inline-block"
                           style={{ filter: 'none', opacity: 1 }}
@@ -591,7 +592,7 @@ export default function HomePage() {
                       <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 bg-white rounded-xl overflow-hidden border border-gray-100 p-2">
                           {job.companies?.logo_url ? (
-                            <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                            <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center font-bold text-primary text-lg">
                               {(job.companies?.name || 'J').charAt(0)}
@@ -656,7 +657,7 @@ export default function HomePage() {
                       <div className="flex justify-between items-start mb-3">
                         <div className="w-10 h-10 bg-white rounded-lg overflow-hidden border border-gray-50 p-2">
                           {job.companies?.logo_url ? (
-                            <img src={job.companies.logo_url} alt={job.companies.name} className="w-full h-full object-contain" />
+                            <img src={getProxiedImageUrl(job.companies.logo_url)} alt={job.companies.name} className="w-full h-full object-contain" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center font-bold text-primary text-sm">
                               {(job.companies?.name || 'J').charAt(0)}
@@ -758,7 +759,7 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
                       {industry.logo_url ? (
-                        <img src={industry.logo_url} alt={industry.name} className="w-full h-full object-contain" />
+                        <img src={getProxiedImageUrl(industry.logo_url)} alt={industry.name} className="w-full h-full object-contain" />
                       ) : INDUSTRY_ICONS[industry.name] ? (
                         INDUSTRY_ICONS[industry.name]
                       ) : (
@@ -782,7 +783,7 @@ export default function HomePage() {
                     <div className="bg-white rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm text-center relative overflow-hidden">
                       <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3">
                         {industry.logo_url ? (
-                          <img src={industry.logo_url} alt={industry.name} className="w-full h-full object-contain" />
+                          <img src={getProxiedImageUrl(industry.logo_url)} alt={industry.name} className="w-full h-full object-contain" />
                         ) : INDUSTRY_ICONS[industry.name] ? (
                           INDUSTRY_ICONS[industry.name]
                         ) : (
@@ -850,7 +851,7 @@ export default function HomePage() {
                   <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
                     {company.logo_url ? (
-                      <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                      <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain" />
                     ) : (
                       <div className="text-emerald-600 font-bold text-xl">{company.name[0]}</div>
                     )}
@@ -873,7 +874,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10">
                         {company.logo_url ? (
-                          <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                          <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain" />
                         ) : (
                           <div className="text-emerald-600 font-bold text-lg">{company.name[0]}</div>
                         )}

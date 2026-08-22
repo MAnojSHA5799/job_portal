@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { ApplyButton } from '@/components/ApplyButton';
 import Link from 'next/link';
+import { getProxiedImageUrl } from '@/lib/utils';
 
 interface CompanyDetailContentProps {
   company: any;
@@ -30,7 +31,7 @@ export const CompanyDetailContent = ({ company, jobs }: CompanyDetailContentProp
             >
               <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               {company.logo_url ? (
-                <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain relative z-10" />
+                <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain relative z-10" />
               ) : (
                 <Building2 className="w-16 h-16 text-indigo-600 relative z-10" />
               )}

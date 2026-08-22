@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getProxiedImageUrl } from '@/lib/utils';
 import { Card, Badge, Button, Input } from '@/components/ui';
 import { 
   Building2, 
@@ -205,7 +206,7 @@ export default function CompaniesDirectory() {
                               {/* Left: Logo */}
                               <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center p-3 shrink-0 group-hover/company-card:scale-105 transition-transform">
                                   {company.logo_url ? (
-                                    <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain" />
+                                    <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain" />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center font-black text-primary text-3xl bg-indigo-50 rounded-xl">
                                         {company.name[0]}
