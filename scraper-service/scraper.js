@@ -1586,6 +1586,17 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
       if (nextBtn && nextBtn.href && !nextBtn.parentElement.classList.contains('disabled')) {
         return nextBtn.href;
       }
+
+      const text = document.body.innerText;
+      const match = text.match(/of\s+(\d+)\s+Jobs/i) || text.match(/Results \d+ [–-] \d+ of (\d+)/i) || text.match(/Showing \d+ to \d+ of (\d+)/i);
+      if (match) {
+        const total = parseInt(match[1], 10);
+        if (pageNum * 50 < total) {
+          const url = new URL(window.location.href);
+          url.searchParams.set('startrow', pageNum * 50);
+          return url.toString();
+        }
+      }
       return null;
     }, pageNum);
 
@@ -4096,9 +4107,9 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
       break;
     }
 
-    const isDisabled = await nextBtn.evaluate(el => 
-      el.classList.contains('ais-Pagination-item--disabled') || 
-      el.closest('li')?.classList.contains('ais-Pagination-item--disabled') || 
+    const isDisabled = await nextBtn.evaluate(el =>
+      el.classList.contains('ais-Pagination-item--disabled') ||
+      el.closest('li')?.classList.contains('ais-Pagination-item--disabled') ||
       el.hasAttribute('disabled')
     ).catch(() => false);
     if (isDisabled) {
@@ -4108,7 +4119,7 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
 
     console.log(`     ↳ Clicking Next Page...`);
     await nextBtn.evaluate(el => el.click()).catch(async () => {
-      await nextBtn.click({ force: true }).catch(() => {});
+      await nextBtn.click({ force: true }).catch(() => { });
     });
     await page.waitForTimeout(4000);
     pageNum++;
