@@ -255,7 +255,16 @@ let currentExistingLinks = new Set();
 
 function cleanTitle(t = '') {
   // \"TERRITORY MANAGER-SALES\nApply now »\" → \"TERRITORY MANAGER-SALES\"
-  return t.replace(/\n.*$/s, '').replace(/Apply now »/gi, '').trim();
+  let cleaned = t.replace(/\n.*$/s, '').replace(/Apply now »/gi, '').trim();
+
+  // Clean "Blue Star is hiring for ‘...’ Position"
+  const blueStarRegex = /Blue\s+Star\s+is\s+hiring\s+for\s+['"‘`‘“](.*?)['"’`’”“]\s*Position/i;
+  const match = cleaned.match(blueStarRegex);
+  if (match) {
+    cleaned = match[1].trim();
+  }
+
+  return cleaned;
 }
 
 // ✅ FIX 1: cleanLocation — \"Job Segment:\" garbage hata ke real city nikalo
@@ -852,9 +861,9 @@ async function scrapeDarwinbox(page, context, listingUrl, results) {
     const tableRows = [...document.querySelectorAll('table.db-table-one tbody tr, .table-details tr')].filter(tr => tr.innerText.trim());
     if (tableRows.length) {
       return tableRows.map(tr => {
-        const titleA = tr.querySelector('td[data-th=\"Job title\"] a') || tr.querySelector('a');
-        const loc = tr.querySelector('td[data-th=\"Location\"]') || tr.querySelectorAll('td')[2];
-        const dept = tr.querySelector('td[data-th=\"Department\"]') || tr.querySelectorAll('td')[1];
+        const titleA = tr.querySelector('td[data-th="Job title"] a') || tr.querySelector('a');
+        const loc = tr.querySelector('td[data-th="Location"]') || tr.querySelectorAll('td')[2];
+        const dept = tr.querySelector('td[data-th="Department"]') || tr.querySelectorAll('td')[1];
         return {
           title: titleA?.innerText?.trim() || 'Not Found',
           location: loc?.innerText?.trim() || 'Not Found',
@@ -882,21 +891,11 @@ async function scrapeDarwinbox(page, context, listingUrl, results) {
 
   // Determine company name from URL
   let company = 'Not Found';
-  const u = listingUrl.toLowerCase();
-  if (u.includes('ashokleyland')) {
-    company = 'Ashok Leyland';
-  } else if (u.includes('jslhrms')) {
-    company = 'Jindal Stainless';
-  } else {
-    // Generic fallback: extract subdomain
-    try {
-      const host = new URL(listingUrl).hostname;
-      const sub = host.split('.')[0];
-      company = sub.charAt(0).toUpperCase() + sub.slice(1);
-    } catch (e) { }
-  }
+  if (listingUrl.includes('ashokleyland')) company = 'Ashok Leyland';
+  else if (listingUrl.includes('jslhrms')) company = 'Jindal Stainless';
 
   for (const job of jobLinks) {
+    if (results.length >= MAX_JOBS) break;
     console.log(`    🔎 ${job.title} [${job.location}]`);
     await visitDetailPage(context, job, 'darwinbox', results, { company });
     await delay(400);
@@ -910,7 +909,7 @@ async function scrapeDarwinbox(page, context, listingUrl, results) {
 async function scrapeCaterpillarAllPages(firstPage, context, results) {
   let currentPage = firstPage, pageNum = 1;
   while (true) {
-    console.log(`  📄 Caterpillar page ${pageNum}...`);
+    console.log(`  📄 Page ${pageNum}...`);
     const jobLinks = await currentPage.evaluate(() =>
       [...document.querySelectorAll('.card.card-job')].map(card => {
         const a = card.querySelector('.card-title a.js-view-job');
@@ -928,13 +927,11 @@ async function scrapeCaterpillarAllPages(firstPage, context, results) {
     if (pageNum >= 3) { console.log(`  🛑 Caterpillar limit reached — stopping at ${pageNum} pages`); break; }
 
     const nextUrl = await currentPage.evaluate(() =>
-      document.querySelector('a[rel=\"next\"]')?.href ||
+      document.querySelector('a[rel="next"]')?.href ||
       [...document.querySelectorAll('a')].find(a =>
         a.innerText?.trim().toLowerCase() === 'next' ||
         a.getAttribute('aria-label')?.toLowerCase().includes('next')
-      )?.href ||
-      document.querySelector('.pagination .active,[aria-current=\"page\"]')?.nextElementSibling?.querySelector('a')?.href ||
-      null
+      )?.href || null
     );
     if (!nextUrl) { console.log(`  ✅ Caterpillar done — ${pageNum} pages`); break; }
     await currentPage.goto(nextUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -1042,7 +1039,7 @@ async function scrapeSeAllPages(firstPage, context, results) {
 // 🟢  SMARTRECRUITERS
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeSmartRecruiters(page, context, listingUrl, results) {
-  await page.waitForSelector('.openings-section, [class*=\"opening\"], article, .js-job', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('.openings-section, [class*="opening"], article, .js-job', { timeout: 20000 }).catch(() => { });
 
   let moreButtons = await page.$$('.js-more');
   for (const btn of moreButtons) {
@@ -1080,11 +1077,11 @@ async function scrapeSmartRecruiters(page, context, listingUrl, results) {
     }
 
     // 2. Flat layout fallback
-    const cards = [...document.querySelectorAll('li[class*=\"opening\"], article[class*=\"job\"], .js-job')];
-    if (!cards.length) return [...document.querySelectorAll('a[href*=\"/jobs/\"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    const cards = [...document.querySelectorAll('li[class*="opening"], article[class*="job"], .js-job')];
+    if (!cards.length) return [...document.querySelectorAll('a[href*="/jobs/"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return cards.map(c => ({
-      title: c.querySelector('h4,h3,h2,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: c.querySelector('[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
+      title: c.querySelector('h4,h3,h2,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: c.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
       detailUrl: c.querySelector('a')?.href || '',
     }));
   });
@@ -1097,14 +1094,25 @@ async function scrapeSmartRecruiters(page, context, listingUrl, results) {
 // 🟢  SMARTRECRUITERS JOBS (custom domain)
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeSmartRecruitersJobs(page, context, listingUrl, results) {
-  await page.waitForSelector('.js-jobs-list-item, [class*=\"job-listing\"], li[data-job-id]', { timeout: 20000 }).catch(() => { });
-  await autoScroll(page);
+  // SR custom-domain pages use infinite scroll — keep scrolling until no new jobs appear
+  let prevCount = 0;
+  for (let i = 0; i < 10; i++) {
+    await page.waitForSelector('.js-jobs-list-item, [class*="job-listing"], li[data-job-id]', { timeout: 20000 }).catch(() => { });
+    await autoScroll(page);
+    const count = await page.evaluate(() =>
+      document.querySelectorAll('.js-jobs-list-item, [class*="jobCard"], li[data-job-id]').length
+    );
+    if (count === prevCount) break;
+    prevCount = count;
+    await delay(1500);
+  }
+
   const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('.js-jobs-list-item, [class*=\"jobCard\"], li[data-job-id]')];
-    if (!items.length) return [...document.querySelectorAll('a[href*=\"/job/\"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    const items = [...document.querySelectorAll('.js-jobs-list-item, [class*="jobCard"], li[data-job-id]')];
+    if (!items.length) return [...document.querySelectorAll('a[href*="/job/"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return items.map(item => ({
-      title: item.querySelector('h2,h3,[class*=\"title\"],a')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],.job-location')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('h2,h3,[class*="title"],a')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],.job-location')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1132,7 +1140,7 @@ async function scrapeWorkday(page, context, listingUrl, results) {
   if (listingUrl.includes('weir.wd3.myworkdayjobs.com')) company = 'Weir';
 
   // Workday loads jobs via XHR — wait for first job card
-  await page.waitForSelector('[data-automation-id=\"jobTitle\"]', { timeout: 40000 }).catch(() => console.log('⚠️  Workday list nahi mila'));
+  await page.waitForSelector('[data-automation-id="jobTitle"]', { timeout: 40000 }).catch(() => console.log('⚠️  Workday list nahi mila'));
 
   // Workday has pagination — scrape all pages
   let pageNum = 1;
@@ -1140,11 +1148,11 @@ async function scrapeWorkday(page, context, listingUrl, results) {
     console.log(`  📄 Workday page ${pageNum}...`);
     await autoScroll(page);
     const jobLinks = await page.evaluate(() =>
-      [...document.querySelectorAll('li[class*=\"css-\"]')]
-        .filter(li => li.querySelector('[data-automation-id=\"jobTitle\"]'))
+      [...document.querySelectorAll('li[class*="css-"]')]
+        .filter(li => li.querySelector('[data-automation-id="jobTitle"]'))
         .map(item => {
-          const title = item.querySelector('[data-automation-id=\"jobTitle\"]')?.innerText?.trim() || 'Not Found';
-          const rawLoc = (item.querySelector('[data-automation-id=\"location\"]') || item.querySelector('[data-automation-id=\"locations\"]'))?.innerText?.trim() || 'Not Found';
+          const title = item.querySelector('[data-automation-id="jobTitle"]')?.innerText?.trim() || 'Not Found';
+          const rawLoc = (item.querySelector('[data-automation-id="location"]') || item.querySelector('[data-automation-id="locations"]'))?.innerText?.trim() || 'Not Found';
           const detailUrl = item.querySelector('a')?.href || '';
           // "locations\n2 Locations" jaisi generic text → URL path se real location nikalo
           // e.g. /job/Noida-India/... → "Noida India"
@@ -1156,7 +1164,7 @@ async function scrapeWorkday(page, context, listingUrl, results) {
           return {
             title,
             location,
-            date: item.querySelector('[data-automation-id=\"postedOn\"]')?.innerText?.trim() || 'Not Found',
+            date: item.querySelector('[data-automation-id="postedOn"]')?.innerText?.trim() || 'Not Found',
             detailUrl,
           };
         })
@@ -1167,11 +1175,11 @@ async function scrapeWorkday(page, context, listingUrl, results) {
     if (pageNum >= 3) { console.log(`  🛑 Workday limit reached — stopping at ${pageNum} pages`); break; }
 
     // Check for next page button
-    const nextBtn = await page.$('[data-uxi-element-id=\"next\"] button:not([disabled]), button[aria-label=\"next page\"]:not([disabled]), [aria-label=\"Go to next page\"]:not([disabled])');
+    const nextBtn = await page.$('[data-uxi-element-id="next"] button:not([disabled]), button[aria-label="next page"]:not([disabled]), [aria-label="Go to next page"]:not([disabled])');
     if (!nextBtn) break;
     await nextBtn.click();
     await page.waitForTimeout(3000);
-    await page.waitForSelector('[data-automation-id=\"jobTitle\"]', { timeout: 20000 }).catch(() => { });
+    await page.waitForSelector('[data-automation-id="jobTitle"]', { timeout: 20000 }).catch(() => { });
     pageNum++;
   }
 }
@@ -1241,8 +1249,10 @@ async function scrapeOracle(page, context, listingUrl, results) {
 
   // ── Adani Oracle CX — hash-based all-pages pagination ────────────────────
   if (listingUrl.includes('adani.com/opportunity')) {
+    // Base hash path, e.g. #en/sites/CX_2027/jobs
     const hashMatch = listingUrl.match(/#(.+?)(\/jobs)?$/);
     const hashBase = hashMatch ? '#' + hashMatch[1] + (hashMatch[2] || '/jobs') : listingUrl;
+    // Strip any trailing page param from the base URL
     const urlBase = listingUrl.split('#')[0];
 
     let pageNum = 1;
@@ -1251,6 +1261,7 @@ async function scrapeOracle(page, context, listingUrl, results) {
       console.log(`  📄 Adani Oracle CX page ${pageNum}... (${pageUrl})`);
 
       if (pageNum === 1) {
+        // Already navigated — just wait for render
         await page.waitForTimeout(6000);
       } else {
         await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => { });
@@ -1266,11 +1277,13 @@ async function scrapeOracle(page, context, listingUrl, results) {
       if (!jobLinks.length) break;
 
       for (const job of jobLinks) {
+        if (results.length >= MAX_JOBS) break;
         console.log(`    🔎 ${job.title} [${job.location}]`);
         await visitDetailPage(context, job, 'oracle', results, { company });
         await delay(500);
       }
 
+      // Check if next page button exists and is enabled
       const hasNext = await page.evaluate(() => {
         const nextBtn = document.querySelector('[aria-label="Next"], .pagination-next:not(.disabled), button[data-bind*="nextPage"]:not([disabled]),[class*="next"]:not([disabled]):not([aria-disabled="true"]),[aria-label*="next" i]');
         return !!nextBtn && !nextBtn.hasAttribute('disabled') && nextBtn.getAttribute('aria-disabled') !== 'true';
@@ -1291,6 +1304,7 @@ async function scrapeOracle(page, context, listingUrl, results) {
   const jobLinks = await extractOracleJobs();
   console.log(`  ↳ Oracle: ${jobLinks.length} jobs`);
   for (const job of jobLinks) {
+    if (results.length >= MAX_JOBS) break;
     console.log(`    🔎 ${job.title} [${job.location}]`);
     await visitDetailPage(context, job, 'oracle', results, { company });
     await delay(500);
@@ -1302,15 +1316,15 @@ async function scrapeOracle(page, context, listingUrl, results) {
 // 🟠  PARAM.AI
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeParamai(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"job\"], .card, article', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('[class*="JobCard"], [class*="job-card"], .card', { timeout: 25000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
-    const cards = [...document.querySelectorAll('[class*=\"JobCard\"],[class*=\"job-card\"],.card')].filter(c => c.querySelector('a'));
-    if (!cards.length) return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    const cards = [...document.querySelectorAll('[class*="JobCard"],[class*="job-card"],.card')].filter(c => c.querySelector('a'));
+    if (!cards.length) return [...document.querySelectorAll('a[href*="job"]')].map(a => ({ title: a.innerText?.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return cards.map(card => ({
-      title: card.querySelector('h2,h3,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: card.querySelector('[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
-      experience: card.querySelector('[class*=\"exp\"]')?.innerText?.trim() || 'Not Found',
+      title: card.querySelector('h2,h3,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: card.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
+      experience: card.querySelector('[class*="exp"]')?.innerText?.trim() || 'Not Found',
       detailUrl: card.querySelector('a')?.href || '',
     }));
   });
@@ -1323,23 +1337,23 @@ async function scrapeParamai(page, context, listingUrl, results) {
 // 🔴  CSOD (Apollo Tyres)
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeCsod(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"rec-listing\"], .cs-job-listing, [id*=\"job\"]', { timeout: 25000 }).catch(() => { });
+  await page.waitForSelector('[class*="rec-listing"], .cs-job-listing, [id*="job"]', { timeout: 25000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('[data-tag=\"displayJobTitle\"]')].map(a => a.closest('div'));
+    const items = [...document.querySelectorAll('[data-tag="displayJobTitle"]')].map(a => a.closest('div'));
     if (!items.length) {
-      const genericItems = [...document.querySelectorAll('[class*=\"rec-listing-job\"],[class*=\"job-listing-item\"],tr[class*=\"rec-listing\"]')];
-      if (!genericItems.length) return [...document.querySelectorAll('a[href*=\"requisition\"],a[href*=\"job\"]')].filter(a => a.innerText?.trim()).map(a => ({ title: a.innerText.trim(), location: 'Not Found', detailUrl: a.href }));
+      const genericItems = [...document.querySelectorAll('[class*="rec-listing-job"],[class*="job-listing-item"],tr[class*="rec-listing"]')];
+      if (!genericItems.length) return [...document.querySelectorAll('a[href*="requisition"],a[href*="job"]')].filter(a => a.innerText?.trim()).map(a => ({ title: a.innerText.trim(), location: 'Not Found', detailUrl: a.href }));
       return genericItems.map(item => ({
-        title: item.querySelector('a,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-        location: item.querySelector('[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
+        title: item.querySelector('a,[class*="title"]')?.innerText?.trim() || 'Not Found',
+        location: item.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
         detailUrl: item.querySelector('a')?.href || '',
       }));
     }
     return items.map(item => ({
-      title: item.querySelector('[data-tag=\"displayJobTitle\"], p')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[data-tag=\"displayJobLocation\"]')?.innerText?.trim() || 'Not Found',
-      date: item.querySelector('[data-tag=\"displayJobPostingDate\"]')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('[data-tag="displayJobTitle"], p')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[data-tag="displayJobLocation"]')?.innerText?.trim() || 'Not Found',
+      date: item.querySelector('[data-tag="displayJobPostingDate"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1352,11 +1366,11 @@ async function scrapeCsod(page, context, listingUrl, results) {
 // 📌  LEVER
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeLever(page, context, listingUrl, results) {
-  await page.waitForSelector('.posting, [class*=\"posting\"], h2', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('.posting, [class*="posting"], h2', { timeout: 20000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() =>
     [...document.querySelectorAll('.posting')].map(p => ({
-      title: p.querySelector('h5,.posting-name,[data-qa=\"posting-name\"]')?.innerText?.trim() || 'Not Found',
+      title: p.querySelector('h5,.posting-name,[data-qa="posting-name"]')?.innerText?.trim() || 'Not Found',
       location: p.querySelector('.sort-by-location,.posting-categories')?.innerText?.trim() || 'Not Found',
       detailUrl: p.querySelector('a')?.href || '',
     }))
@@ -1381,7 +1395,7 @@ async function scrapeLever(page, context, listingUrl, results) {
 // 🌿  GREENHOUSE
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeGreenhouse(page, context, listingUrl, results) {
-  await page.waitForSelector('.opening, [class*=\"opening\"]', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('.opening, [class*="opening"]', { timeout: 20000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() =>
     [...document.querySelectorAll('.opening')].map(o => ({
@@ -1399,16 +1413,16 @@ async function scrapeGreenhouse(page, context, listingUrl, results) {
 // 🏛️  TALEO
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeTaleo(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"requisition\"], .listSingleColumnLayoutTable, [id*=\"Requisition\"]', { timeout: 25000 }).catch(() => { });
+  await page.waitForSelector('[class*="requisition"], .listSingleColumnLayoutTable, [id*="Requisition"]', { timeout: 25000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
-    const iframe = document.querySelector('iframe[src*=\"taleo\"]');
+    const iframe = document.querySelector('iframe[src*="taleo"]');
     if (iframe) return [{ title: 'Taleo iFrame detected', location: 'Not Found', detailUrl: iframe.src }];
-    const rows = [...document.querySelectorAll('tr[class*=\"requisition\"],tr[id*=\"req\"],div[class*=\"requisition\"],.listSingleColumnLayoutTable tr')];
-    if (!rows.length) return [...document.querySelectorAll('a[href*=\"requisition\"],a[href*=\"jobId\"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    const rows = [...document.querySelectorAll('tr[class*="requisition"],tr[id*="req"],div[class*="requisition"],.listSingleColumnLayoutTable tr')];
+    if (!rows.length) return [...document.querySelectorAll('a[href*="requisition"],a[href*="jobId"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return rows.map(row => ({
       title: row.querySelector('a,.requisitionTitle')?.innerText?.trim() || 'Not Found',
-      location: row.querySelector('[class*=\"location\"],td:nth-child(3)')?.innerText?.trim() || 'Not Found',
+      location: row.querySelector('[class*="location"],td:nth-child(3)')?.innerText?.trim() || 'Not Found',
       detailUrl: row.querySelector('a')?.href || '',
     }));
   });
@@ -1421,14 +1435,42 @@ async function scrapeTaleo(page, context, listingUrl, results) {
 // 🔷  iCIMS
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeIcims(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"iCIMS\"],[class*=\"icims\"],[id*=\"icims\"],.jobs-section', { timeout: 25000 }).catch(() => { });
+  await page.waitForSelector('[class*="iCIMS"],[class*="icims"],[id*="icims"],.jobs-section, li[data-testid="jobCard"]', { timeout: 25000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('[class*=\"iCIMS_JobsTable\"] tr,[class*=\"job-listing\"],.iCIMS_JobsTable tr')];
-    if (!items.length) return [...document.querySelectorAll('a[href*=\"iCIMS\"],a[href*=\"icims\"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    // --- RMK platform (Danfoss, ZF) — uses pageNumber param, 10 items/page ---
+    if (document.querySelector('li[data-testid="jobCard"]')) {
+      const headerEl = document.querySelector('h2[data-testid="headerTitle"], span[data-testid="searchResultAriaLive"]');
+      const headerText = headerEl ? (headerEl.innerText || headerEl.textContent || '') : '';
+      // "1 to 10 of 58 results"
+      const rmkMatch = headerText.match(/(\d+)\s+to\s+(\d+)\s+of\s+([\d,]+)/i);
+      if (rmkMatch) {
+        const showing = parseInt(rmkMatch[2], 10);
+        const total = parseInt(rmkMatch[3].replace(/,/g, ''), 10);
+        if (showing < total) {
+          const url = new URL(window.location.href);
+          const currentPage = parseInt(url.searchParams.get('pageNumber') || '0', 10);
+          url.searchParams.set('pageNumber', currentPage + 1);
+          return url.toString();
+        }
+      }
+      // fallback: check paginator Next button text
+      const nextBtn = document.querySelector('button[data-testid="goToNextPageBtn"], button[aria-label*="next" i]');
+      if (nextBtn && !nextBtn.disabled) {
+        const currentBtn = document.querySelector('button[aria-current="page"]');
+        const currentPageNum = currentBtn ? parseInt(currentBtn.textContent.trim(), 10) : 1;
+        const url = new URL(window.location.href);
+        url.searchParams.set('pageNumber', currentPageNum); // 1-based btn → 0-based is currentPageNum-1, next = currentPageNum
+        return url.toString();
+      }
+      return null;
+    }
+
+    const items = [...document.querySelectorAll('[class*="iCIMS_JobsTable"] tr,[class*="job-listing"],.iCIMS_JobsTable tr')];
+    if (!items.length) return [...document.querySelectorAll('a[href*="iCIMS"],a[href*="icims"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return items.map(item => ({
-      title: item.querySelector('a,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],td:nth-child(2)')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('a,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],td:nth-child(2)')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1454,12 +1496,19 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
       if (items.length) {
         return items.map(tr => {
           let loc = tr.querySelector('.jobLocation')?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Found';
+          loc = loc.replace(/^Location\s*/i, '').trim();
           if (loc === 'IN') loc = 'India';
           else if (loc.match(/\bIN\b/)) loc = loc.replace(/\bIN\b/g, 'India');
+
+          let department = tr.querySelector('.jobFacility, .colFacility')?.innerText?.trim();
+          let experience = tr.querySelector('.jobShifttype, .colShifttype')?.innerText?.trim();
+
           return {
             title: tr.querySelector('.jobTitle-link, .colTitle a')?.innerText?.trim() || 'Not Found',
             location: loc,
             detailUrl: tr.querySelector('a')?.href || '',
+            department,
+            experience
           };
         }).filter(j => j.detailUrl);
       }
@@ -1470,10 +1519,12 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
         return rmkCards.map(card => {
           let title = card.querySelector('a[data-testid^="jobCardTitle"]')?.innerText?.trim() || 'Not Found';
           let detailUrl = card.querySelector('a[data-testid^="jobCardTitle"]')?.href || '';
+          // Resolve relative URLs
           if (detailUrl && !detailUrl.startsWith('http')) {
             detailUrl = window.location.origin + detailUrl;
           }
           let loc = card.querySelector('[data-testid="jobCardLocation"]')?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Found';
+          // Extract footer values: Job Category and Experience Level
           const footerValues = [...card.querySelectorAll('[data-help-id^="jobCardFooterValue"]')].map(el => el.innerText?.trim()).filter(Boolean);
           let department = footerValues[0] || '';
           let experience = footerValues[1] || '';
@@ -1562,12 +1613,13 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
             return url.toString();
           }
         }
-        // Fallback: use paginator Next button
+        // Fallback: use paginator button to get current page number
         const nextBtn = document.querySelector('button[data-testid="goToNextPageBtn"]');
         if (nextBtn && !nextBtn.disabled && !nextBtn.hasAttribute('disabled')) {
           const currentBtn = document.querySelector('button[aria-current="page"]');
           const currentPageNum = currentBtn ? parseInt(currentBtn.textContent.trim(), 10) : 1;
           const url = new URL(window.location.href);
+          // Danfoss uses 0-based pageNumber: button page 1 = pageNumber=0, so next = pageNumber=(currentPageNum)
           url.searchParams.set('pageNumber', currentPageNum);
           return url.toString();
         }
@@ -1618,14 +1670,14 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
 // 🔩  BRASSRING / KENEXA
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeBrassring(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"jobTitle\"],[class*=\"job-title\"],table.jobs tr', { timeout: 25000 }).catch(() => { });
+  await page.waitForSelector('[class*="jobTitle"],[class*="job-title"],table.jobs tr', { timeout: 25000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('table tr,[class*=\"jobRow\"],[class*=\"job-row\"]')].filter(r => r.querySelector('a'));
-    if (!rows.length) return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
+    const rows = [...document.querySelectorAll('table tr,[class*="jobRow"],[class*="job-row"]')].filter(r => r.querySelector('a'));
+    if (!rows.length) return [...document.querySelectorAll('a[href*="job"]')].map(a => ({ title: a.innerText.trim() || 'Not Found', location: 'Not Found', detailUrl: a.href }));
     return rows.map(r => ({
-      title: r.querySelector('a,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: r.querySelector('[class*=\"location\"],td:nth-child(2)')?.innerText?.trim() || 'Not Found',
+      title: r.querySelector('a,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: r.querySelector('[class*="location"],td:nth-child(2)')?.innerText?.trim() || 'Not Found',
       detailUrl: r.querySelector('a')?.href || '',
     }));
   });
@@ -1638,12 +1690,12 @@ async function scrapeBrassring(page, context, listingUrl, results) {
 // 🎯  JOBVITE
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeJobvite(page, context, listingUrl, results) {
-  await page.waitForSelector('.jv-job-item,.jv-job-list-item,[class*=\"jv-job\"]', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('.jv-job-item,.jv-job-list-item,[class*="jv-job"]', { timeout: 20000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() =>
     [...document.querySelectorAll('.jv-job-item,.jv-job-list-item')].map(item => ({
       title: item.querySelector('a,.jv-job-title')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('.jv-job-location,[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('.jv-job-location,[class*="location"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }))
   );
@@ -1656,12 +1708,12 @@ async function scrapeJobvite(page, context, listingUrl, results) {
 // 🌑  ASHBY
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeAshby(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"ashby\"],[class*=\"job-posting\"],._content', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('[class*="ashby"],[class*="job-posting"],._content', { timeout: 20000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() =>
-    [...document.querySelectorAll('a[href*=\"/jobs/\"], a[href*=\"/posting/\"]')].map(a => ({
-      title: a.querySelector('[class*=\"title\"],h3,h2')?.innerText?.trim() || a.innerText?.trim() || 'Not Found',
-      location: a.querySelector('[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
+    [...document.querySelectorAll('a[href*="/jobs/"], a[href*="/posting/"]')].map(a => ({
+      title: a.querySelector('[class*="title"],h3,h2')?.innerText?.trim() || a.innerText?.trim() || 'Not Found',
+      location: a.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
       detailUrl: a.href || '',
     }))
   );
@@ -1674,12 +1726,12 @@ async function scrapeAshby(page, context, listingUrl, results) {
 // 📰  NAUKRI EMBED
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeNaukriEmbed(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*=\"naukri\"],[class*=\"jobCard\"],article', { timeout: 20000 }).catch(() => { });
+  await page.waitForSelector('[class*="naukri"],[class*="jobCard"],article', { timeout: 20000 }).catch(() => { });
   await autoScroll(page);
   const jobLinks = await page.evaluate(() =>
-    [...document.querySelectorAll('[class*=\"jobTuple\"],[class*=\"job-card\"],article')].map(card => ({
-      title: card.querySelector('a.title,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: card.querySelector('[class*=\"location\"]')?.innerText?.trim() || 'Not Found',
+    [...document.querySelectorAll('[class*="jobTuple"],[class*="job-card"],article')].map(card => ({
+      title: card.querySelector('a.title,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: card.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
       detailUrl: card.querySelector('a')?.href || '',
     }))
   );
@@ -1695,12 +1747,13 @@ async function scrapeNaukriEmbed(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeMercedes(page, context, listingUrl, results) {
   // Mercedes uses React with client-side rendering
-  await page.waitForSelector('[class*=\"job-listing-item\"], [class*=\"JobListItem\"], article[class*=\"job\"], .job-card, [data-testid=\"job-item\"]', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('[class*="job-listing-item"], [class*="JobListItem"], article[class*="job"], .job-card, [data-testid="job-item"]', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   // Try pagination
   let pageNum = 1;
   while (true) {
+    if (results.length >= MAX_JOBS) break;
     console.log(`  📄 Mercedes page ${pageNum}...`);
     const jobLinks = await page.evaluate(() => {
       // Multiple possible selectors for Mercedes CMS (MJP style)
@@ -1732,28 +1785,28 @@ async function scrapeMercedes(page, context, listingUrl, results) {
 
       // Fallback selectors
       const selectors = [
-        '[class*=\"job-listing-item\"]',
-        '[class*=\"JobListItem\"]',
-        'article[class*=\"job\"]',
-        '[data-testid=\"job-item\"]',
+        '[class*="job-listing-item"]',
+        '[class*="JobListItem"]',
+        'article[class*="job"]',
+        '[data-testid="job-item"]',
         '.job-card',
-        'li[class*=\"job\"]',
+        'li[class*="job"]',
       ];
       for (const sel of selectors) {
         items = [...document.querySelectorAll(sel)];
         if (items.length) break;
       }
       if (!items.length) {
-        return [...document.querySelectorAll('a[href*=\"/en/job\"]')].map(a => ({
-          title: a.querySelector('h3,h2,strong,[class*=\"title\"]')?.innerText?.trim() || a.innerText?.trim() || 'Not Found',
+        return [...document.querySelectorAll('a[href*="/en/job"]')].map(a => ({
+          title: a.querySelector('h3,h2,strong,[class*="title"]')?.innerText?.trim() || a.innerText?.trim() || 'Not Found',
           location: 'Not Found',
           detailUrl: a.href,
         }));
       }
       return items.map(item => ({
-        title: item.querySelector('h2,h3,[class*=\"title\"],[class*=\"headline\"]')?.innerText?.trim() || 'Not Found',
-        location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
-        date: item.querySelector('[class*=\"date\"],[class*=\"posted\"]')?.innerText?.trim() || 'Not Found',
+        title: item.querySelector('h2,h3,[class*="title"],[class*="headline"]')?.innerText?.trim() || 'Not Found',
+        location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
+        date: item.querySelector('[class*="date"],[class*="posted"]')?.innerText?.trim() || 'Not Found',
         detailUrl: item.querySelector('a')?.href || '',
       }));
     });
@@ -1763,7 +1816,7 @@ async function scrapeMercedes(page, context, listingUrl, results) {
     if (pageNum >= 3) { console.log(`  🛑 Mercedes limit reached — stopping at ${pageNum} pages`); break; }
 
     // Try next page
-    const nextBtn = await page.$('[aria-label=\"Next page\"], [aria-label=\"next\"], button[class*=\"next\"]:not([disabled]), a[class*=\"next\"]:not([disabled])');
+    const nextBtn = await page.$('[aria-label="Next page"], [aria-label="next"], button[class*="next"]:not([disabled]), a[class*="next"]:not([disabled])');
     if (!nextBtn) break;
     await nextBtn.click();
     await page.waitForTimeout(3000);
@@ -1780,26 +1833,52 @@ async function scrapeMercedes(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeUnilever(page, context, listingUrl, results) {
   // Unilever uses TalentBrew
-  await page.waitForSelector('.global-job-list li, [class*=\"job-list\"] li', { timeout: 30000 }).catch(() => { });
-  await autoScroll(page);
+  let pageNum = 1;
+  while (true) {
+    console.log(`  📄 Unilever Page ${pageNum}...`);
+    await page.waitForSelector('.global-job-list li, [class*="job-list"] li', { timeout: 30000 }).catch(() => { });
+    await autoScroll(page);
 
-  const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('.global-job-list li, [class*=\"job-list\"] li')];
-    return items.map(li => {
-      const a = li.querySelector('a');
-      return {
-        title: li.querySelector('h2, .global-job-list__title')?.innerText?.trim() || a?.innerText?.trim() || 'Not Found',
-        location: li.querySelector('.job-location')?.innerText?.trim() || 'Not Found',
-        detailUrl: a?.href || '',
-        jobId: a?.getAttribute('data-job-id') || 'Not Found'
-      };
-    }).filter(j => j.detailUrl);
-  });
+    const jobLinks = await page.evaluate(() => {
+      const items = [...document.querySelectorAll('.global-job-list li, [class*="job-list"] li')];
+      return items.map(li => {
+        const a = li.querySelector('a');
+        return {
+          title: li.querySelector('h2, .global-job-list__title')?.innerText?.trim() || a?.innerText?.trim() || 'Not Found',
+          location: li.querySelector('.job-location')?.innerText?.trim() || 'Not Found',
+          detailUrl: a?.href || '',
+          jobId: a?.getAttribute('data-job-id') || 'Not Found'
+        };
+      }).filter(j => j.detailUrl);
+    });
 
-  console.log(`  ↳ Unilever: ${jobLinks.length} jobs`);
-  for (const job of jobLinks) {
-    await visitDetailPage(context, job, 'unilever', results, { company: 'Unilever' });
-    await delay(400);
+    console.log(`     ↳ Unilever: ${jobLinks.length} jobs on this page`);
+    for (const job of jobLinks) {
+      if (results.length >= MAX_JOBS) break;
+      await visitDetailPage(context, job, 'unilever', results, { company: 'Unilever' });
+      await delay(400);
+    }
+
+    if (results.length >= MAX_JOBS) break;
+
+    if (pageNum >= 3) { console.log(`  🛑 Unilever limit reached — stopping at ${pageNum} pages`); break; }
+
+    const hasNext = await page.evaluate(() => {
+      const nextBtn = document.querySelector('a.next, button.next');
+      if (nextBtn && !nextBtn.disabled && !nextBtn.classList.contains('disabled')) {
+        nextBtn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!hasNext) {
+      console.log(`  ✅ Unilever done — ${pageNum} pages`);
+      break;
+    }
+
+    await page.waitForTimeout(4000);
+    pageNum++;
   }
 }
 
@@ -1812,16 +1891,66 @@ async function scrapeUnilever(page, context, listingUrl, results) {
 async function scrapeHitachi(page, context, listingUrl, results) {
   // Hitachi uses Angular — needs extra wait
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"job-result\"], app-job-card, .job-card, [class*=\"position-card\"]', { timeout: 35000 }).catch(() => { });
+
+  // Try JSON API approach first
+  const apiJobs = await page.evaluate(async () => {
+    try {
+      const urlEl = document.querySelector('[data-props\\:url]');
+      if (!urlEl) return null;
+
+      const baseUrl = urlEl.getAttribute('data-props:url');
+      if (!baseUrl) return null;
+
+      let allJobs = [];
+      let offset = 0;
+      let hasMore = true;
+
+      while (hasMore && allJobs.length < 1000) {
+        const res = await fetch(`${baseUrl}?offset=${offset}`);
+        if (!res.ok) break;
+        const data = await res.json();
+        if (data && data.items && data.items.length > 0) {
+          allJobs.push(...data.items.map(item => ({
+            title: item.title,
+            location: item.location || item.primaryLocation || 'Not Found',
+            date: item.publicationDate || '',
+            department: item.jobFunction || '',
+            experience: item.experience || '',
+            detailUrl: item.url || item.applyNowUrl
+          })));
+          offset += data.items.length;
+        } else {
+          hasMore = false;
+        }
+      }
+      return allJobs;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  if (apiJobs && apiJobs.length > 0) {
+    console.log(`  ↳ Hitachi (API): ${apiJobs.length} jobs`);
+    for (const job of apiJobs) {
+      if (results.length >= MAX_JOBS) break;
+      const extra = { company: 'Hitachi Energy' };
+      if (job.department) extra.department = job.department;
+      await visitDetailPage(context, job, 'hitachi', results, extra);
+      await delay(400);
+    }
+    return;
+  }
+
+  await page.waitForSelector('[class*="job-result"], app-job-card, .job-card, [class*="position-card"]', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
     const selectors = [
-      '[class*=\"job-result\"]',
+      '[class*="job-result"]',
       'app-job-card',
-      '[class*=\"position-card\"]',
+      '[class*="position-card"]',
       '.job-card',
-      '[class*=\"opening\"]',
+      '[class*="opening"]',
     ];
     let items = [];
     for (const sel of selectors) {
@@ -1829,15 +1958,15 @@ async function scrapeHitachi(page, context, listingUrl, results) {
       if (items.length) break;
     }
     if (!items.length) {
-      return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({
+      return [...document.querySelectorAll('a[href*="job"]')].map(a => ({
         title: a.innerText?.trim() || 'Not Found',
         location: 'Not Found',
         detailUrl: a.href,
       }));
     }
     return items.map(item => ({
-      title: item.querySelector('h2,h3,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('h2,h3,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1854,16 +1983,16 @@ async function scrapeHitachi(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeSiemens(page, context, listingUrl, results) {
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"sc-job\"], [class*=\"job-item\"], article, [data-testid*=\"job\"]', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('[class*="sc-job"], [class*="job-item"], article, [data-testid*="job"]', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
     const selectors = [
-      '[class*=\"sc-job-card\"]',
-      '[class*=\"job-card\"]',
-      '[data-testid*=\"job\"]',
+      '[class*="sc-job-card"]',
+      '[class*="job-card"]',
+      '[data-testid*="job"]',
       'article',
-      '[class*=\"job-item\"]',
+      '[class*="job-item"]',
     ];
     let items = [];
     for (const sel of selectors) {
@@ -1871,15 +2000,15 @@ async function scrapeSiemens(page, context, listingUrl, results) {
       if (items.length) break;
     }
     if (!items.length) {
-      return [...document.querySelectorAll('a[href*=\"/job\"]')].map(a => ({
+      return [...document.querySelectorAll('a[href*="/job"]')].map(a => ({
         title: a.querySelector('h2,h3,strong')?.innerText?.trim() || a.innerText?.trim() || 'Not Found',
         location: 'Not Found',
         detailUrl: a.href,
       }));
     }
     return items.map(item => ({
-      title: item.querySelector('h2,h3,[class*=\"title\"],[class*=\"headline\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('h2,h3,[class*="title"],[class*="headline"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1896,16 +2025,16 @@ async function scrapeSiemens(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeHoneywell(page, context, listingUrl, results) {
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"job-card\"], [class*=\"JobCard\"], article, [class*=\"position\"]', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('[class*="job-card"], [class*="JobCard"], article, [class*="position"]', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
     const selectors = [
-      '[class*=\"job-card\"]',
-      '[class*=\"JobCard\"]',
-      '[class*=\"position-item\"]',
+      '[class*="job-card"]',
+      '[class*="JobCard"]',
+      '[class*="position-item"]',
       'article',
-      'li[class*=\"job\"]',
+      'li[class*="job"]',
     ];
     let items = [];
     for (const sel of selectors) {
@@ -1913,15 +2042,15 @@ async function scrapeHoneywell(page, context, listingUrl, results) {
       if (items.length) break;
     }
     if (!items.length) {
-      return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({
+      return [...document.querySelectorAll('a[href*="job"]')].map(a => ({
         title: a.innerText?.trim() || 'Not Found',
         location: 'Not Found',
         detailUrl: a.href,
       }));
     }
     return items.map(item => ({
-      title: item.querySelector('h2,h3,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('h2,h3,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -1938,16 +2067,16 @@ async function scrapeHoneywell(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeRoyalEnfield(page, context, listingUrl, results) {
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"job-card\"], [class*=\"card-jobs\"], [class*=\"phenom\"], article', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('[class*="job-card"], [class*="card-jobs"], [class*="phenom"], article', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
     // Phenom People ATS selectors
     const selectors = [
-      '[class*=\"job-card\"]',
-      '[class*=\"card-jobs\"]',
-      '[class*=\"phenom-job\"]',
-      '[class*=\"opening\"]',
+      '[class*="job-card"]',
+      '[class*="card-jobs"]',
+      '[class*="phenom-job"]',
+      '[class*="opening"]',
       'article',
     ];
     let items = [];
@@ -1956,15 +2085,15 @@ async function scrapeRoyalEnfield(page, context, listingUrl, results) {
       if (items.length) break;
     }
     if (!items.length) {
-      return [...document.querySelectorAll('a[href*=\"job\"]')].map(a => ({
+      return [...document.querySelectorAll('a[href*="job"]')].map(a => ({
         title: a.innerText?.trim() || 'Not Found',
         location: 'Not Found',
         detailUrl: a.href,
       }));
     }
     return items.map(item => ({
-      title: item.querySelector('h2,h3,[class*=\"title\"]')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[class*=\"location\"],[class*=\"city\"]')?.innerText?.trim() || 'Not Found',
+      title: item.querySelector('h2,h3,[class*="title"]')?.innerText?.trim() || 'Not Found',
+      location: item.querySelector('[class*="location"],[class*="city"]')?.innerText?.trim() || 'Not Found',
       detailUrl: item.querySelector('a')?.href || '',
     }));
   });
@@ -2007,6 +2136,7 @@ async function scrapeBajajAuto(page, context, listingUrl, results) {
 
   console.log(`  ↳ Bajaj Auto: Found ${jobLinks.length} candidates`);
   for (const job of jobLinks) {
+    if (results.length >= MAX_JOBS) break;
     console.log(`    🔎 ${job.title} [${job.location}]`);
     await visitDetailPage(context, job, 'bajaj_auto', results, { company: 'Bajaj Auto' });
     await delay(400);
@@ -2021,7 +2151,7 @@ async function scrapeBajajAuto(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeAdityaBirla(page, context, listingUrl, results) {
   await page.waitForTimeout(5000);
-  await page.waitForSelector('[class*=\"job-card\"], [class*=\"JobCard\"], [class*=\"job-item\"], article', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('[class*="job-card"], [class*="JobCard"], [class*="job-item"], article', { timeout: 35000 }).catch(() => { });
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
@@ -2092,7 +2222,7 @@ async function scrapePanasonic(page, context, listingUrl, results) {
 
     const jobLinks = await page.evaluate(() => {
       return [...document.querySelectorAll('mat-expansion-panel')].map(panel => ({
-        title: panel.querySelector('.job-title-link span[itemprop=\"title\"]')?.innerText?.trim() || 'Not Found',
+        title: panel.querySelector('.job-title-link span[itemprop="title"]')?.innerText?.trim() || 'Not Found',
         location: panel.querySelector('.job-result__location .label-value.location')?.innerText?.trim()?.replace(/\n/g, ' ') || 'Not Found',
         detailUrl: panel.querySelector('.job-title-link')?.href || '',
       })).filter(j => j.detailUrl && j.title !== 'Not Found');
@@ -2100,6 +2230,7 @@ async function scrapePanasonic(page, context, listingUrl, results) {
 
     console.log(`  ↳ Panasonic: Found ${jobLinks.length} jobs`);
     for (const job of jobLinks) {
+      if (results.length >= MAX_JOBS) break;
       console.log(`    🔎 ${job.title} [${job.location}]`);
       await visitDetailPage(context, job, 'panasonic', results, { company: 'Panasonic' });
       await delay(500);
@@ -2125,12 +2256,12 @@ async function scrapeGenericListing(page, context, listingUrl, results) {
   await autoScroll(page);
   const jobLinks = await page.evaluate(() => {
     const patterns = [
-      '[class*=\"job-card\"] a', '[class*=\"jobCard\"] a', '[class*=\"job-listing\"] a',
-      '[class*=\"job-result\"] a', '[class*=\"job-item\"] a', '[class*=\"position\"] a',
+      '[class*="job-card"] a', '[class*="jobCard"] a', '[class*="job-listing"] a',
+      '[class*="job-result"] a', '[class*="job-item"] a', '[class*="position"] a',
       'article a', '.vacancies a', '.career-list a',
-      'table tr td a[href*=\"job\"]', 'ul li a[href*=\"job\"]',
-      'a[href*=\"/job/\"]', 'a[href*=\"/jobs/\"]', 'a[href*=\"jobId\"]',
-      'a[href*=\"vacancy\"]', 'a[href*=\"requisition\"]',
+      'table tr td a[href*="job"]', 'ul li a[href*="job"]',
+      'a[href*="/job/"]', 'a[href*="/jobs/"]', 'a[href*="jobId"]',
+      'a[href*="vacancy"]', 'a[href*="requisition"]',
     ];
     const seen = new Set(), out = [];
     for (const pat of patterns) {
@@ -2138,12 +2269,11 @@ async function scrapeGenericListing(page, context, listingUrl, results) {
         for (const a of document.querySelectorAll(pat)) {
           const href = a.href;
           if (!href || href === window.location.href || seen.has(href)) continue;
-          if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) continue;
           seen.add(href);
           const parent = a.closest('li,tr,div,article,section') || a.parentElement;
           out.push({
-            title: (parent?.querySelector('h1,h2,h3,h4,[class*=\"title\"]')?.innerText?.trim() || a.innerText?.trim() || a.getAttribute('title') || 'Not Found').slice(0, 200),
-            location: parent?.querySelector('[class*=\"location\"],[class*=\"city\"],address')?.innerText?.trim() || 'Not Found',
+            title: (parent?.querySelector('h1,h2,h3,h4,[class*="title"]')?.innerText?.trim() || a.innerText?.trim() || a.getAttribute('title') || 'Not Found').slice(0, 200),
+            location: parent?.querySelector('[class*="location"],[class*="city"],address')?.innerText?.trim() || 'Not Found',
             detailUrl: href,
           });
         }
@@ -2168,7 +2298,7 @@ async function scrapeGenericListing(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeBp(page, context, listingUrl, results) {
   let pageNum = 1;
-  const maxJobsLimit = MAX_JOBS;
+  const maxJobsLimit = 200;
 
   while (true) {
     console.log(`  📄 BP Page ${pageNum}...`);
@@ -2285,7 +2415,7 @@ async function scrapeRamboll(page, context, listingUrl, results) {
         location: loc,
         experience: exp,
         detailUrl: fullLink,
-        applyLink: fullLink, // URL itself as applyLink
+        extra: { department: dept },
       };
     }).filter(j => j.title !== 'Not Found' && j.detailUrl);
   });
@@ -2390,7 +2520,8 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
 
   // ── PHASE 1: Progressive scroll to collect ALL card data ──────────────────
   // Turbohire uses virtual scrolling — only ~4-5 cards exist in DOM at once.
-  const allCardData = new Map(); // keyed by jobId for deduplication
+  // We must scroll step-by-step and harvest cards before they are unrendered.
+  const allCardData = new Map(); // keyed by jobId or title for deduplication
 
   const extractCurrentCards = () => page.evaluate(() => {
     const extractCard = (card) => {
@@ -2398,18 +2529,29 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
         card.querySelector('span[style*="font-weight: bold"]');
       const title = titleEl?.innerText?.trim() || '';
       if (!title) return null;
+
       const jobIdEl = card.querySelector('span[data_testid*="70044-30473"]');
       const jobId = jobIdEl?.innerText?.trim() || title;
+
       const locationEl = card.querySelector('span[data_testid*="71158-30473"]');
       const location = locationEl?.innerText?.trim() || 'Not Found';
+
       const companyEl = card.querySelector('span[data_testid*="42872-30473"]');
       const company = companyEl?.innerText?.trim() || '';
+
       const dateEl = card.querySelector('span[data_testid*="18533"]') ||
         card.querySelector('[data_testid*="84806-30473"]');
       let date = dateEl?.innerText?.trim() || 'Not Found';
       if (date.toLowerCase().includes('posted on')) date = date.replace(/posted on/i, '').trim();
       return { title, jobId, location, company, date };
     };
+
+    // Find the scrollable container
+    const scrollable = [...document.querySelectorAll('div')].find(el =>
+      el.scrollHeight > el.clientHeight + 200 && el.clientHeight > 300
+    );
+
+    // Find all visible title spans and walk up to their card container
     const seen = new Set();
     const cards = [];
     const titleSpans = [...document.querySelectorAll('span[data_testid*="89181-80685"]')];
@@ -2418,15 +2560,20 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
       while (p && p.tagName !== 'BODY') {
         if (p.querySelector('span[data_testid*="18533"]') || p.innerText.includes('Posted on')) {
           const data = extractCard(p);
-          if (data && !seen.has(data.jobId)) { seen.add(data.jobId); cards.push(data); }
+          if (data && !seen.has(data.jobId)) {
+            seen.add(data.jobId);
+            cards.push(data);
+          }
           break;
         }
         p = p.parentElement;
       }
     }
-    return { cards };
+
+    return { cards, scrollableFound: !!scrollable };
   });
 
+  // Find and scroll the inner container progressively
   let noNewCount = 0;
   let scrollTop = 0;
   const SCROLL_STEP = 400;
@@ -2436,9 +2583,18 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
     const { cards } = await extractCurrentCards();
     let newFound = 0;
     for (const c of cards) {
-      if (!allCardData.has(c.jobId)) { allCardData.set(c.jobId, c); newFound++; }
+      if (!allCardData.has(c.jobId)) {
+        allCardData.set(c.jobId, c);
+        newFound++;
+      }
     }
-    noNewCount = newFound === 0 ? noNewCount + 1 : 0;
+
+    if (newFound === 0) {
+      noNewCount++;
+    } else {
+      noNewCount = 0;
+    }
+
     scrollTop += SCROLL_STEP;
     await page.evaluate((top) => {
       const scrollable = [...document.querySelectorAll('div')].find(el =>
@@ -2467,7 +2623,12 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
       break;
     }
     try {
-      // Scroll back to top then scan downward to find card
+      // Scroll listing back to top and search for this card's title
+      let scrollPos = 0;
+      let titleSpan = null;
+      let found = false;
+
+      // First scroll back to top
       await page.evaluate(() => {
         const scrollable = [...document.querySelectorAll('div')].find(el =>
           el.scrollHeight > el.clientHeight + 200 && el.clientHeight > 300
@@ -2476,15 +2637,19 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
       });
       await page.waitForTimeout(600);
 
-      let scrollPos = 0;
-      let titleSpan = null;
+      // Now scan downward to find the card
       for (let attempt = 0; attempt < 100; attempt++) {
         const titleHandles = await page.$$('span[data_testid*="89181-80685"]');
         for (const t of titleHandles) {
           const text = await t.innerText().catch(() => '');
-          if (text.trim() === card.title) { titleSpan = t; break; }
+          if (text.trim() === card.title) {
+            titleSpan = t;
+            found = true;
+            break;
+          }
         }
-        if (titleSpan) break;
+        if (found) break;
+
         scrollPos += SCROLL_STEP;
         await page.evaluate((top) => {
           const scrollable = [...document.querySelectorAll('div')].find(el =>
@@ -2495,17 +2660,22 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
         await page.waitForTimeout(400);
       }
 
-      if (!titleSpan) { console.log(`    ⚠ Not found in DOM: ${card.title}`); continue; }
+      if (!titleSpan) {
+        console.log(`    ⚠ Not found in DOM: ${card.title}`);
+        continue;
+      }
 
       await titleSpan.click();
       await page.waitForTimeout(4000);
       await page.waitForLoadState('networkidle').catch(() => { });
+
       const currentUrl = page.url();
 
       const hasDetail = await page.evaluate(() => {
         const text = document.body.innerText;
         return text.includes('Job Description') || text.includes('Required Experience') || text.includes('Company Name');
       });
+
       if (!hasDetail) {
         consecutiveNoDetail++;
         console.log(`    ⚠ No detail panel for: ${card.title} [${consecutiveNoDetail}/${MAX_CONSECUTIVE_NO_DETAIL}]`);
@@ -2517,6 +2687,7 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
 
       const details = await page.evaluate(() => {
         const fullText = document.body?.innerText || '';
+
         let company = 'Not Found';
         [...document.querySelectorAll('p, span, div')].some(el => {
           if (el.innerText.trim() === 'Company Name' && el.children.length === 0) {
@@ -2527,6 +2698,7 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
           }
           return false;
         });
+
         let experience = 'Not Found';
         [...document.querySelectorAll('p, span, div')].some(el => {
           if (el.innerText.trim() === 'Required Experience' && el.children.length === 0) {
@@ -2541,24 +2713,38 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
           const expMatch = fullText.match(/Required Experience\s*[\n:]?\s*([^\n]+)/i);
           if (expMatch) experience = expMatch[1].trim();
         }
+
         let description = '';
         const descHeader = [...document.querySelectorAll('p, h1, h2, h3, span, div')].find(el => el.innerText.trim() === 'Job Description' && el.children.length === 0);
-        if (descHeader && descHeader.nextElementSibling) description = descHeader.nextElementSibling.innerText.trim();
+        if (descHeader && descHeader.nextElementSibling) {
+          description = descHeader.nextElementSibling.innerText.trim();
+        }
         if (!description) {
           const descEl = document.querySelector('[data_testid*="51365"], [data_testid*="20709"] [style*="overflow"], .public-DraftEditor-content');
           description = descEl?.innerText?.trim() || fullText.slice(0, 3000);
         }
+
         return { company, experience, description };
       });
 
       const finalCompany = details.company !== 'Not Found' ? details.company : (card.company || defaultCompany);
+
       results.push({
-        source: 'turbohire', url: currentUrl, title: card.title, location: card.location,
-        company: finalCompany, date: card.date, experience: details.experience,
-        description: details.description, applyLink: currentUrl, salary: 'Not Available', jobId: card.jobId,
+        source: 'turbohire',
+        url: currentUrl,
+        title: card.title,
+        location: card.location,
+        company: finalCompany,
+        date: card.date,
+        experience: details.experience,
+        description: details.description,
+        applyLink: currentUrl,
+        salary: 'Not Available',
+        jobId: card.jobId,
       });
       console.log(`    ✅ ${card.title} [${card.jobId}]`);
 
+      // Navigate back to listing
       await page.goBack({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => { });
       await page.waitForSelector('span[data_testid*="89181-80685"]', { timeout: 20000 }).catch(() => { });
       await page.waitForTimeout(1500);
@@ -2571,6 +2757,36 @@ async function scrapeTurbohire(page, context, listingUrl, results) {
   }
 }
 
+
+async function scrapeParamAi(page, context, listingUrl, results) {
+  console.log(`  📄 Loading ${listingUrl}...`);
+  await page.goto(listingUrl, { waitUntil: 'networkidle' }).catch(() => { });
+  await page.waitForSelector('a[href*="/jobs/"]', { timeout: 15000 }).catch(async () => {
+    const content = await page.content();
+    console.log(`    ⚠️ No job links found. HTML length: ${content.length}`);
+  });
+  await autoScroll(page);
+  const jobLinks = await page.evaluate(() => {
+    const links = [...document.querySelectorAll('a[href*="/jobs/"]')];
+    return links.map(a => {
+      const h3 = a.querySelector('h3');
+      const title = h3 ? h3.innerText.trim() : a.innerText.split('\n').find(l => l.length > 5) || 'Not Found';
+      let location = 'Not Found';
+      const text = a.innerText;
+      const cities = ['Gurugram', 'Manesar', 'Rohtak', 'Kharkhoda', 'Gurgaon', 'Delhi', 'Noida', 'Haryana'];
+      for (const city of cities) { if (text.includes(city)) { location = city; break; } }
+      if (location !== 'Not Found') location += ', India';
+      return { title, location, detailUrl: a.href };
+    }).filter(j => j.detailUrl && !j.detailUrl.endsWith('/jobs') && j.title !== 'Not Found');
+  });
+  console.log(`  ↳ ParamAi: Found ${jobLinks.length} candidates`);
+  for (const job of jobLinks) {
+    if (results.length >= MAX_JOBS) break;
+    console.log(`    🔎 ${job.title} [${job.location}]`);
+    await visitDetailPage(context, job, 'maruti', results, { company: 'Maruti Suzuki' });
+    await delay(500);
+  }
+}
 
 async function visitDetailPage(context, job, source, results, extra = {}) {
   if (!job.detailUrl || global.processedUrls?.has(job.detailUrl)) return;
@@ -2600,10 +2816,18 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     const details = await page.evaluate(genericJobEvaluator);
 
-    // Cleanup: If title is generic, use the listing title
-    const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description', 'job opportunities'];
+    // Cleanup: If title is generic or matches company name, use the listing title
+    const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description', 'job opportunities', 'tesla', 'blue star', 'careers at mphasis', 'araymond', 'a. raymond', 'a.raymond'];
     let finalTitle = details.title;
-    if (!finalTitle || finalTitle === 'Not Found' || genericTitles.includes(finalTitle.toLowerCase())) {
+    let finalCompanyTemp = (extra.company && extra.company !== 'Not Found') ? extra.company : (details.company !== 'Not Found' ? details.company : extractFallbackCompany(job.detailUrl));
+    const titleLower = (finalTitle || '').toLowerCase();
+    const isGeneric = !finalTitle || finalTitle === 'Not Found'
+      || genericTitles.includes(titleLower)
+      || (finalCompanyTemp && titleLower === finalCompanyTemp.toLowerCase())
+      || titleLower.startsWith('careers at ')
+      || titleLower.startsWith('jobs at ')
+      || titleLower.startsWith('career at ');
+    if (isGeneric) {
       finalTitle = job.title;
     }
 
@@ -2627,7 +2851,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-    if (job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com')) {
+    if (job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com')) {
       finalApplyLink = job.detailUrl;
     }
 
@@ -2996,6 +3220,18 @@ function genericJobEvaluator() {
       const desc = descEl?.innerText?.trim() || descEl?.textContent?.trim() || '';
       const jobIdVal = getField('Job ID');
       if (dateVal || jobIdVal) {
+        // Extract salary from full page text
+        let siemensSalary = 'Not Available';
+        const salPatterns = [
+          /\$[\d,]+(?:\.\d+)?\s*[-–]\s*\$[\d,]+(?:\.\d+)?(?:\s*(?:per\s+(?:hour|hr|year|annum)|\/?(?:hour|hr|year|annum|annually)))?/i,
+          /AED\s*[\d,]+(?:\s*[-–]\s*(?:AED)?\s*[\d,]+)?/i,
+          /(?:₹|INR)\s*[\d,]{4,}(?:\s*[-–]\s*(?:₹|INR)?\s*[\d,]+)?(?:\s*(?:LPA|lakh))?/i,
+          /[£€]\s*[\d,]+(?:\s*[-–]\s*[£€]?\s*[\d,]+)?/i,
+        ];
+        for (const pat of salPatterns) {
+          const sm = fullText.match(pat);
+          if (sm) { siemensSalary = sm[0].trim(); break; }
+        }
         return {
           title: document.querySelector('.section__header__text__title, h1')?.innerText?.trim() || 'Not Found',
           location: document.querySelector('.list--locations .list__item')?.innerText?.trim() || getField('Location(s)') || 'Not Found',
@@ -3004,7 +3240,7 @@ function genericJobEvaluator() {
           description: desc || 'Not Found',
           applyLink: window.location.href,
           experience: getField('Experience level') || 'Not Found',
-          salary: 'Not Available',
+          salary: siemensSalary,
           jobId: jobIdVal || '',
         };
       }
@@ -3153,7 +3389,7 @@ function genericJobEvaluator() {
   // Description
   let category = getByLabel('Job Category') || getByLabel('Department');
   let jobType = getByLabel('Job Type') || getByLabel('Employee Type');
-  let description = getText(['.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop=\"description\"]', '.job-description', '.description', '#job-description', '[data-test=\"job-description\"]', '[data-automation=\"jobAdDetails\"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
+  let description = getText(['.job-description-container', '.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop=\"description\"]', '.job-description', '.description', '#job-description', '[data-test=\"job-description\"]', '[data-automation=\"jobAdDetails\"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
   if (!description) description = getAllText('.mjp-show-more__content');
   if (!description) description = getAllText('.text5');
 
@@ -3305,8 +3541,6 @@ function genericJobEvaluator() {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeWorley(page, context, listingUrl, results) {
   let pageNum = 1;
-  const maxJobsLimit = MAX_JOBS;
-
   while (true) {
     console.log(`  📄 Worley Page ${pageNum}...`);
     await page.waitForSelector('[data-test-id="job-listing"]', { timeout: 35000 }).catch(() => { });
@@ -3327,18 +3561,16 @@ async function scrapeWorley(page, context, listingUrl, results) {
       }).filter(j => j.detailUrl);
     });
 
-    console.log(`     ↳ Worley: ${jobLinks.length} jobs on page ${pageNum}`);
-
+    console.log(`     ↳ Worley: ${jobLinks.length} jobs`);
     for (const job of jobLinks) {
-      if (results.length >= maxJobsLimit) break;
-      console.log(`    🔎 ${job.title} [${job.location}]`);
+      if (results.length >= MAX_JOBS) break;
       await visitDetailPage(context, job, 'worley', results, { company: 'Worley' });
       await delay(500);
     }
 
-    if (pageNum >= 3) { console.log(`  🛑 Worley limit reached — stopping at ${pageNum} pages`); break; }
+    if (results.length >= MAX_JOBS) break;
 
-    if (results.length >= maxJobsLimit) break;
+    if (pageNum >= 3) { console.log(`  🛑 Worley limit reached — stopping at ${pageNum} pages`); break; }
 
     // Handle pagination
     const hasNext = await page.evaluate(() => {
@@ -3372,7 +3604,6 @@ async function scrapeKbr(page, context, listingUrl, results) {
   if (listingUrl.includes('careers.philips.com')) companyName = 'Philips';
 
   let pageNum = 1;
-  const maxJobsLimit = MAX_JOBS;
 
   while (true) {
     console.log(`  📄 KBR Page ${pageNum}...`);
@@ -3418,7 +3649,7 @@ async function scrapeKbr(page, context, listingUrl, results) {
           || card.querySelector('.type span:last-child')?.innerText?.trim()
           || '';
 
-        // Teaser description
+        // Teaser description (listing page snippet)
         const teaser = card.querySelector('.job-description')?.innerText?.trim() || '';
 
         // Apply URL
@@ -3432,16 +3663,80 @@ async function scrapeKbr(page, context, listingUrl, results) {
     console.log(`     ↳ KBR: ${jobLinks.length} jobs on page ${pageNum}`);
 
     for (const job of jobLinks) {
-      if (results.length >= maxJobsLimit) break;
+      if (results.length >= MAX_JOBS) break;
+
       console.log(`    🔎 ${job.title} | ${job.location} | ${job.jobId}`);
-      await visitDetailPage(context, job, 'kbr', results, { company: companyName });
-      // 💾 Turant save after KBR direct push
-      try { fs.writeFileSync(require('path').join(__dirname, 'jobs.json'), JSON.stringify(results, null, 2)); } catch (_) { }
+
+      // Visit detail page to get full description
+      let description = job.teaser;
+      let salary = 'Not disclosed';
+      let experience = '';
+
+      if (job.detailUrl) {
+        const detailPage = await context.newPage();
+        try {
+          await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await detailPage.waitForTimeout(3000);
+          await detailPage.waitForLoadState('networkidle').catch(() => { });
+
+          const detail = await detailPage.evaluate(() => {
+            // Full description section
+            const descEl = document.querySelector(
+              '[data-ph-at-id="job-description"], .job-description-main, .ats-description, ' +
+              '[class*="job-description"], .phj-jobad-description, section.ph-description'
+            );
+            let desc = descEl?.innerText?.trim() || document.body?.innerText?.slice(0, 2000) || '';
+
+            // Try JSON-LD
+            try {
+              const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
+              if (ld.description) desc = ld.description.replace(/<[^>]+>/g, ' ').trim();
+            } catch (_) { }
+
+            // Experience from description text
+            const expMatch = desc.match(/(\d+\+?\s*(years|yrs|year))/i);
+            const experience = expMatch ? expMatch[0] : '';
+
+            // Salary hints
+            const salaryMatch = desc.match(/(?:salary|ctc|compensation|pay)[^\n]{0,80}/i);
+            const salary = salaryMatch ? salaryMatch[0].trim() : 'Not disclosed';
+
+            return { description: desc.slice(0, 3000), experience, salary };
+          });
+
+          description = detail.description || job.teaser;
+          experience = detail.experience || '';
+          salary = detail.salary || 'Not disclosed';
+        } catch (err) {
+          console.log(`      ⚠️  Detail page failed: ${err.message}`);
+        } finally {
+          await detailPage.close();
+        }
+      }
+
+      results.push({
+        title: job.title,
+        company: companyName,
+        location: job.location,
+        category: job.category,
+        jobType: job.jobType,
+        date: job.date,
+        jobId: job.jobId,
+        description: description.slice(0, 3000),
+        experience,
+        salary,
+        url: job.detailUrl,
+        applyLink: job.detailUrl,
+        source: `${companyName} Careers`,
+      });
+      // 💾 Turant filtered save
+      saveJobsNow(results);
+
       await delay(600);
     }
 
-    if (results.length >= maxJobsLimit) {
-      console.log(`  🛑 ${companyName}: Limit (${maxJobsLimit}) reached, stopping.`);
+    if (results.length >= MAX_JOBS) {
+      console.log(`  🛑 ${companyName}: MAX_JOBS (${MAX_JOBS}) reached, stopping.`);
       break;
     }
 
@@ -3502,9 +3797,11 @@ async function scrapeTitan(page, context, listingUrl, results) {
   while (true) {
     console.log(`  📄 Titan Page ${pageNum}...`);
 
+    // Wait for job cards
     await page.waitForSelector('li.jobs-list-item', { timeout: 40000 }).catch(() => { });
     await page.waitForTimeout(2000);
 
+    // ── Extract all job cards on current page ──
     const jobLinks = await page.evaluate(() => {
       const cards = [...document.querySelectorAll('li.jobs-list-item')];
       return cards.map(card => {
@@ -3714,7 +4011,6 @@ async function autoScroll(page) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeARaymond(page, context, listingUrl, results) {
   let pageNum = 0;
-  const maxJobsLimit = MAX_JOBS;
   while (true) {
     console.log(`  📄 ARaymond Page ${pageNum + 1}...`);
     await page.waitForSelector('.node-offer.teaser', { timeout: 35000 }).catch(() => { });
@@ -3754,15 +4050,14 @@ async function scrapeARaymond(page, context, listingUrl, results) {
       }).filter(j => j.detailUrl);
     });
 
-    console.log(`     ↳ ARaymond: ${jobLinks.length} jobs on page ${pageNum + 1}`);
+    console.log(`     ↳ ARaymond: ${jobLinks.length} jobs`);
     for (const job of jobLinks) {
-      if (results.length >= maxJobsLimit) break;
-      console.log(`    🔎 ${job.title} [${job.location}]`);
+      if (results.length >= MAX_JOBS) break;
       await visitDetailPage(context, job, 'araymond', results, { company: 'ARaymond' });
       await delay(500);
     }
 
-    if (results.length >= maxJobsLimit) break;
+    if (results.length >= MAX_JOBS) break;
 
     const nextUrl = await page.evaluate(() => {
       const nextBtn = document.querySelector('.pager-nav .pager__item--next a');
@@ -3788,7 +4083,6 @@ async function scrapeARaymond(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeMokaHr(page, context, listingUrl, results) {
   let pageNum = 1;
-  const maxJobsLimit = MAX_JOBS;
   while (true) {
     console.log(`  📄 MokaHR Page ${pageNum}...`);
     await page.waitForSelector('[class*="container-aOp138AX_X"], [class*="card-BtpcjTxIfE"]', { timeout: 35000 }).catch(() => { });
@@ -3826,15 +4120,14 @@ async function scrapeMokaHr(page, context, listingUrl, results) {
       }).filter(j => j.detailUrl);
     });
 
-    console.log(`     ↳ MokaHR: ${jobLinks.length} jobs on page ${pageNum}`);
+    console.log(`     ↳ MokaHR: ${jobLinks.length} jobs`);
     for (const job of jobLinks) {
-      if (results.length >= maxJobsLimit) break;
-      console.log(`    🔎 ${job.title} [${job.location}]`);
+      if (results.length >= MAX_JOBS) break;
       await visitDetailPage(context, job, 'mokahr', results, { company: 'Tesla' });
       await delay(500);
     }
 
-    if (results.length >= maxJobsLimit) break;
+    if (results.length >= MAX_JOBS) break;
 
     const hasNext = await page.evaluate(() => {
       const nextBtn = document.querySelector('button[class*="sd-Pagination-forward-"]');
@@ -3861,7 +4154,45 @@ async function scrapeMokaHr(page, context, listingUrl, results) {
 async function scrapeWorkline(page, context, listingUrl, results) {
   console.log(`  📄 Workline listing...`);
   await page.waitForSelector('.jobs-wrapper', { timeout: 35000 }).catch(() => { });
-  await autoScroll(page);
+
+  // Get target count from #jobcount (e.g., "Showing 358 Job(s)")
+  const targetCount = await page.evaluate(() => {
+    const el = document.getElementById('jobcount');
+    if (el) {
+      const match = el.textContent.match(/Showing\s+(\d+)\s+Job/i);
+      return match ? parseInt(match[1], 10) : 0;
+    }
+    return 0;
+  });
+  console.log(`     ↳ Target jobs to load: ${targetCount}`);
+
+  // Scroll repeatedly until we load all target jobs or no more jobs load
+  let lastCount = 0;
+  let noChangeCount = 0;
+  const maxLimit = Math.min(targetCount || 1000, MAX_JOBS);
+
+  while (true) {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1500); // Wait for new items to load
+
+    const currentCount = await page.locator('.jobs-wrapper').count();
+    console.log(`     ↳ Loaded ${currentCount} / ${targetCount} jobs`);
+
+    if (currentCount >= maxLimit) {
+      break;
+    }
+
+    if (currentCount === lastCount) {
+      noChangeCount++;
+      if (noChangeCount >= 4) {
+        break; // Stop if height/count doesn't change after multiple scroll attempts
+      }
+    } else {
+      noChangeCount = 0;
+    }
+    lastCount = currentCount;
+  }
+
 
   const jobLinks = await page.evaluate(() => {
     const wrappers = [...document.querySelectorAll('.jobs-wrapper')];
@@ -3905,7 +4236,6 @@ async function scrapeWorkline(page, context, listingUrl, results) {
   console.log(`     ↳ Workline: ${jobLinks.length} jobs`);
   for (const job of jobLinks) {
     if (results.length >= MAX_JOBS) break;
-    console.log(`    🔎 ${job.title} [${job.location}]`);
     await visitDetailPage(context, job, 'workline', results, { company: 'Blue Star' });
     await delay(500);
   }
@@ -3924,7 +4254,7 @@ async function scrapeMphasis(page, context, listingUrl, results) {
   await autoScroll(page);
 
   const jobLinks = await page.evaluate(() => {
-    // Find the container with the actual job listings
+    // Find the container that has the actual job listings (contains PRIMARY SKILLS: and LOCATION:)
     const container = Array.from(document.querySelectorAll('.lpContentsItem.rawHtmlSpan'))
       .find(el => el.innerText && el.innerText.includes('PRIMARY SKILLS:') && el.innerText.includes('LOCATION:'));
     if (!container) return [];
@@ -3937,7 +4267,7 @@ async function scrapeMphasis(page, context, listingUrl, results) {
     return anchors.map(a => {
       const detailUrl = a.href;
 
-      // Walk up to the enclosing <div> wrapping EXPERIENCE, LOCATION, APPLY NOW
+      // Walk up to the enclosing <div> that wraps EXPERIENCE, LOCATION, and APPLY NOW
       let parent = a.parentElement;
       while (parent && parent !== container && parent.tagName.toLowerCase() !== 'div') {
         parent = parent.parentElement;
@@ -3958,6 +4288,7 @@ async function scrapeMphasis(page, context, listingUrl, results) {
       }
 
       // The title is in the colored <p> BEFORE the parent <div>
+      // Walk backwards through siblings to find the blue title <p>
       let title = 'Not Found';
       let jobId = 'Not Found';
       let prev = parent ? parent.previousElementSibling : null;
@@ -3967,6 +4298,7 @@ async function scrapeMphasis(page, context, listingUrl, results) {
         const hasColor = prev.getAttribute('style')?.includes('color') || !!prev.style.color;
 
         if (prev.tagName.toLowerCase() === 'p' && (hasDashes || hasColor)) {
+          // Clean up the text and extract optional jobId from parentheses: e.g. ( 813282 )
           const cleanText = text.replace(/[-—_\s]+/g, ' ').trim();
           const match = cleanText.match(/(.*?)\(\s*(\d{5,})\s*\)/);
           if (match) {
@@ -3993,6 +4325,7 @@ async function scrapeMphasis(page, context, listingUrl, results) {
 
   for (const job of jobLinks) {
     if (results.length >= MAX_JOBS) break;
+    // Pass experience and jobId from listing so they are preserved
     await visitDetailPage(context, job, 'mphasis', results, {
       company: 'Mphasis',
       experience: job.experience,
@@ -4012,6 +4345,8 @@ async function scrapeMphasis(page, context, listingUrl, results) {
 async function scrapeDeJobs(page, context, listingUrl, results) {
   console.log(`  📄 DeJobs listing...`);
 
+  // Click 'More' button repeatedly until all jobs are loaded
+  let prevCount = 0;
   let noChangeRounds = 0;
   while (true) {
     await page.waitForSelector('a[id^="job-link-"]', { timeout: 30000 }).catch(() => { });
@@ -4020,6 +4355,7 @@ async function scrapeDeJobs(page, context, listingUrl, results) {
 
     if (currentCount >= MAX_JOBS) break;
 
+    // Try to click 'More' button
     const moreBtn = page.locator('button:has-text("More")').first();
     const moreBtnVisible = await moreBtn.isVisible().catch(() => false);
     if (!moreBtnVisible) break;
@@ -4034,20 +4370,34 @@ async function scrapeDeJobs(page, context, listingUrl, results) {
     } else {
       noChangeRounds = 0;
     }
+    prevCount = newCount;
   }
 
+  // Extract all job links from the listing page
   const jobLinks = await page.evaluate(() => {
     const origin = window.location.origin;
     return Array.from(document.querySelectorAll('a[id^="job-link-"]')).map(a => {
+      // Title: first <span> with font-bold class
       const titleEl = a.querySelector('span.font-bold, span[class*="font-bold"]');
       const title = titleEl ? titleEl.innerText.trim() : a.innerText.trim().split('\n')[0];
+
+      // Location: second span (block display)
       const locEl = a.querySelector('span.block, span[class*="block"]');
       const location = locEl ? locEl.innerText.trim() : 'Not Found';
+
+      // Date: last span (text-gray-600)
       const dateEl = a.querySelector('span[class*="text-gray"]');
       const date = dateEl ? dateEl.innerText.trim() : 'Not Found';
+
+      // Job ID from the anchor id attribute: job-link-{ID}
       const jobId = (a.id || '').replace('job-link-', '');
+
+      // Detail URL — relative href → absolute
       let href = a.getAttribute('href') || '';
-      if (href && !href.startsWith('http')) href = origin + href;
+      if (href && !href.startsWith('http')) {
+        href = origin + href;
+      }
+
       return { title, location, date, detailUrl: href, jobId };
     }).filter(j => j.detailUrl && j.title);
   });
@@ -4135,8 +4485,6 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
     await delay(500);
   }
 }
-
-const delay = (ms) => new Promise(r => setTimeout(r, ms));
 
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -4313,6 +4661,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     await page.waitForTimeout(1500);
 
     const jobLinks = await page.evaluate((origin) => {
+      // TTC portals: job result cards
       const cards = [...document.querySelectorAll('.job-result, li.job-result, [class*="job-result"], .jobs-section__item, .jobs-list-item')];
       return cards.map(card => {
         const a = card.querySelector('h2 a, .title a, a[href*="/job/"], a[href*="/jobs/"], a.job-result-title, h3 a, p a');
@@ -4354,7 +4703,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
     if (results.length >= MAX_JOBS) break;
 
-    // Pagination
+    // Pagination: find rel="next" or numbered next page link
     const nextUrl = await page.evaluate((origin) => {
       const nextLink = document.querySelector('a[rel="next"], .pagination a.next, li.next a, a.next-page, [aria-label="Next"]');
       if (!nextLink) return null;
@@ -4374,3 +4723,5 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     await page.waitForTimeout(2000);
   }
 }
+
+const delay = (ms) => new Promise(r => setTimeout(r, ms));
