@@ -4096,14 +4096,20 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
       break;
     }
 
-    const isDisabled = await nextBtn.evaluate(el => el.classList.contains('ais-Pagination-item--disabled') || el.hasAttribute('disabled')).catch(() => false);
+    const isDisabled = await nextBtn.evaluate(el => 
+      el.classList.contains('ais-Pagination-item--disabled') || 
+      el.closest('li')?.classList.contains('ais-Pagination-item--disabled') || 
+      el.hasAttribute('disabled')
+    ).catch(() => false);
     if (isDisabled) {
       console.log(`     ↳ Next page button is disabled.`);
       break;
     }
 
     console.log(`     ↳ Clicking Next Page...`);
-    await nextBtn.click();
+    await nextBtn.evaluate(el => el.click()).catch(async () => {
+      await nextBtn.click({ force: true }).catch(() => {});
+    });
     await page.waitForTimeout(4000);
     pageNum++;
   }
