@@ -1337,28 +1337,84 @@ async function scrapeParamai(page, context, listingUrl, results) {
 // 🔴  CSOD (Apollo Tyres)
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeCsod(page, context, listingUrl, results) {
-  await page.waitForSelector('[class*="rec-listing"], .cs-job-listing, [id*="job"]', { timeout: 25000 }).catch(() => { });
-  await autoScroll(page);
-  const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('[data-tag="displayJobTitle"]')].map(a => a.closest('div'));
-    if (!items.length) {
+  let company = 'Not Found';
+  if (listingUrl.includes('hella')) company = 'HELLA';
+  else if (listingUrl.includes('apollotyres')) company = 'Apollo Tyres';
+  else {
+    try {
+      const u = new URL(listingUrl);
+      const host = u.hostname;
+      let comp = host.split('.')[0];
+      if (comp) company = comp.charAt(0).toUpperCase() + comp.slice(1);
+    } catch (e) { }
+  }
+
+  let pageNum = 1;
+  while (true) {
+    console.log(`  📄 CSOD Page ${pageNum}...`);
+    await page.waitForSelector('[data-tag="displayJobTitle"], [class*="rec-listing"], .cs-job-listing, [id*="job"], a[href*="requisition"]', { timeout: 35000 }).catch(() => { });
+    await autoScroll(page);
+
+    const jobLinks = await page.evaluate(() => {
+      const titleLinks = [...document.querySelectorAll('[data-tag="displayJobTitle"], a[href*="requisition"]')];
+      if (titleLinks.length > 0) {
+        return titleLinks.map(a => {
+          const card = a.closest('.p-panel, div, tr') || a.parentElement;
+          let href = a.getAttribute('href') || a.href || '';
+          if (href && href.startsWith('/')) {
+            href = window.location.origin + href;
+          }
+          return {
+            title: a.innerText?.trim() || card?.querySelector('p, [class*="title"]')?.innerText?.trim() || 'Not Found',
+            location: card?.querySelector('[data-tag="displayJobLocation"], [class*="location"]')?.innerText?.trim() || 'Not Found',
+            date: card?.querySelector('[data-tag="displayJobPostingDate"], [class*="date"]')?.innerText?.trim() || 'Not Found',
+            detailUrl: href
+          };
+        }).filter(j => j.detailUrl && j.title !== 'Not Found');
+      }
+
       const genericItems = [...document.querySelectorAll('[class*="rec-listing-job"],[class*="job-listing-item"],tr[class*="rec-listing"]')];
-      if (!genericItems.length) return [...document.querySelectorAll('a[href*="requisition"],a[href*="job"]')].filter(a => a.innerText?.trim()).map(a => ({ title: a.innerText.trim(), location: 'Not Found', detailUrl: a.href }));
-      return genericItems.map(item => ({
-        title: item.querySelector('a,[class*="title"]')?.innerText?.trim() || 'Not Found',
-        location: item.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
-        detailUrl: item.querySelector('a')?.href || '',
-      }));
+      return genericItems.map(item => {
+        const a = item.querySelector('a[href*="requisition"], a');
+        let href = a ? (a.getAttribute('href') || a.href) : '';
+        if (href && href.startsWith('/')) {
+          href = window.location.origin + href;
+        }
+        return {
+          title: item.querySelector('a,[class*="title"]')?.innerText?.trim() || 'Not Found',
+          location: item.querySelector('[class*="location"]')?.innerText?.trim() || 'Not Found',
+          detailUrl: href,
+        };
+      }).filter(j => j.detailUrl && j.title !== 'Not Found');
+    });
+
+    console.log(`     ↳ CSOD Page ${pageNum}: ${jobLinks.length} jobs found`);
+
+    for (const job of jobLinks) {
+      if (results.length >= MAX_JOBS) break;
+      await visitDetailPage(context, job, 'csod', results, { company });
+      await delay(400);
     }
-    return items.map(item => ({
-      title: item.querySelector('[data-tag="displayJobTitle"], p')?.innerText?.trim() || 'Not Found',
-      location: item.querySelector('[data-tag="displayJobLocation"]')?.innerText?.trim() || 'Not Found',
-      date: item.querySelector('[data-tag="displayJobPostingDate"]')?.innerText?.trim() || 'Not Found',
-      detailUrl: item.querySelector('a')?.href || '',
-    }));
-  });
-  console.log(`  ↳ CSOD: ${jobLinks.length} jobs`);
-  for (const job of jobLinks) { await visitDetailPage(context, job, 'csod', results, { company: 'Apollo Tyres' }); await delay(400); }
+
+    if (results.length >= MAX_JOBS) break;
+
+    const hasNext = await page.evaluate(() => {
+      const nextBtn = document.querySelector('button.next, button[aria-label*="Next Page"], .page-nav-caret.next, button[data-tag="search-results-pagination-next"]');
+      if (nextBtn && !nextBtn.disabled && nextBtn.getAttribute('aria-disabled') !== 'true' && !nextBtn.classList.contains('disabled')) {
+        nextBtn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!hasNext) {
+      console.log(`  ✅ CSOD done — ${pageNum} pages`);
+      break;
+    }
+
+    await page.waitForTimeout(4000);
+    pageNum++;
+  }
 }
 
 
@@ -2851,7 +2907,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-    if (job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com')) {
+    if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com')) {
       finalApplyLink = job.detailUrl;
     }
 
