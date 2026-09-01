@@ -2488,46 +2488,132 @@ async function scrapeRamboll(page, context, listingUrl, results) {
 // 🔴  ZOHO RECRUIT
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeZohoRecruit(page, context, listingUrl, results) {
-  await page.waitForSelector('.cw-filter-joblist', { timeout: 30000 }).catch(() => { });
-  await autoScroll(page);
+  let company = 'Not Found';
+  try {
+    const host = new URL(listingUrl).hostname;
+    const sub = host.split('.')[0];
+    if (sub.length <= 4) company = sub.toUpperCase();
+    else company = sub.charAt(0).toUpperCase() + sub.slice(1);
+  } catch (e) { }
 
-  const jobLinks = await page.evaluate(() => {
-    const items = [...document.querySelectorAll('.cw-filter-joblist')];
-    if (!items.length) return [];
-    return items.map(item => {
-      const a = item.querySelector('a.cw-3-title');
-      const title = a?.innerText?.trim() || 'Not Found';
-      const detailUrl = a?.href || '';
+  await page.waitForSelector('career-website-job-listing-layout1, .cw-filter-joblist, a.cw-1-title, a.cw-3-title, a[href*="/jobs/Careers/"]', { timeout: 35000 }).catch(() => { });
+  await page.waitForTimeout(2500);
 
-      const subhead = item.querySelector('.filter-subhead');
-      let loc = 'Not Found';
-      let exp = 'Not Found';
+  const jobMap = new Map();
 
-      if (subhead) {
-        const expNode = subhead.querySelector('.search-work-experience');
-        if (expNode) {
-          exp = expNode.textContent.trim();
-        }
-        const clone = subhead.cloneNode(true);
-        [...clone.querySelectorAll('span, i, svg')].forEach(n => n.remove());
-        loc = clone.textContent.replace(/\\n/g, '').trim() || 'Not Found';
+  const collectFromDOM = async () => {
+    const found = await page.evaluate(() => {
+      const list = [];
+      const links = [...document.querySelectorAll('a[href*="/jobs/Careers/"], a.cw-1-title, a.cw-3-title')];
+      links.forEach(a => {
+        const title = a.innerText?.trim();
+        let href = a.getAttribute('href') || a.href || '';
+        if (href && href.startsWith('/')) href = window.location.origin + href;
+        if (!title || title === 'Not Found' || !href) return;
+        if (href.endsWith('/jobs/Careers') || href.endsWith('/jobs/Careers/')) return;
+
+        const card = a.closest('li, .cw-filter-joblist, career-website-job-listing-layout1, div') || a.parentElement;
+        const locEl = card?.querySelector('lyte-text[data-zrqa*="citycnt"], lyte-text[lt-prop-value], [data-zrqa*="citycnt"], .search-work-experience, [class*="location"]');
+        const location = locEl?.getAttribute('lt-prop-value') || locEl?.innerText?.trim() || 'Not Found';
+
+        list.push({ title, location, detailUrl: href, applyLink: href });
+      });
+      return list;
+    });
+
+    found.forEach(j => {
+      if (!jobMap.has(j.detailUrl)) {
+        jobMap.set(j.detailUrl, j);
       }
+    });
+  };
 
-      const fullLink = detailUrl ? new URL(detailUrl, window.location.origin).href : '';
+  // Strategy 1: Initial pass & mouse wheel scroll
+  await collectFromDOM();
+  const container = await page.$('.job-listing-gridwrapper, career-website-job-layout1, .cw-group-view, body');
+  if (container) {
+    const box = await container.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + Math.min(box.width / 2, 500), box.y + Math.min(box.height / 2, 300));
+    }
+  }
 
-      return {
-        title,
-        location: loc,
-        experience: exp,
-        detailUrl: fullLink,
-        applyLink: fullLink,
-      };
-    }).filter(j => j.title !== 'Not Found' && j.detailUrl);
+  for (let scrollStep = 0; scrollStep < 10; scrollStep++) {
+    await collectFromDOM();
+    await page.mouse.wheel(0, 1200);
+    await page.evaluate(() => {
+      [window, document.documentElement, document.body, document.querySelector('.cw-group-view'), document.querySelector('.cw-jobtemplate1-right'), document.querySelector('.job-listing-gridwrapper')].forEach(el => {
+        if (el) {
+          if (el.scrollBy) el.scrollBy(0, 1000);
+          if (el.scrollTop !== undefined) el.scrollTop += 1000;
+        }
+      });
+    });
+    await page.waitForTimeout(400);
+  }
+
+  // Strategy 1.5: Click "showMoreJobs" or "10 more" buttons repeatedly in the default view
+  let showMoreClicked = true;
+  let loopCount = 0;
+  while (showMoreClicked && loopCount < 10) {
+      showMoreClicked = await page.evaluate(() => {
+          let clickedAny = false;
+          const btns = document.querySelectorAll('a[data-zrqa*="showmore"], .group-add, a[click*="showMoreJobs"]');
+          btns.forEach(btn => {
+              if (btn && btn.offsetHeight > 0) {
+                  btn.click();
+                  clickedAny = true;
+              }
+          });
+          return clickedAny;
+      });
+      if (showMoreClicked) {
+          await page.waitForTimeout(2000);
+          await collectFromDOM();
+          await page.mouse.wheel(0, 1200);
+          await page.evaluate(() => {
+              const cwView = document.querySelector('.cw-group-view');
+              if (cwView) cwView.scrollBy(0, 1000);
+              window.scrollBy(0, 800);
+          });
+      }
+      loopCount++;
+  }
+
+  // Strategy 2: Click each Category in Filter Dropdown ("Full time", "Training", etc.) to uncap initial 10-job group limit
+
+  // Strategy 3: Lyte Component JS memory fallback
+  const memoryJobs = await page.evaluate(() => {
+    try {
+      const layout = document.querySelector('career-website-job-layout1');
+      if (layout && layout.component && layout.component.data) {
+        const recList = layout.component.data.rec_list || layout.component.data.job_list || [];
+        return recList.map(item => {
+          const id = item.id || item.rec_id || item.job_id;
+          const name = item.job_name || item.title || item.name;
+          if (!id || !name) return null;
+          const url = item.url || `${window.location.origin}/jobs/Careers/${id}/${encodeURIComponent(name.replace(/\s+/g, '-'))}?source=CareerSite`;
+          const loc = [item.city, item.state, item.country].filter(Boolean).join(', ') || item.location || 'Not Found';
+          return { title: name, location: loc, detailUrl: url, applyLink: url };
+        }).filter(Boolean);
+      }
+    } catch (e) { }
+    return null;
   });
 
-  console.log(`  ↳ Zoho Recruit: ${jobLinks.length} jobs`);
+  if (memoryJobs && memoryJobs.length > 0) {
+    memoryJobs.forEach(j => {
+      if (!jobMap.has(j.detailUrl)) {
+        jobMap.set(j.detailUrl, j);
+      }
+    });
+  }
+
+  const jobLinks = Array.from(jobMap.values());
+  console.log(`  ↳ Zoho Recruit (${company}): ${jobLinks.length} total jobs collected`);
   for (const job of jobLinks) {
-    await visitDetailPage(context, job, 'zohorecruit', results);
+    if (results.length >= MAX_JOBS) break;
+    await visitDetailPage(context, job, 'zohorecruit', results, { company });
     await delay(400);
   }
 }
@@ -2952,14 +3038,25 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     // Salary extraction from description if not found by evaluator
     let finalSalary = details.salary;
-    if (!finalSalary || finalSalary === 'Not Available' || finalSalary === 'Not Found') {
+    const isInvalidSalary = (s) => {
+      if (!s || s === 'Not Available' || s === 'Not Found') return true;
+      const lower = s.toLowerCase();
+      if (lower.includes('billion') || lower.includes('million') || lower.includes('bn') || lower.includes('sales') || lower.includes('revenue') || lower.includes('fiscal')) return true;
+      if (/^[€$£\u20b9\u20ac\u00a3]\s*\d+(?:\.\d+)?$/i.test(s.trim())) return true;
+      return false;
+    };
+
+    if (isInvalidSalary(finalSalary)) {
+      finalSalary = 'Not Available';
       const descText = (details.description || '')
+        .replace(/(?:sales|revenue|turnover|generated|market cap|funding|raised)\s+(?:of\s+)?(?:[\$\u20ac\u00a3\u20b9]|INR|USD|EUR|GBP|Rs\.?)?\s*[\d,.]+\s*(?:billion|million|bn|m)?\b/gi, '')
+        .replace(/(?:[\$\u20ac\u00a3\u20b9]|INR|USD|EUR|GBP|Rs\.?)\s*[\d,.]+\s*(?:billion|million|bn|m)\b/gi, '')
         .replace(/match up to \$[0-9,]+[^.]*for money raised/gi, '')
         .replace(/match up to \$[0-9,]+[^.]*charitable/gi, '')
         .replace(/\$[0-9,]+\s*for\s*charitable/gi, '')
-        .replace(/\$[\d.]+\s*billion/gi, '')
-        .replace(/revenue of \$[\d.]+[^.]*/gi, '');
-      // Match patterns: $73,800 - $132,800 | ₹12,00,000 | AED 15,000 - 20,000 | £50,000 | €60,000 - €80,000
+        .replace(/[\$\u20ac\u00a3\u20b9][\d.]+\s*billion/gi, '')
+        .replace(/revenue of [\$\u20ac\u00a3\u20b9][\d.]+[^.]*/gi, '');
+
       const salaryPatterns = [
         /(?:AED|aed)\s*[\d,]+(?:\s*[-–to]+\s*(?:AED|aed)?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum)))?/i,
         /(?:₹|INR)\s*[\d,]{4,}(?:\s*[-–to]+\s*(?:₹|INR)?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum|pa)))?(?:\s*(?:lakh|lakhs|l|LPA))?/i,
@@ -2975,7 +3072,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
           break;
         }
       }
-      if (!finalSalary || finalSalary === 'Not Available') finalSalary = 'Not Available';
+      if (!finalSalary || isInvalidSalary(finalSalary)) finalSalary = 'Not Available';
     }
 
     results.push({
@@ -3445,7 +3542,7 @@ function genericJobEvaluator() {
   // Description
   let category = getByLabel('Job Category') || getByLabel('Department');
   let jobType = getByLabel('Job Type') || getByLabel('Employee Type');
-  let description = getText(['.job-description-container', '.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop=\"description\"]', '.job-description', '.description', '#job-description', '[data-test=\"job-description\"]', '[data-automation=\"jobAdDetails\"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
+  let description = getText(['.p-htmlviewer', '#cw-rich-description', '.cw-jobdescription', '.job-description-container', '.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop=\"description\"]', '.job-description', '.description', '#job-description', '[data-test=\"job-description\"]', '[data-automation=\"jobAdDetails\"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
   if (!description) description = getAllText('.mjp-show-more__content');
   if (!description) description = getAllText('.text5');
 
@@ -3542,9 +3639,14 @@ function genericJobEvaluator() {
 
   // Salary
   let salary = '';
-  const cm = fullText.match(/(\$|₹|\bRs\.?|\bINR|\bUSD|\bGBP|\bEUR)\s?\d[\d,]*(?:\.\d+)?(?:\s*(?:K|L|Lac|Lakh|LPA|CTC|PA|per\s+annum|per\s+month|pm|annually))?/gi);
-  if (cm) salary = cm.join(' - ');
-  if (!salary) { const sl = [...document.querySelectorAll('p')].map(p => p.innerText).find(t => t.toLowerCase().includes('pay range')); if (sl) salary = sl; }
+  const cleanSalaryText = fullText
+    .replace(/(?:sales|revenue|turnover|generated|market cap|funding|raised)\s+(?:of\s+)?(?:[\$\u20ac\u00a3\u20b9]|INR|USD|EUR|GBP|Rs\.?)?\s*[\d,.]+\s*(?:billion|million|bn|m)?\b/gi, '')
+    .replace(/(?:[\$\u20ac\u00a3\u20b9]|INR|USD|EUR|GBP|Rs\.?)\s*[\d,.]+\s*(?:billion|million|bn|m)\b/gi, '')
+    .replace(/match up to \$[0-9,]+[^.]*for money raised/gi, '');
+
+  const sl = [...document.querySelectorAll('p, li, div')].map(p => p.innerText?.trim()).find(t => t && t.toLowerCase().includes('pay range') && /[\$\u20ac\u00a3\u20b9\d]/.test(t));
+  if (sl) salary = sl;
+
   if (!salary) salary = getText(['[data-careersite-propertyid=\"salary\"]', '[class*=\"salary\"]', '[itemprop=\"baseSalary\"]', '.compensation', '[class*=\"compensation\"]', '.pay-range', '[data-test=\"salary\"]', '[class*=\"pay-\"]', '.stipend', '[class*=\"stipend\"]', '.ctc', '[class*=\"ctc\"]']);
   if (!salary && ld?.baseSalary) {
     const bs = ld.baseSalary;
@@ -3559,8 +3661,8 @@ function genericJobEvaluator() {
     }
   }
   if (!salary) [...document.querySelectorAll('p,li,span,td,dt,dd')].some(el => { const t = el.innerText?.trim(); if (t?.match(/^Salary\s*:/i)) { salary = t.replace(/^Salary\s*:/i, '').trim(); return true; } });
-  if (!salary) salary = fullText.match(/[\d.]+\s*(to|-)?\s*[\d.]*\s*(LPA|Lakh|Lac|CTC)/gi)?.[0] || '';
-  if (!salary) salary = fullText.match(/[Uu]p\s*to\s+(?:(?:\$|\u20b9|\bRs\.?|\bINR)\s*\d[\d,]*|\d[\d,]*\s*(?:K|L|LPA|Lakh|lakhs))/i)?.[0] || '';
+  if (!salary) salary = cleanSalaryText.match(/[\d.]+\s*(to|-)?\s*[\d.]*\s*(LPA|Lakh|Lac|CTC)/gi)?.[0] || '';
+  if (!salary) salary = cleanSalaryText.match(/[Uu]p\s*to\s+(?:(?:\$|\u20b9|\bRs\.?|\bINR)\s*\d[\d,]*|\d[\d,]*\s*(?:K|L|LPA|Lakh|lakhs))/i)?.[0] || '';
   if (!salary) [...document.querySelectorAll('p,li,td,span')].some(el => { const t = el.innerText?.trim().toLowerCase(); if (t?.includes('salary range') || t?.includes('total compensation')) { salary = el.innerText.trim(); return true; } });
   if (!salary) salary = 'Not Available';
 
