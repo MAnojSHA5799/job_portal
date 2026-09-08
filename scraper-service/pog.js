@@ -84,7 +84,49 @@ const LISTING_URLS = [
     // "https://hella.csod.com/ux/ats/careersite/3/home?c=hella"
     // "https://hella.csod.com/ux/ats/careersite/3/home?c=hella&country=in"
     // "https://cra.zohorecruit.com/jobs/Careers"
-    "https://henkel.csod.com/ux/ats/careersite/1/home?c=henkel"
+    // "https://henkel.csod.com/ux/ats/careersite/1/home?c=henkel"
+    // "https://jobsearch.alstom.com/search?q=&q2=&alertId=&locationsearch=&title=&location=IN&department=&shifttype=&date=#searchresults"
+    // "https://larsentoubrocareers.peoplestrong.com/job/joblist"
+    // "https://apply.workable.com/pxgeo/",
+    // "https://naffco.teamtailor.com/jobs?split_view=true&query="
+    // "https://voltas.talentrecruit.com/career-page"
+    // "https://konecranes.careers/jobs?options=&page=1"
+    // "https://career10.successfactors.com/career?company=PI&career_ns=job_listing_summary"
+    // "https://amararajacareers.peoplestrong.com/job/joblist"
+    // "https://careers.nirmal.co.in/jobs/Careers"
+    // "https://tatasteel.ripplehire.com/candidate/?token=kYAz91uy1lFDi6FeSiRZ&lang=en&source=CAREERSITE#list"
+    // "https://www.nestle.com/jobs/search-jobs?keyword=&country=IN&location=&career_area=All"
+    // "https://www.bharatwireropes.com/careers/current-opening"
+    // "https://search-careers.gm.com/en/jobs/?search=&country=India&pagesize=20#results"
+    // "https://sgurrenergy.zohorecruit.com/jobs/careers"
+    // "https://www.bradken.com/careers/current-opportunities"
+    // "https://www.systra.com/en/join-us/?country=india_en&pa=1"
+    // "https://ir-jobs.dzconnex.com/#/"
+    // "https://career.skf.com/search/?createNewAlert=false&q=&optionsFacetsDD_location=&optionsFacetsDD_country=&optionsFacetsDD_customfield2=&optionsFacetsDD_department=",
+    // "https://careers.apotex.com/search/?q=&q2=&alertId=&locationsearch=&geolocation=&searchby=location&d=10&lat=&lon=&title=&location=IN&facility=&date=#searchresults"
+    // "https://careers.motherson.com/en/jobs?country=India&freeSearch="
+    // "https://career.kiaindia.net/kiaindia/apply"
+    // "https://careers.macegroup.com/gb/en/search-results"
+    // "https://careers.abb/global/en/search-results"
+    // "https://careers.gevernova.com/jobs?filter%5Bcountry%5D%5B0%5D=India"
+    // "https://careers.ril.com/rilcareers/frmJobSearch.aspx?"
+    // "https://careers.atherenergy.com/jobs"
+    // "https://careers.spglobal.com/jobs?locations=Noida,Uttar%20Pradesh,India&page=1"
+    // "https://careers.tataprojects.com/search"
+    // "https://careers.airindia.com/search"
+    // "https://careers.deere.com/careers?start=0&location=Dubuque%2C+IA%2C+United+States&pid=137482114764&sort_by=distance&filter_distance=80&filter_include_remote=1&filter_include_relocation=0"
+
+    // "https://careers.qualcomm.com/careers?start=0&pid=446718603615&sort_by=timestamp"
+    // "https://careers.slb.com/job-listing#sortCriteria=%40title%20ascending&f-country-job=India&cq=%40source%3D%3D%24%22ATS_Jobs_Source%20-%20Prod%22"
+
+    // "https://careers.godrejindustries.com/in/en"
+    // "https://jobs.bosch.com/en/?pages=1&country=in"
+    // "https://jobs.carrier.com/en/search-jobs"
+    // "https://jobs.whirlpool.com/careers?domain=whirlpool.com&triggerGoButton=false&start=0&pid=34401838913&sort_by=hot"
+    // "https://jobs.ericsson.com/careers?domain=ericsson.com&start=0&pid=563121775590273&sort_by=hot"
+    // "https://jobs.continental.com/en/#/"
+    "https://jobs.worley.com/careers?start=0&pid=&sort_by=hot"
+
 ];
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -106,7 +148,10 @@ function saveJobsNow(results) {
         'surat', 'patna', 'ludhiana', 'agra', 'nashik', 'meerut', 'rajkot', 'varanasi', 'srinagar',
         'dharuhera', 'haridwar', 'neemrana', 'halol', 'chittoor', 'mysore', 'mysuru',
         'karnataka', 'maharashtra', 'gujarat', 'tamil nadu', 'telangana', 'kerala', 'haryana', 'uttar pradesh',
-        'multiple locations'
+        'divitipalli', 'petamitta', 'tenepalli', 'diguvamagham', 'tirupati', 'andhra pradesh', 'head office',
+        'terminal a', 'e positive lab', 'corporate office', 'thane', 'kalyan', 'asanagaon', 'jamshedpur',
+        'jajpur', 'joda', 'meramandali', 'west bokaro', 'kharagpur', 'noamundi', 'gopalpur', 'angul', 'dholera',
+        'khopoli', 'tarapur', 'samalkha', 'nanjangud', 'anantapur', 'jharkhand', 'odisha', 'orissa', 'multiple locations'
     ];
     const uaeCities = [
         'united arab emirates', 'uae', 'u.a.e.', 'dubai', 'abu dhabi', 'sharjah', 'ajman',
@@ -142,10 +187,10 @@ function saveJobsNow(results) {
             const urlDash = nf.replace(/\s+/g, '-');
             const inUrl = jobUrl.includes(nf) || jobUrl.includes(urlDash);
             if (nf === 'india') {
-                if (indianCities.some(c => loc.includes(c)) || inUrl || isPorscheIndiaUrl) { locMatch = true; break; }
+                if (indianCities.some(c => loc.includes(c)) || inUrl || isPorscheIndiaUrl || jobUrl.includes('talentrecruit.com') || jobUrl.includes('peoplestrong.com') || jobUrl.includes('zohorecruit.com') || jobUrl.includes('nirmal.co.in') || jobUrl.includes('ripplehire.com') || jobUrl.includes('tatasteel') || jobUrl.includes('nestle.com') || jobUrl.includes('bharatwireropes.com') || jobUrl.includes('gm.com') || jobUrl.includes('systra.com') || jobUrl.includes('dzconnex.com') || jobUrl.includes('skf.com') || jobUrl.includes('apotex.com') || jobUrl.includes('motherson.com')) { locMatch = true; break; }
             } else if (nf === 'us' || nf === 'usa' || nf === 'united states') {
                 const isUS = usCitiesAndStates.some(i => loc.includes(i)) || /\b(us|usa|u\.s\.|u\.s\.a\.)\b/i.test(loc) || /,\s*[a-z]{2}\b/i.test(loc);
-                if (isUS || inUrl || jobUrl.includes('united-states') || isPorscheUSUrl) { locMatch = true; break; }
+                if (isUS || inUrl || jobUrl.includes('united-states') || isPorscheUSUrl || jobUrl.includes('bradken')) { locMatch = true; break; }
             } else if (nf === 'uae' || nf === 'united arab emirates') {
                 const isUAE = uaeCities.some(c => loc.includes(c)) || /\buae\b/i.test(loc);
                 if (isUAE || inUrl || jobUrl.includes('united-arab-emirates') || isPorscheUAEUrl) { locMatch = true; break; }
@@ -182,7 +227,7 @@ function saveJobsNow(results) {
             let type = detectTypeFromUrl(listingUrl);
             console.log(`\n📋 [URL-detect: ${type || '?'}] ${listingUrl}`);
 
-            await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => { });
             await page.waitForTimeout(5000);
             await page.waitForLoadState('networkidle').catch(() => { });
 
@@ -194,6 +239,9 @@ function saveJobsNow(results) {
 
             if (type === 'kbr') { await scrapeKbr(page, context, listingUrl, results); }
             else if (type === 'worley') { await scrapeWorley(page, context, listingUrl, results); }
+            else if (type === 'atherenergy') { await scrapeAtherEnergy(page, context, listingUrl, results); }
+            else if (type === 'spglobal') { await scrapeSpGlobal(page, context, listingUrl, results); }
+            else if (type === 'tataprojects') { await scrapeTataProjects(page, context, listingUrl, results); }
             else if (type === 'ril') { await scrapeRil(page, context, listingUrl, results); }
             else if (type === 'darwinbox') { await page.waitForSelector('.job-tile', { timeout: 25000 }).catch(() => { }); await autoScroll(page); await scrapeDarwinbox(page, context, listingUrl, results); }
             else if (type === 'caterpillar') { await page.waitForSelector('.card.card-job', { timeout: 25000 }).catch(() => { }); await scrapeCaterpillarAllPages(page, context, results); }
@@ -228,6 +276,16 @@ function saveJobsNow(results) {
             else if (type === 'se') { await scrapeSeAllPages(page, context, results); }
             else if (type === 'ramboll') { await scrapeRamboll(page, context, listingUrl, results); }
             else if (type === 'zohorecruit') { await scrapeZohoRecruit(page, context, listingUrl, results); }
+            else if (type === 'bradken') { await scrapeBradken(page, context, listingUrl, results); }
+            else if (type === 'systra') { await scrapeSystra(page, context, listingUrl, results); }
+            else if (type === 'dzconnex') { await scrapeDZConnex(page, context, listingUrl, results); }
+            else if (type === 'skf') { await scrapeSkf(page, context, listingUrl, results); }
+            else if (type === 'apotex') { await scrapeApotex(page, context, listingUrl, results); }
+            else if (type === 'motherson') { await scrapeMotherson(page, context, listingUrl, results); }
+            else if (type === 'kiaindia') { await scrapeKiaIndia(page, context, listingUrl, results); }
+            else if (type === 'macegroup') { await scrapeMacegroup(page, context, listingUrl, results); }
+            else if (type === 'abb') { await scrapeAbb(page, context, listingUrl, results); }
+            else if (type === 'eightfold') { await scrapeEightfold(page, context, listingUrl, results); }
             else if (type === 'turbohire') { await scrapeTurbohire(page, context, listingUrl, results); }
             else if (type === 'porsche') { await scrapePorsche(page, context, listingUrl, results); }
             else if (type === 'tataelxsi') { await scrapeTataElxsi(page, context, listingUrl, results); }
@@ -240,6 +298,24 @@ function saveJobsNow(results) {
             else if (type === 'aecom') { await scrapeAecom(page, context, listingUrl, results); }
             else if (type === 'peoplestrong') { await scrapePeopleStrong(page, context, listingUrl, results); }
             else if (type === 'ttcportals') { await scrapeTtcPortals(page, context, listingUrl, results); }
+            else if (type === 'workable') { await scrapeWorkable(page, context, listingUrl, results); }
+            else if (type === 'teamtailor') { await scrapeTeamtailor(page, context, listingUrl, results); }
+            else if (type === 'talentrecruit') { await scrapeTalentRecruit(page, context, listingUrl, results); }
+            else if (type === 'konecranes') { await scrapeKonecranes(page, context, listingUrl, results); }
+            else if (type === 'ripplehire') { await scrapeRipplehire(page, context, listingUrl, results); }
+            else if (type === 'nestle') { await scrapeNestle(page, context, listingUrl, results); }
+            else if (type === 'bharatwireropes') { await scrapeBharatWireRopes(page, context, listingUrl, results); }
+            else if (type === 'gm') { await scrapeGm(page, context, listingUrl, results); }
+            else if (type === 'airindia') { await scrapeAirIndia(page, context, listingUrl, results); }
+            else if (type === 'deere') { await scrapeDeere(page, context, listingUrl, results); }
+            else if (type === 'qualcomm') { await scrapeQualcomm(page, context, listingUrl, results); }
+            else if (type === 'slb') { await scrapeSlb(page, context, listingUrl, results); }
+            else if (type === 'godrej') { await scrapeGodrej(page, context, listingUrl, results); }
+            else if (type === 'bosch') { await scrapeBosch(page, context, listingUrl, results); }
+            else if (type === 'carrier') { await scrapeCarrier(page, context, listingUrl, results); }
+            else if (type === 'whirlpool') { await scrapeWhirlpool(page, context, listingUrl, results); }
+            else if (type === 'ericsson') { await scrapeEricsson(page, context, listingUrl, results); }
+            else if (type === 'continental') { await scrapeContinental(page, context, listingUrl, results); }
             else { await scrapeGenericListing(page, context, listingUrl, results); }
 
             if (results.length >= MAX_JOBS) break;
@@ -267,9 +343,18 @@ function saveJobsNow(results) {
 function detectTypeFromUrl(url) {
     const u = url.toLowerCase();
 
+    if (u.includes('jobs.carrier.com')) return 'carrier';
     if (u.includes('jobs.porsche.com')) return 'porsche';
+    if (u.includes('jobs.bosch.com')) return 'bosch';
+    if (u.includes('jobs.whirlpool.com')) return 'whirlpool';
+    if (u.includes('jobs.ericsson.com')) return 'ericsson';
+    if (u.includes('career.kiaindia.net')) return 'kiaindia';
+    if (u.includes('careers.macegroup.com')) return 'macegroup';
+    if (u.includes('careers.abb')) return 'abb';
+    if (u.includes('careers.gevernova.com') || u.includes('eightfold.ai')) return 'eightfold';
     if (u.includes('careers.kbr.com')) return 'kbr';
     if (u.includes('careers.philips.com')) return 'kbr';
+    if (u.includes('pgcareers.com') || u.includes('careers.pg.com')) return 'kbr';
     if (u.includes('jobs.worley.com')) return 'worley';
     if (u.includes('darwinbox.in') || u.includes('darwinbox.com')) return 'darwinbox';
     if (u.includes('myworkdayjobs.com') || u.includes('workday.com')) return 'workday';
@@ -289,6 +374,9 @@ function detectTypeFromUrl(url) {
     if (u.includes('param.ai')) return 'paramai';
     if (u.includes('caterpillar.com/en/jobs')) return 'caterpillar';
     if (u.includes('careers.ril.com')) return 'ril';
+    if (u.includes('careers.atherenergy.com')) return 'atherenergy';
+    if (u.includes('careers.spglobal.com')) return 'spglobal';
+    if (u.includes('careers.tataprojects.com')) return 'tataprojects';
     if (u.includes('mercedes-benz.com') || u.includes('jobs.mercedes')) return 'mercedes';
     if (u.includes('careers.unilever.com')) return 'unilever';
     if (u.includes('hitachienergy.com') || u.includes('hitachi.com')) return 'hitachi';
@@ -298,14 +386,14 @@ function detectTypeFromUrl(url) {
     if (u.includes('bajajauto.com/careers')) return 'bajaj_auto';
     if (u.includes('careers.adityabirla.com')) return 'aditya_birla';
     if (u.includes('panasonic.com')) return 'panasonic';
-    if (u.includes('heromotocorp.com') || u.includes('tenneco.com') || u.includes('tataconsumer.com') || u.includes('tataelectronics.com') || u.includes('jobs.zf.com') || u.includes('jobs.danfoss.com') || u.includes('join.cnh.com') || u.includes('jobs.tuvsud.com') || u.includes('schindler.com')) return 'successfactors';
+    if (u.includes('alstom.com') || u.includes('heromotocorp.com') || u.includes('tenneco.com') || u.includes('tataconsumer.com') || u.includes('tataelectronics.com') || u.includes('jobs.zf.com') || u.includes('jobs.danfoss.com') || u.includes('join.cnh.com') || u.includes('jobs.tuvsud.com') || u.includes('schindler.com')) return 'successfactors';
     if (u.includes('careers.jabil.com') || u.includes('jabil.com')) return 'jabil';
     if (u.includes('careers.bp.com')) return 'bp';
     if (u.includes('careers.titan.in')) return 'titan';
     if (u.includes('careers.regalrexnord.com')) return 'regalrexnord';
     if (u.includes('careers.se.com')) return 'se';
     if (u.includes('ramboll.com')) return 'ramboll';
-    if (u.includes('zohorecruit.com')) return 'zohorecruit';
+    if (u.includes('zohorecruit.com') || u.includes('/jobs/careers') || u.includes('nirmal.co.in')) return 'zohorecruit';
     if (u.includes('turbohire.co')) return 'turbohire';
     if (u.includes('tataelxsi.com')) return 'tataelxsi';
     if (u.includes('careers.araymond.com')) return 'araymond';
@@ -315,6 +403,26 @@ function detectTypeFromUrl(url) {
     if (u.includes('aecom.jobs')) return 'aecom';
     if (u.includes('peoplestrong.com')) return 'peoplestrong';
     if (u.includes('ttcportals.com')) return 'ttcportals';
+    if (u.includes('workable.com') || u.includes('apply.workable.com')) return 'workable';
+    if (u.includes('teamtailor.com')) return 'teamtailor';
+    if (u.includes('talentrecruit.com')) return 'talentrecruit';
+    if (u.includes('konecranes.careers') || u.includes('attrax')) return 'konecranes';
+    if (u.includes('ripplehire.com')) return 'ripplehire';
+    if (u.includes('nestle.com')) return 'nestle';
+    if (u.includes('bharatwireropes.com')) return 'bharatwireropes';
+    if (u.includes('gm.com')) return 'gm';
+    if (u.includes('bradken.com') || u.includes('greenhouse.io/bradken')) return 'bradken';
+    if (u.includes('systra.com')) return 'systra';
+    if (u.includes('dzconnex.com')) return 'dzconnex';
+    if (u.includes('career.skf.com') || u.includes('skf.com')) return 'skf';
+    if (u.includes('careers.apotex.com') || u.includes('apotex.com')) return 'apotex';
+    if (u.includes('careers.motherson.com') || u.includes('motherson.com')) return 'motherson';
+    if (u.includes('careers.airindia.com') || u.includes('airindia.com')) return 'airindia';
+    if (u.includes('careers.deere.com') || u.includes('deere.com')) return 'deere';
+    if (u.includes('careers.qualcomm.com') || u.includes('qualcomm.com')) return 'qualcomm';
+    if (u.includes('careers.slb.com') || u.includes('slb.com/job')) return 'slb';
+    if (u.includes('careers.godrejindustries.com') || (u.includes('godrej') && u.includes('/in/en'))) return 'godrej';
+    if (u.includes('jobs.continental.com')) return 'continental';
 
     // SmartRecruiters
     if (u.includes('careers.smartrecruiters.com')) return 'smartrecruiters';
@@ -337,7 +445,11 @@ async function detectTypeFromDom(page) {
         const metaApp = document.querySelector('meta[name="application-name"]')?.content?.toLowerCase() || '';
 
         if (html.includes('jobs.porsche.com') || document.querySelector('.jb-datatable')) return 'porsche';
+        if (url.includes('jobs.bosch.com') || html.includes('jobs.bosch')) return 'bosch';
         if (url.includes('careers.titan.in')) return 'titan';
+        if (url.includes('jobs.carrier.com')) return 'carrier';
+        if (url.includes('jobs.whirlpool.com')) return 'whirlpool';
+        if (url.includes('jobs.ericsson.com')) return 'ericsson';
         if (document.querySelector('li.jobs-list-item') || document.querySelector('[ph-tag="ph-search-results-v2"]') || html.includes('ph-search-results') || url.includes('careers.kbr.com') || url.includes('careers.philips.com')) return 'kbr';
         if (document.querySelector('[data-automation-id="jobTitle"]') || scripts.includes('workday') || url.includes('workday')) return 'workday';
         if (document.querySelector('.job-tile') || html.includes('darwinbox')) return 'darwinbox';
@@ -345,7 +457,7 @@ async function detectTypeFromDom(page) {
         if (url.includes('smartrecruiters.com')) return 'smartrecruiters';
         if (document.querySelector('[class*="rec-listing"]') || html.includes('csod')) return 'csod';
         if (document.querySelector('.requisitionListItem') || html.includes('oraclecloud') || html.includes('hcmui') || url.includes('adani.com/opportunity')) return 'oracle';
-        if (html.includes('successfactors') || scripts.includes('successfactors') || url.includes('tataconsumer.com') || url.includes('tataelectronics.com') || url.includes('jobs.zf.com') || url.includes('jobs.danfoss.com') || url.includes('join.cnh.com') || url.includes('jobs.tuvsud.com') || url.includes('schindler.com') || document.querySelector('li[data-testid="jobCard"]')) return 'successfactors';
+        if (html.includes('successfactors') || scripts.includes('successfactors') || url.includes('alstom.com') || url.includes('tataconsumer.com') || url.includes('tataelectronics.com') || url.includes('jobs.zf.com') || url.includes('jobs.danfoss.com') || url.includes('join.cnh.com') || url.includes('jobs.tuvsud.com') || url.includes('schindler.com') || document.querySelector('li[data-testid="jobCard"]')) return 'successfactors';
         if (html.includes('taleo') || url.includes('taleo')) return 'taleo';
         if (document.querySelector('.posting') || html.includes('lever.co')) return 'lever';
         if (document.querySelector('.opening') || html.includes('greenhouse')) return 'greenhouse';
@@ -365,6 +477,10 @@ async function detectTypeFromDom(page) {
         if (url.includes('aecom.jobs') || document.querySelector('ul#jobs a[href*="/job/"]')) return 'aecom';
         if (url.includes('peoplestrong.com') || document.querySelector('app-joblist') || document.querySelector('app-job-detail')) return 'peoplestrong';
         if (url.includes('ttcportals.com') || document.querySelector('.job-result') && document.querySelector('.facet-item')) return 'ttcportals';
+        if (url.includes('workable.com') || html.includes('workable') || document.querySelector('[data-ui="job"]')) return 'workable';
+        if (url.includes('teamtailor.com') || html.includes('teamtailor') || document.querySelector('#jobs_list_container') || document.querySelector('[data-blocks--jobs-target="jobsListContainer"]')) return 'teamtailor';
+        if (url.includes('talentrecruit.com') || html.includes('talentrecruit') || document.querySelector('.card-wrap') && document.querySelector('.right-listing')) return 'talentrecruit';
+        if (document.querySelector('.attrax-vacancy-tile') || document.querySelector('.attrax-list-widget') || html.includes('attrax-vacancy-tile') || url.includes('konecranes.careers')) return 'konecranes';
 
         // New site fingerprints
         if (url.includes('ril.com')) return 'ril';
@@ -379,8 +495,22 @@ async function detectTypeFromDom(page) {
         if (url.includes('panasonic')) return 'panasonic';
         if (url.includes('jabil.com') || html.includes('jabil')) return 'jabil';
         if (url.includes('ramboll.com') || html.includes('ramboll')) return 'ramboll';
-        if (url.includes('zohorecruit.com') || html.includes('zohorecruit')) return 'zohorecruit';
+        if (url.includes('zohorecruit.com') || url.includes('/jobs/careers') || url.includes('nirmal.co.in') || html.includes('zohorecruit') || html.includes('cw-joblisting-results') || html.includes('cw-filter-joblist')) return 'zohorecruit';
         if (url.includes('tataelxsi.com') || html.includes('tataelxsi')) return 'tataelxsi';
+        if (url.includes('ripplehire.com') || html.includes('ripplehire') || html.includes('list-job-box')) return 'ripplehire';
+        if (url.includes('nestle.com') || html.includes('nestle') || html.includes('jobs-card') || html.includes('jobdetails.nestle.com')) return 'nestle';
+        if (url.includes('bharatwireropes.com') || html.includes('bharat wire ropes') || html.includes('bharatwireropes')) return 'bharatwireropes';
+        if (url.includes('gm.com') || html.includes('general motors') || html.includes('search-careers.gm.com')) return 'gm';
+        if (url.includes('bradken') || html.includes('bradken')) return 'bradken';
+        if (url.includes('systra') || html.includes('systra')) return 'systra';
+        if (url.includes('dzconnex') || html.includes('shmJobResult')) return 'dzconnex';
+        if (url.includes('skf.com')) return 'skf';
+        if (url.includes('apotex.com')) return 'apotex';
+        if (url.includes('motherson.com')) return 'motherson';
+        if (url.includes('airindia.com')) return 'airindia';
+        if (url.includes('deere.com')) return 'deere';
+        if (url.includes('qualcomm.com')) return 'qualcomm';
+        if (url.includes('careers.slb.com') || url.includes('slb.com/job')) return 'slb';
 
         return 'generic_listing';
     });
@@ -457,40 +587,426 @@ async function scrapeTataElxsi(page, context, listingUrl, results) {
 // Selector: table#dgJobs / tr with job rows
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeRil(page, context, listingUrl, results) {
-    // RIL uses ASP.NET WebForms — wait for GridView table
-    await page.waitForSelector('#dgJobs, table.grid, .joblisting, [id*="GridView"], [id*="Job"]', { timeout: 30000 }).catch(() => { });
-    await autoScroll(page);
+    console.log(`\n🏢 Scraping Reliance Industries Limited (RIL)...`);
+    let pageNum = 1;
+    let hasNextPage = true;
 
-    const jobLinks = await page.evaluate(() => {
-        // Try GridView rows
-        let rows = [...document.querySelectorAll('#dgJobs tr, table.grid tr, [id*="GridView"] tr')].filter(r => r.querySelector('a'));
-        if (!rows.length) {
-            // Fallback: any link with jobId param
-            return [...document.querySelectorAll('a[href*="jobId"], a[href*="JobId"], a[href*="job_id"]')].map(a => ({
-                title: a.innerText?.trim() || 'Not Found',
-                location: a.closest('tr')?.querySelectorAll('td')[1]?.innerText?.trim() || 'Not Found',
-                detailUrl: a.href,
-            }));
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+    } catch (e) {
+        console.log(`  ❌ Failed to load RIL listing: ${e.message}`);
+        return;
+    }
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ RIL: Fetching Page ${pageNum}...`);
+        try {
+            await page.waitForSelector('#MainContent_rgJobs, .mytable', { timeout: 30000 }).catch(() => { });
+            await page.waitForTimeout(2000);
+
+            const jobs = await page.evaluate(() => {
+                const pageResults = [];
+                const rows = document.querySelectorAll('#MainContent_rgJobs tbody tr');
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length < 5) return; // Skip pagination row or invalid rows
+
+                    const a = cells[1].querySelector('a');
+                    if (!a) return;
+
+                    const titleText = a.innerText.trim();
+                    const applyLink = a.href;
+                    const location = cells[3].innerText.trim();
+
+                    // Extract job ID from title like "SPM Officer ( 82966035 )"
+                    let jobId = 'Not Found';
+                    const match = titleText.match(/\(\s*(\d+)\s*\)/);
+                    if (match && match[1]) {
+                        jobId = match[1];
+                    }
+
+                    pageResults.push({
+                        title: titleText.replace(/\s*\(\s*\d+\s*\)\s*/, ''), // Remove ID from title
+                        location,
+                        experience: 'Not Found',
+                        applyLink,
+                        url: applyLink,
+                        company: 'Reliance Industries Limited',
+                        description: '',
+                        jobId
+                    });
+                });
+                return pageResults;
+            });
+
+            console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+            if (jobs.length === 0) {
+                console.log(`  ⚠️ No jobs found on page ${pageNum}. Assuming end of list.`);
+                break;
+            }
+
+            for (const job of jobs) {
+                if (results.length >= MAX_JOBS) break;
+
+                if (job.applyLink) {
+                    try {
+                        const detailPage = await context.newPage();
+                        await detailPage.goto(job.applyLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                        await detailPage.waitForTimeout(3000);
+                        const fullDesc = await detailPage.evaluate(() => {
+                            const summRole = document.getElementById('MainContent_lblSummRole');
+                            const eduReq = document.getElementById('MainContent_lblEduReq');
+                            const expReq = document.getElementById('MainContent_lblExpReq');
+                            const skill = document.getElementById('MainContent_lblSkill');
+
+                            let desc = '';
+                            if (summRole && summRole.innerText.trim()) desc += 'Job Responsibilities:\n' + summRole.innerText.trim() + '\n\n';
+                            if (eduReq && eduReq.innerText.trim()) desc += 'Education Requirement:\n' + eduReq.innerText.trim() + '\n\n';
+                            if (expReq && expReq.innerText.trim()) desc += 'Experience Requirement:\n' + expReq.innerText.trim() + '\n\n';
+                            if (skill && skill.innerText.trim()) desc += 'Skills & Competencies:\n' + skill.innerText.trim() + '\n\n';
+
+                            if (!desc) {
+                                const fallback = document.querySelector('.job-details, .contentarea');
+                                if (fallback) desc = fallback.innerText.trim();
+                            }
+                            return desc.trim();
+                        });
+
+                        if (fullDesc) {
+                            job.description = fullDesc;
+                        }
+                        await detailPage.close();
+                    } catch (e) {
+                        console.log(`    ⚠️ Could not fetch full description for ${job.jobId}`);
+                    }
+                }
+
+                results.push({
+                    ...job,
+                    url: job.applyLink,
+                    id: `ril-${job.jobId !== 'Not Found' ? job.jobId : job.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+                    date: new Date().toISOString()
+                });
+                console.log(`    🔎 ${job.title} | ${job.location}`);
+                if (typeof saveJobsNow === 'function') saveJobsNow(results);
+            }
+
+            // Check for pagination
+            const hasNext = await page.evaluate(() => {
+                const nextBtn = document.getElementById('MainContent_rgJobs_lnkNext');
+                if (nextBtn && !nextBtn.disabled && !nextBtn.classList.contains('aspNetDisabled')) {
+                    nextBtn.click();
+                    return true;
+                }
+                return false;
+            });
+
+            if (hasNext) {
+                pageNum++;
+                await page.waitForTimeout(6000); // Wait for postback to complete
+            } else {
+                hasNextPage = false;
+            }
+
+        } catch (e) {
+            console.error(`  ❌ Error scraping RIL page ${pageNum}:`, e.message);
+            hasNextPage = false;
         }
-        return rows.slice(1).map(row => { // skip header row
-            const cells = row.querySelectorAll('td');
-            const a = row.querySelector('a');
-            return {
-                title: a?.innerText?.trim() || cells[0]?.innerText?.trim() || 'Not Found',
-                location: cells[2]?.innerText?.trim() || cells[1]?.innerText?.trim() || 'Not Found',
-                experience: cells[3]?.innerText?.trim() || 'Not Found',
-                detailUrl: a?.href || '',
-            };
-        });
-    });
-
-    console.log(`  ↳ RIL: ${jobLinks.length} jobs`);
-    for (const job of jobLinks) {
-        await visitDetailPage(context, job, 'ril', results, { company: 'Reliance Industries Ltd' });
-        await delay(500);
     }
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🛵  ATHER ENERGY
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeAtherEnergy(page, context, listingUrl, results) {
+    console.log(`\n🛵 Scraping Ather Energy...`);
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+
+        // Click on "All teams" tab to load all jobs
+        try {
+            await page.evaluate(() => {
+                const tabs = document.querySelectorAll('.ant-tabs-tab');
+                for (const tab of tabs) {
+                    if (tab.innerText.includes('All teams')) {
+                        tab.click();
+                        break;
+                    }
+                }
+            });
+            await page.waitForTimeout(3000);
+        } catch (e) {
+            console.log('  ⚠️ Could not click "All teams" tab.');
+        }
+
+        await autoScroll(page);
+
+        const jobs = await page.evaluate(() => {
+            const pageResults = [];
+            const cards = document.querySelectorAll('.card-style-job');
+            cards.forEach(card => {
+                const a = card.closest('a');
+                if (!a) return;
+                const titleEl = a.querySelector('.title-box > div:first-child');
+                const locEl = a.querySelector('.title-box > div:last-child');
+                if (!titleEl) return;
+
+                const titleText = titleEl.innerText.trim();
+                const location = locEl ? locEl.innerText.trim() : 'Not Found';
+                const applyLink = new URL(a.getAttribute('href'), window.location.origin).href;
+                const jobId = applyLink.split('/').pop() || 'Not Found';
+
+                pageResults.push({
+                    title: titleText,
+                    location,
+                    experience: 'Not Found',
+                    applyLink: applyLink,
+                    url: applyLink,
+                    company: 'Ather Energy',
+                    description: '',
+                    jobId
+                });
+            });
+            return pageResults;
+        });
+
+        console.log(`  ↳ Found ${jobs.length} jobs`);
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+
+            if (job.applyLink) {
+                try {
+                    const detailPage = await context.newPage();
+                    await detailPage.goto(job.applyLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await detailPage.waitForTimeout(3000);
+
+                    const fullDesc = await detailPage.evaluate(() => {
+                        const detailEl = document.querySelector('.jobDetail');
+                        return detailEl ? detailEl.innerHTML.trim() : '';
+                    });
+
+                    if (fullDesc) {
+                        job.description = fullDesc;
+                    }
+                    await detailPage.close();
+                } catch (e) {
+                    console.log(`    ⚠️ Could not fetch full description for ${job.jobId}`);
+                }
+            }
+
+            results.push({
+                ...job,
+                url: job.applyLink,
+                id: `ather-${job.jobId !== 'Not Found' ? job.jobId : job.title.replace(/\\s+/g, '-').toLowerCase()}-${Date.now()}`,
+                date: new Date().toISOString()
+            });
+            console.log(`    🔎 ${job.title} | ${job.location}`);
+            if (typeof saveJobsNow === 'function') saveJobsNow(results);
+        }
+    } catch (e) {
+        console.error(`  ❌ Error scraping Ather Energy:`, e.message);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 📊  SP GLOBAL
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeSpGlobal(page, context, listingUrl, results) {
+    console.log(`\n📊 Scraping SP Global...`);
+    const BASE_URL = 'https://careers.spglobal.com';
+    let pageNum = 1;
+
+    while (true) {
+        console.log(`  📄 SP Global Page ${pageNum}...`);
+        await page.waitForSelector('.search-result-item', { timeout: 30000 }).catch(() => { });
+        await autoScroll(page);
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+            const panels = document.querySelectorAll('.search-result-item');
+            panels.forEach((panel, idx) => {
+                const titleEl = panel.querySelector('.job-title-link span[itemprop="title"]');
+                const titleLinkEl = panel.querySelector('.job-title-link');
+                const locEl = panel.querySelector('.job-result__location .label-value.location');
+                const dateEl = panel.querySelector('.job-result__posted_date .label-value.posted_date');
+                const applyBtn = panel.querySelector('.apply-button');
+                const reqIdEl = panel.querySelector('.req-id span');
+
+                if (!titleEl) return;
+
+                const title = titleEl.innerText.trim();
+                const detailHref = titleLinkEl ? titleLinkEl.getAttribute('href') : '';
+                const detailUrl = detailHref ? new URL(detailHref, baseUrl).href : '';
+                const location = locEl ? locEl.innerText.replace(/\s+/g, ' ').trim() : 'Not Found';
+                const date = dateEl ? dateEl.innerText.trim() : 'Not Found';
+                const jobId = reqIdEl ? reqIdEl.innerText.trim() : ('spg-' + idx);
+
+                pageResults.push({
+                    title,
+                    location,
+                    experience: 'Not Found',
+                    applyLink: detailUrl,
+                    url: detailUrl,
+                    detailUrl,
+                    company: 'S&P Global',
+                    description: '',
+                    date,
+                    jobId
+                });
+            });
+            return pageResults;
+        }, BASE_URL);
+
+        console.log(`     ↳ SP Global: ${jobs.length} jobs on page ${pageNum}`);
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            if (job.detailUrl) {
+                try {
+                    const detailPage = await context.newPage();
+                    await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await detailPage.waitForTimeout(3000);
+                    const fullDesc = await detailPage.evaluate(() => {
+                        const el = document.querySelector('#jibe-container, .jibe-container .columns .left, .job-description');
+                        return el ? el.innerHTML.trim() : '';
+                    });
+                    if (fullDesc) job.description = fullDesc;
+                    await detailPage.close();
+                } catch (e) {
+                    console.log(`    ⚠️ Could not fetch description for ${job.jobId}`);
+                }
+            }
+            results.push({
+                ...job,
+                id: `spglobal-${job.jobId}-${Date.now()}`,
+                date: job.date || new Date().toISOString()
+            });
+            console.log(`    🔎 ${job.title} | ${job.location}`);
+            if (typeof saveJobsNow === 'function') saveJobsNow(results);
+        }
+
+        if (results.length >= MAX_JOBS) break;
+
+        // Pagination — click Next Page if not disabled
+        const hasNext = await page.evaluate(() => {
+            const btn = document.querySelector('.mat-paginator-navigation-next');
+            if (btn && !btn.disabled && !btn.classList.contains('mat-button-disabled')) {
+                btn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ SP Global done — ${pageNum} pages`);
+            break;
+        }
+
+        await page.waitForTimeout(4000);
+        pageNum++;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏗️  TATA PROJECTS
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeTataProjects(page, context, listingUrl, results) {
+    console.log(`\n🏗️ Scraping Tata Projects...`);
+    const BASE_URL = 'https://careers.tataprojects.com';
+    let pageNum = 1;
+
+    while (true) {
+        console.log(`  📄 Tata Projects Page ${pageNum}...`);
+        await page.waitForSelector('table#searchresults', { timeout: 30000 }).catch(() => { });
+        await autoScroll(page);
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+            const rows = document.querySelectorAll('table#searchresults tr.data-row');
+            rows.forEach((row, idx) => {
+                const titleEl = row.querySelector('.jobTitle-link');
+                const locEl = row.querySelector('.colLocation .jobLocation');
+                const dateEl = row.querySelector('.colDate .jobDate');
+
+                if (!titleEl) return;
+
+                const title = titleEl.innerText.trim();
+                const relHref = titleEl.getAttribute('href') || '';
+                const detailUrl = relHref ? (new URL(relHref, baseUrl)).href : '';
+                const location = locEl ? locEl.innerText.replace(/\s+/g, ' ').trim() : 'Not Found';
+                const date = dateEl ? dateEl.innerText.trim() : 'Not Found';
+                const jobId = relHref.match(/\/(\d+)\/?$/)?.[1] || ('tp-' + idx);
+
+                pageResults.push({
+                    title,
+                    location,
+                    experience: 'Not Found',
+                    applyLink: detailUrl,
+                    url: detailUrl,
+                    detailUrl,
+                    company: 'Tata Projects',
+                    description: '',
+                    date,
+                    jobId
+                });
+            });
+            return pageResults;
+        }, BASE_URL);
+
+        console.log(`     ↳ Tata Projects: ${jobs.length} jobs on page ${pageNum}`);
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            if (job.detailUrl) {
+                try {
+                    const detailPage = await context.newPage();
+                    await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                    await detailPage.waitForTimeout(2000);
+                    const fullDesc = await detailPage.evaluate(() => {
+                        const el = document.querySelector('.jobdescription, .job-description, [data-careersite-propertyid="description"]');
+                        return el ? el.innerHTML.trim() : '';
+                    });
+                    if (fullDesc) job.description = fullDesc;
+                    await detailPage.close();
+                } catch (e) {
+                    console.log(`    ⚠️ Could not fetch description for ${job.jobId}`);
+                }
+            }
+            results.push({
+                ...job,
+                id: `tataprojects-${job.jobId}-${Date.now()}`,
+                date: job.date || new Date().toISOString()
+            });
+            console.log(`    🔎 ${job.title} | ${job.location}`);
+            if (typeof saveJobsNow === 'function') saveJobsNow(results);
+        }
+
+        if (results.length >= MAX_JOBS) break;
+
+        // Pagination — look for a "Next" page link
+        const hasNext = await page.evaluate(() => {
+            const nextLink = document.querySelector('a[rel="next"], .next a, .pagination .next a, a.next');
+            if (nextLink && nextLink.href) {
+                nextLink.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ Tata Projects done — ${pageNum} pages`);
+            break;
+        }
+
+        await page.waitForTimeout(3000);
+        pageNum++;
+    }
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // 🦅  DARWINBOX
@@ -1181,15 +1697,71 @@ async function scrapeIcims(page, context, listingUrl, results) {
 // 💼  SAP SUCCESSFACTORS
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeSuccessFactors(page, context, listingUrl, results) {
+    let companyFromUrl = 'SuccessFactors';
+    try {
+        const uObj = new URL(listingUrl);
+        const compParam = uObj.searchParams.get('company');
+        if (compParam) companyFromUrl = compParam.toUpperCase();
+    } catch (_) { }
+
     let pageNum = 1;
+    const seenUrls = new Set();
+
     while (true) {
         console.log(`  📄 SuccessFactors Page ${pageNum}...`);
-        // SuccessFactors can have table-based or card-based layouts
-        await page.waitForSelector('tr.data-row, [class*="job-tile"], [class*="jobTitle"], li[data-id], li[data-testid="jobCard"]', { timeout: 30000 }).catch(() => { });
+        await page.waitForSelector('tr.jobResultItem, .jobResultItem, tr.data-row, [class*="job-tile"], [class*="jobTitle"], li[data-id], li[data-testid="jobCard"]', { timeout: 30000 }).catch(() => { });
         await autoScroll(page);
 
-        const jobLinks = await page.evaluate(() => {
-            // Check for table rows first (Hero MotoCorp style)
+        const jobLinks = await page.evaluate((baseUrl) => {
+            // 1. Check for legacy SuccessFactors table items (PI Industries / career_ns=job_listing_summary style)
+            let sfLegacyItems = [...document.querySelectorAll('tr.jobResultItem, .jobResultItem')];
+            if (sfLegacyItems.length) {
+                return sfLegacyItems.map(row => {
+                    const titleA = row.querySelector('a.jobTitle, .jobTitle a');
+                    const title = titleA?.innerText?.trim() || 'Not Found';
+                    const relHref = titleA?.getAttribute('href') || '';
+                    const detailUrl = relHref ? new URL(relHref, baseUrl).href : '';
+
+                    const noteText = row.querySelector('.noteSection')?.innerText?.trim() || '';
+                    const spans = [...row.querySelectorAll('.noteSection .jobContentEM')].map(s => s.innerText?.trim());
+
+                    const reqMatch = noteText.match(/Requisition ID:\s*([^\s-]+)/i);
+                    const jobId = reqMatch ? reqMatch[1] : (spans[0] || '');
+
+                    const dateMatch = noteText.match(/Posted on\s*([^\s-]+)/i);
+                    const date = dateMatch ? dateMatch[1] : (spans[1] ? spans[1].replace(/^Posted on\s*/i, '') : '');
+
+                    let country = '';
+                    let city = '';
+                    let department = '';
+
+                    if (spans.length >= 5) {
+                        department = spans[2] || '';
+                        country = spans[3] || '';
+                        city = spans[4] || '';
+                    } else if (spans.length >= 4) {
+                        department = spans[2] || '';
+                        country = spans[3] || '';
+                    }
+
+                    let loc = [city, country].filter(Boolean).join(', ');
+                    if (!loc) loc = noteText || 'Not Found';
+                    if (loc === 'IN') loc = 'India';
+                    else if (loc.match(/\bIN\b/)) loc = loc.replace(/\bIN\b/g, 'India');
+
+                    return {
+                        title,
+                        location: loc,
+                        detailUrl,
+                        applyLink: detailUrl,
+                        date,
+                        jobId,
+                        department
+                    };
+                }).filter(j => j.detailUrl && j.title !== 'Not Found');
+            }
+
+            // 2. Check for table rows (Hero MotoCorp style)
             let items = [...document.querySelectorAll('tr.data-row')];
             if (items.length) {
                 return items.map(tr => {
@@ -1198,39 +1770,43 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
                     if (loc === 'IN') loc = 'India';
                     else if (loc.match(/\bIN\b/)) loc = loc.replace(/\bIN\b/g, 'India');
 
-                    let department = tr.querySelector('.jobFacility, .colFacility')?.innerText?.trim();
+                    let department = tr.querySelector('.jobFacility, .colFacility, .jobDepartment, .colDepartment')?.innerText?.trim();
                     let experience = tr.querySelector('.jobShifttype, .colShifttype')?.innerText?.trim();
+                    let date = tr.querySelector('.jobDate, .colDate')?.innerText?.trim();
+
+                    let titleA = tr.querySelector('a.jobTitle-link, .jobTitle a, a');
+                    let detailUrl = titleA?.href || '';
 
                     return {
-                        title: tr.querySelector('.jobTitle-link, .colTitle a')?.innerText?.trim() || 'Not Found',
+                        title: tr.querySelector('.jobTitle-link, .colTitle a, .jobTitle a')?.innerText?.trim() || 'Not Found',
                         location: loc,
-                        detailUrl: tr.querySelector('a')?.href || '',
+                        detailUrl,
+                        applyLink: detailUrl,
                         department,
-                        experience
+                        experience,
+                        date
                     };
                 }).filter(j => j.detailUrl);
             }
 
-            // Check for RMK/SuccessFactors data-testid="jobCard" cards (ZF, Danfoss style)
+            // 3. Check for RMK/SuccessFactors data-testid="jobCard" cards (ZF, Danfoss style)
             const rmkCards = [...document.querySelectorAll('li[data-testid="jobCard"]')];
             if (rmkCards.length) {
                 return rmkCards.map(card => {
                     let title = card.querySelector('a[data-testid^="jobCardTitle"]')?.innerText?.trim() || 'Not Found';
                     let detailUrl = card.querySelector('a[data-testid^="jobCardTitle"]')?.href || '';
-                    // Resolve relative URLs
                     if (detailUrl && !detailUrl.startsWith('http')) {
-                        detailUrl = window.location.origin + detailUrl;
+                        detailUrl = new URL(detailUrl, baseUrl).href;
                     }
                     let loc = card.querySelector('[data-testid="jobCardLocation"]')?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Found';
-                    // Extract footer values: Job Category and Experience Level
                     const footerValues = [...card.querySelectorAll('[data-help-id^="jobCardFooterValue"]')].map(el => el.innerText?.trim()).filter(Boolean);
                     let department = footerValues[0] || '';
                     let experience = footerValues[1] || '';
-                    return { title, location: loc, detailUrl, department, experience };
+                    return { title, location: loc, detailUrl, applyLink: detailUrl, department, experience };
                 }).filter(j => j.detailUrl);
             }
 
-            // Check for cards (Standard SF style)
+            // 4. Check for cards (Standard SF style)
             const cards = [...document.querySelectorAll('[class*="job-tile"], [class*="jobCard"], [data-id][class*="job"]')];
             if (cards.length) {
                 return cards.map(card => {
@@ -1250,6 +1826,7 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
                         title,
                         location: loc,
                         detailUrl,
+                        applyLink: detailUrl,
                         date,
                         jobId,
                         company,
@@ -1259,33 +1836,74 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
             }
 
             // Fallback: any anchor that looks like a job link
-            return [...document.querySelectorAll('a[href*="/job/"]')].map(a => ({
+            return [...document.querySelectorAll('a[href*="/job/"], a[href*="career_job_req_id="]')].map(a => ({
                 title: a.innerText.trim() || 'Not Found',
                 location: 'Not Found',
-                detailUrl: a.href
+                detailUrl: a.href,
+                applyLink: a.href
             }));
-        });
+        }, page.url());
 
-        console.log(`     ↳ SuccessFactors: ${jobLinks.length} jobs`);
+        console.log(`     ↳ SuccessFactors: ${jobLinks.length} jobs on page ${pageNum}`);
+        let newJobsOnPage = 0;
         for (const job of jobLinks) {
+            if (seenUrls.has(job.detailUrl)) continue;
+            seenUrls.add(job.detailUrl);
+            newJobsOnPage++;
+
             if (results.length >= MAX_JOBS) break;
             const extra = {};
-            if (job.company && job.company !== 'Not Found') extra.company = job.company;
+            if (listingUrl.includes('alstom')) extra.company = 'Alstom';
+            else if (companyFromUrl !== 'SuccessFactors') extra.company = companyFromUrl;
+            else if (job.company && job.company !== 'Not Found') extra.company = job.company;
             if (job.department && job.department !== 'Not Found') extra.department = job.department;
+
             await visitDetailPage(context, job, 'successfactors', results, extra);
             await delay(500);
         }
 
-        if (results.length >= MAX_JOBS) break;
+        if (results.length >= MAX_JOBS || (pageNum > 1 && newJobsOnPage === 0)) break;
 
+        // Check for in-page pagination click (Legacy SuccessFactors pagination `.paginationArrowContainer.next` or `[id$="_next"]`)
+        const legacyNextClicked = await page.evaluate(() => {
+            const nextContainer = document.querySelector('.paginationArrowContainer.next, [id$="_next"]');
+            if (!nextContainer) return false;
+            const isDisabled = nextContainer.classList.contains('disabledArrow') ||
+                nextContainer.classList.contains('next_disabled') ||
+                nextContainer.classList.contains('disabled');
+            if (isDisabled) return false;
+
+            const nextLink = nextContainer.querySelector('a') || document.querySelector('a[title="Next Page"], a[aria-label="Next Page"]');
+            if (nextLink) {
+                nextLink.scrollIntoView();
+                nextLink.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (legacyNextClicked) {
+            await page.waitForTimeout(3500);
+            pageNum++;
+            continue;
+        }
+
+        // URL-based pagination check
         const nextUrl = await page.evaluate((pageNum) => {
-            if (window.location.href.includes('schindler.com')) {
+            if (window.location.href.includes('schindler.com') || window.location.href.includes('alstom.com')) {
                 const labelEl = document.querySelector('.paginationLabel');
                 if (labelEl) {
                     const bTags = labelEl.querySelectorAll('b');
                     if (bTags.length >= 2) {
                         const total = parseInt(bTags[bTags.length - 1].innerText.replace(/,/g, ''), 10);
                         if (pageNum * 25 < total) {
+                            const activeLi = document.querySelector('ul.pagination li.active');
+                            if (activeLi && activeLi.nextElementSibling) {
+                                const nextA = activeLi.nextElementSibling.querySelector('a');
+                                if (nextA && nextA.href && !nextA.classList.contains('paginationItemLast')) {
+                                    return nextA.href;
+                                }
+                            }
                             const url = new URL(window.location.href);
                             url.searchParams.set('startrow', pageNum * 25);
                             return url.toString();
@@ -1295,11 +1913,9 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
                 return null;
             }
 
-            // --- RMK platform (Danfoss, ZF) — uses pageNumber param, 10 items/page ---
             if (document.querySelector('li[data-testid="jobCard"]')) {
                 const headerEl = document.querySelector('h2[data-testid="headerTitle"], span[data-testid="searchResultAriaLive"]');
                 const headerText = headerEl ? (headerEl.innerText || headerEl.textContent || '') : '';
-                // e.g. "1 to 10 of 58 results"
                 const rmkMatch = headerText.match(/(\d+)\s+to\s+(\d+)\s+of\s+([\d,]+)/i);
                 if (rmkMatch) {
                     const showing = parseInt(rmkMatch[2], 10);
@@ -1311,20 +1927,17 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
                         return url.toString();
                     }
                 }
-                // Fallback: use paginator button to get current page number
                 const nextBtn = document.querySelector('button[data-testid="goToNextPageBtn"]');
                 if (nextBtn && !nextBtn.disabled && !nextBtn.hasAttribute('disabled')) {
                     const currentBtn = document.querySelector('button[aria-current="page"]');
                     const currentPageNum = currentBtn ? parseInt(currentBtn.textContent.trim(), 10) : 1;
                     const url = new URL(window.location.href);
-                    // Danfoss uses 0-based pageNumber: button page 1 = pageNumber=0, so next = pageNumber=(currentPageNum)
                     url.searchParams.set('pageNumber', currentPageNum);
                     return url.toString();
                 }
                 return null;
             }
 
-            // --- Standard SF pagination ---
             const activeLi = document.querySelector('ul.pagination li.active');
             if (activeLi && activeLi.nextElementSibling) {
                 const nextA = activeLi.nextElementSibling.querySelector('a');
@@ -1356,8 +1969,7 @@ async function scrapeSuccessFactors(page, context, listingUrl, results) {
         }
 
         await page.goto(nextUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        // Wait for job cards to appear (handles SPA async rendering)
-        await page.waitForSelector('li[data-testid="jobCard"], tr.data-row, [class*="job-tile"]', { timeout: 15000 }).catch(() => { });
+        await page.waitForSelector('li[data-testid="jobCard"], tr.data-row, [class*="job-tile"], tr.jobResultItem, .jobResultItem', { timeout: 15000 }).catch(() => { });
         await page.waitForTimeout(2000);
         pageNum++;
     }
@@ -1982,8 +2594,637 @@ async function scrapeParamAi(page, context, listingUrl, results) {
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// ✈️  AIR INDIA
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeAirIndia(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Air India...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+    } catch (e) {
+        console.log(`  ❌ Failed to load Air India: ${e.message}`);
+        return;
+    }
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ Air India Page ${pageNum}...`);
+        await page.waitForSelector('.job-tile', { timeout: 30000 }).catch(() => { });
+        await autoScroll(page);
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+            const tiles = document.querySelectorAll('.job-tile');
+
+            tiles.forEach(tile => {
+                const titleEl = tile.querySelector('.jobTitle-link');
+                const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
+                const href = titleEl ? titleEl.getAttribute('href') : '';
+                const detailUrl = href ? new URL(href, baseUrl).href : '';
+
+                const locEl = tile.querySelector('.section-field.city [id$="-value"], .section-field.location [id$="-value"]');
+                const location = locEl ? locEl.innerText.trim() : 'Not Found';
+
+                const deptEl = tile.querySelector('.section-field.dept [id$="-value"]');
+                const department = deptEl ? deptEl.innerText.trim() : '';
+
+                const idEl = tile.querySelector('.section-field.customfield1 [id$="-value"]');
+                const jobId = idEl ? idEl.innerText.trim() : '';
+
+                if (detailUrl) {
+                    pageResults.push({
+                        title,
+                        location,
+                        experience: 'Not Found',
+                        applyLink: detailUrl,
+                        detailUrl: detailUrl,
+                        url: detailUrl,
+                        company: 'Air India',
+                        department,
+                        jobId,
+                        date: ''
+                    });
+                }
+            });
+            return pageResults;
+        }, listingUrl);
+
+        console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+        if (jobs.length === 0) break;
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'airindia', results, { company: 'Air India' });
+            await delay(500);
+        }
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('.pagination .next:not(.disabled) a, a.paginationItemLast[title="Next Page"], .pagination a.next');
+            if (nextBtn && nextBtn.href && !nextBtn.className.includes('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+        pageNum++;
+        await page.waitForTimeout(5000);
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🚜  DEERE
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeDeere(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Deere...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+    } catch (e) {
+        console.log(`  ❌ Failed to load Deere: ${e.message}`);
+        return;
+    }
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ Deere Page ${pageNum}...`);
+        await page.waitForSelector('[data-test-id="job-listing"], .cardListItem-3iAXI', { timeout: 30000 }).catch(() => { });
+        await autoScroll(page);
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+            const cards = document.querySelectorAll('[data-test-id="job-listing"], .cardListItem-3iAXI');
+
+            cards.forEach(card => {
+                const titleEl = card.querySelector('[class*="title-"]');
+                const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
+
+                const linkEl = card.querySelector('a[href*="/job/"]');
+                const href = linkEl ? linkEl.getAttribute('href') : '';
+                const detailUrl = href ? new URL(href, baseUrl).href : '';
+
+                const fieldValues = Array.from(card.querySelectorAll('[class*="fieldValue-"]')).map(el => el.innerText.trim());
+                const location = fieldValues[0] || 'Not Found';
+                const department = fieldValues[1] || '';
+
+                const dateEl = card.querySelector('[class*="subData-"]');
+                const date = dateEl ? dateEl.innerText.trim() : '';
+
+                let jobId = '';
+                if (href) {
+                    const match = href.match(/\/job\/(\d+)/);
+                    if (match) jobId = match[1];
+                }
+
+                if (detailUrl) {
+                    pageResults.push({
+                        title,
+                        location,
+                        experience: 'Not Found',
+                        applyLink: detailUrl,
+                        detailUrl: detailUrl,
+                        url: detailUrl,
+                        company: 'John Deere',
+                        department,
+                        jobId,
+                        date
+                    });
+                }
+            });
+            return pageResults;
+        }, listingUrl);
+
+        console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+        if (jobs.length === 0) break;
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'deere', results, { company: 'John Deere' });
+            await delay(500);
+        }
+
+        const oldFirstJob = jobs[0]?.jobId;
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('button[aria-label="Next jobs"]');
+            if (nextBtn && !nextBtn.hasAttribute('disabled') && !nextBtn.className.includes('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+        pageNum++;
+
+        if (oldFirstJob) {
+            try {
+                await page.waitForFunction((oldId) => {
+                    const firstCard = document.querySelector('a[href*="/job/"]');
+                    if (!firstCard) return false;
+                    const href = firstCard.getAttribute('href');
+                    const match = href.match(/\/job\/(\d+)/);
+                    return match && match[1] !== oldId;
+                }, oldFirstJob, { timeout: 15000 });
+            } catch (e) {
+                console.log("  ⚠️ Next page didn't load in time or no more jobs.");
+                break; // Prevent infinite loop
+            }
+        } else {
+            await page.waitForTimeout(5000);
+        }
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 📱  QUALCOMM
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeQualcomm(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Qualcomm...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+    } catch (e) {
+        console.log(`  ❌ Failed to load Qualcomm: ${e.message}`);
+        return;
+    }
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ Qualcomm Page ${pageNum}...`);
+        await page.waitForSelector('[data-test-id="job-listing"], .cardListItem-3iAXI', { timeout: 30000 }).catch(() => { });
+        await autoScroll(page);
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+            const cards = document.querySelectorAll('[data-test-id="job-listing"], .cardListItem-3iAXI');
+
+            cards.forEach(card => {
+                const titleEl = card.querySelector('[class*="title-"]');
+                const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
+
+                const linkEl = card.querySelector('a[href*="/job/"]');
+                const href = linkEl ? linkEl.getAttribute('href') : '';
+                const detailUrl = href ? new URL(href, baseUrl).href : '';
+
+                const fieldValues = Array.from(card.querySelectorAll('[class*="fieldValue-"]')).map(el => el.innerText.trim());
+                const location = fieldValues[0] || 'Not Found';
+                const department = fieldValues[1] || '';
+
+                const dateEl = card.querySelector('[class*="subData-"]');
+                const date = dateEl ? dateEl.innerText.trim() : '';
+
+                let jobId = '';
+                if (href) {
+                    const match = href.match(/\/job\/(\d+)/);
+                    if (match) jobId = match[1];
+                }
+
+                if (detailUrl) {
+                    pageResults.push({
+                        title,
+                        location,
+                        experience: 'Not Found',
+                        applyLink: detailUrl,
+                        detailUrl: detailUrl,
+                        url: detailUrl,
+                        company: 'Qualcomm',
+                        department,
+                        jobId,
+                        date
+                    });
+                }
+            });
+            return pageResults;
+        }, listingUrl);
+
+        console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+        if (jobs.length === 0) break;
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'qualcomm', results, { company: 'Qualcomm' });
+            await delay(500);
+        }
+
+        const oldFirstJob = jobs[0]?.jobId;
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('button[aria-label="Next jobs"]');
+            if (nextBtn && !nextBtn.hasAttribute('disabled') && !nextBtn.className.includes('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+        pageNum++;
+
+        if (oldFirstJob) {
+            try {
+                await page.waitForFunction((oldId) => {
+                    const firstCard = document.querySelector('a[href*="/job/"]');
+                    if (!firstCard) return false;
+                    const href = firstCard.getAttribute('href');
+                    const match = href.match(/\/job\/(\d+)/);
+                    return match && match[1] !== oldId;
+                }, oldFirstJob, { timeout: 15000 });
+            } catch (e) {
+                console.log("  ⚠️ Next page didn't load in time or no more jobs.");
+                break; // Prevent infinite loop
+            }
+        } else {
+            await page.waitForTimeout(5000);
+        }
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🔵  SLB (Schlumberger) — Coveo Atomic Search
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeSlb(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping SLB...`);
+    let pageNum = 1;
+
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(8000); // Coveo Atomic needs time to initialise
+    } catch (e) {
+        console.log(`  ❌ Failed to load SLB: ${e.message}`);
+        return;
+    }
+
+    while (results.length < MAX_JOBS) {
+        console.log(`▶️ SLB Page ${pageNum}...`);
+        await page.waitForSelector('atomic-result-list', { timeout: 30000 }).catch(() => { });
+        await page.waitForTimeout(3000);
+
+        // Snapshot the query-summary text so we can detect page change later
+        const prevSummary = await page.evaluate(() => {
+            const el = document.querySelector('atomic-query-summary');
+            return el?.shadowRoot?.textContent?.trim() || el?.textContent?.trim() || '';
+        });
+
+        const jobs = await page.evaluate((baseUrl) => {
+            const pageResults = [];
+
+            // ---- helpers for shadow-DOM traversal ----
+            function queryShadowAll(root, selector) {
+                const found = [...root.querySelectorAll(selector)];
+                for (const el of root.querySelectorAll('*')) {
+                    if (el.shadowRoot) found.push(...queryShadowAll(el.shadowRoot, selector));
+                }
+                return found;
+            }
+
+            function getFieldText(el) {
+                if (!el) return '';
+                const sh = el.shadowRoot;
+                if (sh) {
+                    const parts = sh.querySelectorAll('[part*="value"], [part*="result-multi-value"]');
+                    if (parts.length) {
+                        const vals = [...parts].map(p => p.textContent?.trim()).filter(Boolean);
+                        return [...new Set(vals)].join(', ');
+                    }
+                    return sh.textContent?.trim() || '';
+                }
+                return el.textContent?.trim() || '';
+            }
+
+            // ---- find atomic-result elements (inside atomic-result-list shadow root) ----
+            const resultList = document.querySelector('atomic-result-list');
+            let atomicResults = resultList?.shadowRoot
+                ? [...resultList.shadowRoot.querySelectorAll('atomic-result')]
+                : [];
+
+            // Fallback: search entire shadow DOM tree
+            if (atomicResults.length === 0) {
+                atomicResults = queryShadowAll(document, 'atomic-result');
+            }
+
+            for (const result of atomicResults) {
+                const shadow = result.shadowRoot;
+                if (!shadow) continue;
+
+                // ---- title + URL via atomic-result-link ----
+                let href = '';
+                let title = '';
+                const atomicLink = shadow.querySelector('atomic-result-link');
+
+                if (atomicLink) {
+                    const anchor = atomicLink.querySelector('a');
+                    href = anchor?.href || '';
+
+                    const atomicText = atomicLink.querySelector('atomic-text');
+                    if (atomicText) {
+                        title = atomicText.getAttribute('value') || '';
+                    }
+                    if (!title) {
+                        title = anchor?.textContent?.trim() || '';
+                    }
+                }
+
+                // Fallback: any anchor leading to a job
+                if (!href || !title) {
+                    const anyAnchor = shadow.querySelector('a[href*="/job/"]') || shadow.querySelector('a[href*="careers.slb.com"]');
+                    if (anyAnchor) {
+                        href = href || anyAnchor.href;
+                        title = title || anyAnchor.textContent?.trim() || '';
+                    }
+                }
+
+                const city = getFieldText(shadow.querySelector('atomic-result-multi-value-text[field="city"]'));
+                const country = getFieldText(shadow.querySelector('atomic-result-multi-value-text[field="country"]'));
+                const category = getFieldText(shadow.querySelector('atomic-result-multi-value-text[field="category"]'));
+
+                const location = [city, country].filter(Boolean).join(', ') || 'Not Found';
+                const detailUrl = href || '';
+
+                if (detailUrl && title) {
+                    pageResults.push({
+                        title,
+                        location,
+                        experience: 'Not Found',
+                        applyLink: detailUrl,
+                        detailUrl,
+                        url: detailUrl,
+                        company: 'SLB',
+                        department: category,
+                        jobId: '',
+                        date: ''
+                    });
+                }
+            }
+            return pageResults;
+        }, listingUrl);
+
+        console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+        if (jobs.length === 0) break;
+
+        for (const job of jobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'slb', results, { company: 'SLB' });
+            await delay(500);
+        }
+
+        // ---- Pagination: click next button inside atomic-pager shadow root ----
+        const hasNext = await page.evaluate(() => {
+            const pager = document.querySelector('atomic-pager');
+            const pagerShadow = pager?.shadowRoot;
+            if (!pagerShadow) return false;
+            const nextBtn = pagerShadow.querySelector('button[part*="next"]')
+                || pagerShadow.querySelector('button[aria-label*="next" i]')
+                || [...pagerShadow.querySelectorAll('button')].find(b => !b.disabled && b !== pagerShadow.querySelector('button'));
+            if (nextBtn && !nextBtn.disabled && !nextBtn.hasAttribute('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+        pageNum++;
+
+        // Wait for results to update (query-summary text changes)
+        try {
+            await page.waitForFunction((old) => {
+                const el = document.querySelector('atomic-query-summary');
+                const txt = el?.shadowRoot?.textContent?.trim() || el?.textContent?.trim() || '';
+                return txt !== old && txt.length > 0;
+            }, prevSummary, { timeout: 15000 });
+        } catch (e) {
+            console.log('  ⚠️ SLB page did not update — stopping.');
+            break;
+        }
+        await page.waitForTimeout(2000);
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🟠  Godrej Industries (Phenom People ATS)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeGodrej(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Godrej Industries...`);
+    let pageNum = 1;
+
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(5000);
+    } catch (e) {
+        console.log(`  ❌ Failed to load Godrej: ${e.message}`);
+        return;
+    }
+
+    const allJobs = [];
+
+    while (true) {
+        console.log(`▶️ Godrej Page ${pageNum}...`);
+        await page.waitForSelector('a[data-ph-at-id="job-link"]', { timeout: 30000 }).catch(() => { });
+        await page.waitForTimeout(2000);
+
+        const jobs = await page.evaluate(() => {
+            const links = [...document.querySelectorAll('a[data-ph-at-id="job-link"]')];
+            return links.map(a => {
+                const title = a.getAttribute('data-ph-at-job-title-text')
+                    || a.getAttribute('data-ph-tevent-attr-trait132')
+                    || a.innerText?.trim()
+                    || 'Not Found';
+                const jobId = a.getAttribute('data-ph-at-job-id-text')
+                    || a.getAttribute('data-ph-tevent-attr-trait169')
+                    || '';
+                const href = a.href || '';
+                // Try to get company from tevent meta attributes
+                const company = 'Godrej';
+                return { title, jobId, detailUrl: href, company, location: '', date: '' };
+            }).filter(j => j.detailUrl && j.title !== 'Not Found');
+        });
+
+        console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+        if (jobs.length === 0) break;
+
+        allJobs.push(...jobs);
+
+        // ── Pagination — click Next link (Phenom uses ?from=N&s=1 URLs) ──
+        const hasNext = await page.evaluate(() => {
+            const nextLink = document.querySelector('a[data-ph-at-id="pagination-next-link"]');
+            if (nextLink && !nextLink.classList.contains('disabled')) {
+                nextLink.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+
+        // Wait for new page to load (URL changes with ?from= param)
+        try {
+            await page.waitForFunction((oldFrom) => {
+                const url = window.location.href;
+                const match = url.match(/[?&]from=(\d+)/);
+                const newFrom = match ? parseInt(match[1]) : 0;
+                return newFrom > oldFrom;
+            }, (pageNum - 1) * 10, { timeout: 15000 });
+        } catch (e) {
+            console.log('  ⚠️ Godrej next page did not load — stopping.');
+            break;
+        }
+
+        await page.waitForTimeout(3000);
+        pageNum++;
+    }
+
+    // Now visit each detail page
+    for (const job of allJobs) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'godrej', results, { company: job.company });
+        await delay(500);
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
 // 🌐  GENERIC LISTING
 // ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// 🚗  CONTINENTAL (jobs.continental.com) — Angular + SmartRecruiters
+// Selector: div.c-jobs-list__row.has-shadow  |  Pagination: click next-page button
+// applyLink = job detail URL (direct link to job page)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeContinental(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Continental...`);
+    let pageNum = 1;
+
+    while (results.length < MAX_JOBS) {
+        console.log(`  📄 Continental Page ${pageNum}...`);
+
+        // Wait for job rows to appear (Angular app)
+        await page.waitForSelector('div.c-jobs-list__row.has-shadow', { timeout: 30000 }).catch(() => { });
+        await page.waitForTimeout(2000);
+
+        const jobLinks = await page.evaluate(() => {
+            const rows = [...document.querySelectorAll('div.c-jobs-list__row.has-shadow')];
+            return rows.map(row => {
+                const linkEl = row.querySelector('a.c-jobs-list__link');
+                const title = linkEl?.querySelector('span:first-child')?.innerText?.trim() ||
+                    linkEl?.innerText?.trim() || 'Not Found';
+                const detailUrl = linkEl?.href || '';
+
+                // Columns: [0]=title, [1]=location, [2]=flexibility, [3]=field, [4]=date
+                const cols = [...row.querySelectorAll('div.c-jobs-list__col')];
+                const location = cols[1]?.innerText?.replace(/\n/g, ' ')?.trim() || 'Not Found';
+                const fieldOfWork = cols[3]?.innerText?.trim() || 'Not Found';
+                const date = cols[4]?.innerText?.trim() || 'Not Found';
+
+                return {
+                    title,
+                    location,
+                    date,
+                    experience: fieldOfWork !== '-' ? fieldOfWork : 'Not Found',
+                    detailUrl,
+                    applyLink: detailUrl,
+                };
+            }).filter(j => j.detailUrl);
+        });
+
+        console.log(`     ↳ Continental: ${jobLinks.length} jobs on page ${pageNum}`);
+
+        for (const job of jobLinks) {
+            let extractedId = job.detailUrl.split('/').find(s => /^REF\d/i.test(s));
+            if (extractedId && extractedId.includes('-')) {
+                extractedId = extractedId.split('-')[0];
+            }
+
+            job.jobId = extractedId || 'Not Found';
+            await visitDetailPage(context, job, 'continental', results, { company: 'Continental', sourceUrl: listingUrl });
+            await delay(400);
+        }
+
+        if (results.length >= MAX_JOBS) break;
+
+        const oldListHtml = await page.evaluate(() => document.querySelector('.c-jobs-list')?.innerHTML || '');
+
+        // Check for next-page button (Angular pagination)
+        const hasNext = await page.evaluate(() => {
+            // Find the next button by looking for the chevron-right icon
+            const nextBtn = Array.from(document.querySelectorAll('button, a')).find(b =>
+                b.innerHTML.includes('chevron-right')
+            );
+            if (nextBtn && !nextBtn.disabled && !nextBtn.classList.contains('disabled') && !nextBtn.hasAttribute('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ Continental done — ${pageNum} pages`);
+            break;
+        }
+
+        // Wait for the job list HTML to change
+        await page.waitForFunction((oldHtml) => {
+            const newList = document.querySelector('.c-jobs-list');
+            return newList && newList.innerHTML !== oldHtml;
+        }, { timeout: 15000 }, oldListHtml).catch(() => { });
+
+        await page.waitForTimeout(1000);
+        pageNum++;
+    }
+}
+
+
 async function scrapeGenericListing(page, context, listingUrl, results) {
     await autoScroll(page);
     const jobLinks = await page.evaluate(() => {
@@ -2167,12 +3408,18 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
     let company = 'Not Found';
     try {
         const host = new URL(listingUrl).hostname;
-        const sub = host.split('.')[0];
-        if (sub.length <= 4) company = sub.toUpperCase();
-        else company = sub.charAt(0).toUpperCase() + sub.slice(1);
+        if (host.includes('nirmal') || listingUrl.includes('nirmal')) {
+            company = 'Nirmal Industrial Controls';
+        } else if (host.includes('sgurrenergy') || listingUrl.includes('sgurrenergy')) {
+            company = 'SgurrEnergy';
+        } else {
+            const sub = host.split('.')[0];
+            if (sub.length <= 4) company = sub.toUpperCase();
+            else company = sub.charAt(0).toUpperCase() + sub.slice(1);
+        }
     } catch (e) { }
 
-    await page.waitForSelector('career-website-job-listing-layout1, .cw-filter-joblist, a.cw-1-title, a.cw-3-title, a[href*="/jobs/Careers/"]', { timeout: 35000 }).catch(() => { });
+    await page.waitForSelector('career-website-job-listing-layout1, career-website-job-layout2, .cw-filter-joblist, .cw-joblisting-results, .jobcard-container, a.cw-1-title, a.cw-2-title, a.cw-3-title, a[href*="/jobs/Careers/"], a[href*="/jobs/careers/"]', { timeout: 35000 }).catch(() => { });
     await page.waitForTimeout(2500);
 
     const jobMap = new Map();
@@ -2180,19 +3427,21 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
     const collectFromDOM = async () => {
         const found = await page.evaluate(() => {
             const list = [];
-            const links = [...document.querySelectorAll('a[href*="/jobs/Careers/"], a.cw-1-title, a.cw-3-title')];
+            const links = [...document.querySelectorAll('a[href*="/jobs/Careers/"], a[href*="/jobs/careers/"], a.cw-1-title, a.cw-2-title, a.cw-3-title, .jobcard-item h3 a, .joblist-card h3 a')];
             links.forEach(a => {
                 const title = a.innerText?.trim();
                 let href = a.getAttribute('href') || a.href || '';
                 if (href && href.startsWith('/')) href = window.location.origin + href;
                 if (!title || title === 'Not Found' || !href) return;
-                if (href.endsWith('/jobs/Careers') || href.endsWith('/jobs/Careers/')) return;
+                if (href.endsWith('/jobs/Careers') || href.endsWith('/jobs/Careers/') || href.endsWith('/jobs/careers') || href.endsWith('/jobs/careers/')) return;
 
-                const card = a.closest('li, .cw-filter-joblist, career-website-job-listing-layout1, div') || a.parentElement;
-                const locEl = card?.querySelector('lyte-text[data-zrqa*="citycnt"], lyte-text[lt-prop-value], [data-zrqa*="citycnt"], .search-work-experience, [class*="location"]');
+                const card = a.closest('li, .cw-filter-joblist, .jobcard-item, .joblist-card, career-website-job-listing-layout1, career-website-job-layout2, career-website-job-layout3, div') || a.parentElement;
+                const locEl = card?.querySelector('.filter-subhead, lyte-text[data-zrqa*="citycnt"], lyte-text[lt-prop-value], [data-zrqa*="citycnt"], .search-work-experience, [class*="location"], p[style*="color:#171B27"]');
                 const location = locEl?.getAttribute('lt-prop-value') || locEl?.innerText?.trim() || 'Not Found';
+                const dateEl = card?.querySelector('.cw-post-date, .search-date-opened, .search-date-type .search-date-opened');
+                const date = dateEl?.innerText?.trim() || '';
 
-                list.push({ title, location, detailUrl: href, applyLink: href });
+                list.push({ title, location, date, detailUrl: href, applyLink: href });
             });
             return list;
         });
@@ -2206,7 +3455,7 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
 
     // Strategy 1: Initial pass & mouse wheel scroll
     await collectFromDOM();
-    const container = await page.$('.job-listing-gridwrapper, career-website-job-layout1, .cw-group-view, body');
+    const container = await page.$('.job-listing-gridwrapper, career-website-job-layout1, career-website-job-layout2, career-website-job-layout3, .cw-group-view, body');
     if (container) {
         const box = await container.boundingBox();
         if (box) {
@@ -2234,7 +3483,7 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
     while (showMoreClicked && loopCount < 10) {
         showMoreClicked = await page.evaluate(() => {
             let clickedAny = false;
-            const btns = document.querySelectorAll('a[data-zrqa*="showmore"], .group-add, a[click*="showMoreJobs"]');
+            const btns = document.querySelectorAll('a[data-zrqa*="showmore"], .group-add, a[click*="showMoreJobs"], button[click*="showMore"]');
             btns.forEach(btn => {
                 if (btn && btn.offsetHeight > 0) {
                     btn.click();
@@ -2256,19 +3505,17 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
         loopCount++;
     }
 
-    // Strategy 2: Click each Category in Filter Dropdown ("Full time", "Training", etc.) to uncap initial 10-job group limit
-
     // Strategy 3: Lyte Component JS memory fallback
     const memoryJobs = await page.evaluate(() => {
         try {
-            const layout = document.querySelector('career-website-job-layout1');
+            const layout = document.querySelector('career-website-job-layout1, career-website-job-layout2, career-website-job-layout3, career-website-job-listing-layout1');
             if (layout && layout.component && layout.component.data) {
-                const recList = layout.component.data.rec_list || layout.component.data.job_list || [];
+                const recList = layout.component.data.rec_list || layout.component.data.job_list || layout.component.data.jobs || [];
                 return recList.map(item => {
                     const id = item.id || item.rec_id || item.job_id;
                     const name = item.job_name || item.title || item.name;
                     if (!id || !name) return null;
-                    const url = item.url || `${window.location.origin}/jobs/Careers/${id}/${encodeURIComponent(name.replace(/\s+/g, '-'))}?source=CareerSite`;
+                    const url = item.url || `${window.location.origin}/jobs/careers/${id}/${encodeURIComponent(name.replace(/\s+/g, '-'))}?source=CareerSite`;
                     const loc = [item.city, item.state, item.country].filter(Boolean).join(', ') || item.location || 'Not Found';
                     return { title: name, location: loc, detailUrl: url, applyLink: url };
                 }).filter(Boolean);
@@ -2290,6 +3537,594 @@ async function scrapeZohoRecruit(page, context, listingUrl, results) {
     for (const job of jobLinks) {
         if (results.length >= MAX_JOBS) break;
         await visitDetailPage(context, job, 'zohorecruit', results, { company });
+        await delay(400);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🚜  BRADKEN (www.bradken.com/careers/current-opportunities)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeBradken(page, context, listingUrl, results) {
+    let pageNum = 1;
+    const company = 'Bradken';
+    const collectedUrls = new Set();
+
+    while (true) {
+        console.log(`  📄 Bradken Page ${pageNum}...`);
+        await page.waitForSelector('#jobBoard, .sc-68bd5576-19, a[href*="greenhouse.io"]', { timeout: 25000 }).catch(() => { });
+        await autoScroll(page);
+        await page.waitForTimeout(3000);
+
+        const pageJobs = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('#jobBoard .sc-68bd5576-19, #jobBoard a[href*="greenhouse.io"], .sc-68bd5576-20'));
+            const seen = new Set();
+            const jobs = [];
+
+            cards.forEach(card => {
+                const linkEl = card.tagName === 'A' ? card : card.querySelector('a[href*="greenhouse.io"], a');
+                if (!linkEl) return;
+                const detailUrl = linkEl.href;
+                if (!detailUrl || seen.has(detailUrl)) return;
+                seen.add(detailUrl);
+
+                const titleEl = card.querySelector('h4, .sc-68bd5576-24, h3, h2') || linkEl.querySelector('h4, h3, h2');
+                const title = titleEl ? titleEl.innerText.trim() : '';
+
+                const metaEl = card.querySelector('.sc-68bd5576-25, [class*="jKXnIk"]') || card.querySelector('div:has(> svg)');
+                let metaText = metaEl ? metaEl.innerText.trim() : '';
+                let date = 'Not Found';
+                if (metaText.includes('|')) {
+                    date = metaText.split('|')[0].trim();
+                } else if (metaText.match(/\d{1,2}\s+[A-Za-z]+\s+\d{4}/)) {
+                    date = metaText.match(/\d{1,2}\s+[A-Za-z]+\s+\d{4}/)[0];
+                }
+
+                const locEl = card.querySelector('.sc-68bd5576-26, .sc-68bd5576-28 span, p span') || card.querySelector('p');
+                const location = locEl ? locEl.innerText.trim() : 'Not Found';
+
+                if (title && detailUrl) {
+                    jobs.push({
+                        title,
+                        location,
+                        date,
+                        detailUrl,
+                        applyLink: detailUrl
+                    });
+                }
+            });
+            return jobs;
+        }) || [];
+
+        console.log(`  ↳ Found ${pageJobs.length} jobs on Bradken page ${pageNum}`);
+
+        let newFound = 0;
+        for (const job of pageJobs) {
+            if (!collectedUrls.has(job.detailUrl)) {
+                collectedUrls.add(job.detailUrl);
+                newFound++;
+            }
+        }
+
+        for (const job of pageJobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'bradken', results, { company });
+            await delay(400);
+        }
+
+        if (results.length >= MAX_JOBS || newFound === 0) break;
+
+        const hasNext = await page.evaluate(() => {
+            const nextLi = document.querySelector('ul.pagination li.next');
+            if (!nextLi || nextLi.classList.contains('disabled')) return false;
+            const nextA = nextLi.querySelector('a');
+            return !!nextA;
+        });
+
+        if (!hasNext) {
+            console.log(`  🛑 Bradken: No more pages.`);
+            break;
+        }
+
+        console.log(`  ▶️ Bradken: Clicking next page...`);
+        const clicked = await page.evaluate(() => {
+            const nextA = document.querySelector('ul.pagination li.next:not(.disabled) a') || document.querySelector('ul.pagination li.next:not(.disabled)');
+            if (nextA) {
+                nextA.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!clicked) break;
+
+        pageNum++;
+        await page.waitForTimeout(4000);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🚆  SYSTRA (www.systra.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeSystra(page, context, listingUrl, results) {
+    let pageNum = 1;
+    const company = 'SYSTRA';
+    const collectedUrls = new Set();
+
+    // Dismiss cookie banner if present
+    await page.evaluate(() => {
+        const acceptBtn = document.querySelector('.cky-btn-accept, [data-cookie-accept], .accept-cookies, #cky-btn-accept, .cky-banner-btn');
+        if (acceptBtn) acceptBtn.click();
+    }).catch(() => { });
+    await page.waitForTimeout(1000);
+
+    while (true) {
+        console.log(`  📄 SYSTRA Page ${pageNum}...`);
+        await page.waitForSelector('.jobs_wrapper a.job, .jobs_wrapper', { timeout: 25000 }).catch(() => { });
+        await autoScroll(page);
+        await page.waitForTimeout(2000);
+
+        const pageJobs = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('.jobs_wrapper a.job, a.job'));
+            const seen = new Set();
+            const jobs = [];
+
+            cards.forEach(card => {
+                const detailUrl = card.href;
+                if (!detailUrl || seen.has(detailUrl)) return;
+                seen.add(detailUrl);
+
+                const title = card.querySelector('.content p, .content')?.innerText?.trim() || 'Not Found';
+                const loc = card.querySelector('span.location')?.innerText?.trim() || 'India';
+
+                if (detailUrl && title) {
+                    jobs.push({
+                        title,
+                        location: loc.replace(/\s+/g, ' ').trim(),
+                        detailUrl,
+                        applyLink: detailUrl,
+                        company: 'SYSTRA'
+                    });
+                }
+            });
+            return jobs;
+        }) || [];
+
+        console.log(`  ↳ Found ${pageJobs.length} jobs on SYSTRA page ${pageNum}`);
+
+        let newFound = 0;
+        for (const job of pageJobs) {
+            if (!collectedUrls.has(job.detailUrl)) {
+                collectedUrls.add(job.detailUrl);
+                newFound++;
+            }
+        }
+
+        for (const job of pageJobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'systra', results, { company });
+            await delay(400);
+        }
+
+        if (results.length >= MAX_JOBS || newFound === 0) break;
+
+        const firstUrlCurrent = pageJobs[0]?.detailUrl;
+
+        let nextClicked = false;
+        try {
+            const nextElem = await page.$('a.next.page-numbers, a.nav_next');
+            if (nextElem) {
+                await nextElem.scrollIntoViewIfNeeded();
+                await nextElem.click({ force: true });
+                nextClicked = true;
+            }
+        } catch (e) { }
+
+        if (!nextClicked) {
+            nextClicked = await page.evaluate(() => {
+                const nextA = document.querySelector('a.next.page-numbers, a.nav_next');
+                if (nextA) {
+                    nextA.click();
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        if (!nextClicked) {
+            console.log(`  🛑 SYSTRA: No more pages.`);
+            break;
+        }
+
+        console.log(`  ▶️ SYSTRA: Clicked next page link (Page ${pageNum + 1})...`);
+        pageNum++;
+
+        const updated = await page.waitForFunction((prevUrl) => {
+            const firstA = document.querySelector('.jobs_wrapper a.job');
+            return firstA && firstA.href !== prevUrl;
+        }, firstUrlCurrent, { timeout: 15000 }).catch(() => null);
+
+        if (!updated) {
+            console.log(`  ⚠️ SYSTRA: Timeout or no change after clicking next page.`);
+            break;
+        }
+        await page.waitForTimeout(2000);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏢  DZCONNEX / INGERSOLL RAND (ir-jobs.dzconnex.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeDZConnex(page, context, listingUrl, results) {
+    let pageNum = 1;
+    const company = 'Ingersoll Rand';
+    const collectedUrls = new Set();
+
+    while (true) {
+        console.log(`  📄 DZConnex Page ${pageNum}...`);
+        await page.waitForSelector('.shmJobResultStd, .shmJobResult', { timeout: 25000 }).catch(() => { });
+        await autoScroll(page);
+        await page.waitForTimeout(2000);
+
+        const pageJobs = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('.shmJobResultStd, .shmJobResult'));
+            const jobs = [];
+
+            cards.forEach(card => {
+                const titleA = card.querySelector('a.shmJobtitle, .shmJobtitle a');
+                const locEl = card.querySelector('.shmLocation');
+                const dateEl = card.querySelector('.shmJobDateCreated, .shmTimePostedText');
+                const detailUrl = titleA?.href || card.querySelector('a.shmGoReadMore')?.href;
+                const title = titleA?.innerText?.trim();
+
+                if (detailUrl && title) {
+                    jobs.push({
+                        title,
+                        location: locEl?.innerText?.trim() || 'Unknown',
+                        date: dateEl?.innerText?.trim() || 'Not Found',
+                        detailUrl,
+                        applyLink: detailUrl,
+                        company: 'Ingersoll Rand'
+                    });
+                }
+            });
+            return jobs;
+        }) || [];
+
+        console.log(`  ↳ Found ${pageJobs.length} jobs on DZConnex page ${pageNum}`);
+
+        let newFound = 0;
+        for (const job of pageJobs) {
+            if (!collectedUrls.has(job.detailUrl)) {
+                collectedUrls.add(job.detailUrl);
+                newFound++;
+            }
+        }
+
+        for (const job of pageJobs) {
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'dzconnex', results, { company });
+            await delay(400);
+        }
+
+        if (results.length >= MAX_JOBS || newFound === 0) break;
+
+        const firstUrlCurrent = pageJobs[0]?.detailUrl;
+
+        const clicked = await page.evaluate((currPage) => {
+            const pagingButtons = Array.from(document.querySelectorAll('.section-job-results-paging a.button-paging'));
+            const nextBtn = pagingButtons.find(a => a.getAttribute('data-page-number') === String(currPage) && !a.classList.contains('active') && !a.classList.contains('disabled'))
+                || pagingButtons[pagingButtons.length - 1];
+            if (nextBtn && !nextBtn.classList.contains('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        }, pageNum);
+
+        if (!clicked) {
+            console.log(`  🛑 DZConnex: No more pages.`);
+            break;
+        }
+
+        console.log(`  ▶️ DZConnex: Clicked next page link (Page ${pageNum + 1})...`);
+        pageNum++;
+
+        const updated = await page.waitForFunction((prevUrl) => {
+            const firstA = document.querySelector('.shmJobResultStd a.shmJobtitle, .shmJobResult a.shmJobtitle');
+            return firstA && firstA.href !== prevUrl;
+        }, firstUrlCurrent, { timeout: 15000 }).catch(() => null);
+
+        if (!updated) {
+            console.log(`  ⚠️ DZConnex: Timeout or no change after clicking next page.`);
+            break;
+        }
+        await page.waitForTimeout(2000);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ⚙️  SKF (career.skf.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeSkf(page, context, listingUrl, results) {
+    console.log('⚙️ Scraping SKF...');
+    let pageNum = 1;
+    let startrow = 0;
+    const baseUrl = 'https://career.skf.com/search/?q=&sortColumn=referencedate&sortDirection=desc';
+    const company = 'SKF';
+
+    while (true) {
+        const pageUrl = startrow === 0 ? baseUrl : `${baseUrl}&startrow=${startrow}`;
+        console.log(`▶️ SKF: Fetching Page ${pageNum} (${pageUrl})...`);
+
+        try {
+            await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForSelector('table#searchresults', { timeout: 15000 }).catch(() => { });
+        } catch (e) {
+            console.error(`⚠️ SKF: Error loading page ${pageNum}: ${e.message}`);
+            break;
+        }
+
+        const pageJobs = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('table#searchresults tr.data-row'));
+            return rows.map(row => {
+                const titleEl = row.querySelector('.colTitle a.jobTitle-link');
+                const locEl = row.querySelector('.colLocation .jobLocation');
+                const deptEl = row.querySelector('.colDepartment .jobDepartment');
+                const dateEl = row.querySelector('.colDate .jobDate');
+
+                const href = titleEl ? titleEl.getAttribute('href') : null;
+                const title = titleEl ? titleEl.innerText.trim() : '';
+                const location = locEl ? locEl.innerText.trim() : '';
+                const department = deptEl ? deptEl.innerText.trim() : '';
+                const date = dateEl ? dateEl.innerText.trim() : '';
+
+                let jobId = '';
+                if (href) {
+                    const match = href.match(/\/(\d{8,})\/?/);
+                    if (match) jobId = match[1];
+                }
+
+                return {
+                    title,
+                    href,
+                    location,
+                    department,
+                    date,
+                    jobId
+                };
+            });
+        });
+
+        if (!pageJobs || pageJobs.length === 0) {
+            console.log(`🛑 SKF: No jobs found on page ${pageNum}. Ending pagination.`);
+            break;
+        }
+
+        console.log(`  ↳ Found ${pageJobs.length} jobs on SKF page ${pageNum}`);
+
+        for (const j of pageJobs) {
+            if (!j.title || !j.href) continue;
+            if (results.length >= MAX_JOBS) break;
+            const detailUrl = new URL(j.href, 'https://career.skf.com').href;
+            const job = {
+                title: j.title,
+                detailUrl: detailUrl,
+                applyLink: detailUrl,
+                location: j.location || 'India',
+                department: j.department || 'Not Found',
+                postedDate: j.date || 'Not Found',
+                jobId: j.jobId || 'Not Found',
+                company: 'SKF'
+            };
+
+            await visitDetailPage(context, job, 'skf', results, { company });
+            await delay(400);
+        }
+
+        if (results.length >= MAX_JOBS) break;
+
+        // Check pagination for next page
+        const hasNext = await page.evaluate(() => {
+            const activeLi = document.querySelector('ul.pagination li.active');
+            if (!activeLi) return false;
+            const nextLi = activeLi.nextElementSibling;
+            if (!nextLi) return false;
+            const nextA = nextLi.querySelector('a');
+            return !!(nextA && !nextA.classList.contains('paginationItemLast'));
+        });
+
+        if (!hasNext) {
+            console.log(`🏁 SKF: Reached last page (${pageNum}).`);
+            break;
+        }
+
+        pageNum++;
+        startrow += 15;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 💊  APOTEX (careers.apotex.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeApotex(page, context, listingUrl, results) {
+    console.log('💊 Scraping Apotex...');
+    let pageNum = 1;
+    let startrow = 0;
+    const collectedUrls = new Set();
+    const cleanListingUrl = listingUrl ? listingUrl.split('#')[0].replace(/&amp;/g, '&') : 'https://careers.apotex.com/search/?q=&location=IN&sortColumn=referencedate&sortDirection=desc';
+
+    while (true) {
+        let pageUrl = cleanListingUrl;
+        if (startrow > 0) {
+            if (pageUrl.includes('startrow=')) {
+                pageUrl = pageUrl.replace(/startrow=\d+/, `startrow=${startrow}`);
+            } else {
+                pageUrl += (pageUrl.includes('?') ? '&' : '?') + `startrow=${startrow}`;
+            }
+        }
+        console.log(`▶️ Apotex: Fetching Page ${pageNum} (${pageUrl})...`);
+
+        try {
+            await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForSelector('table#searchresults', { timeout: 15000 }).catch(() => { });
+        } catch (e) {
+            console.error(`⚠️ Apotex: Error loading page ${pageNum}: ${e.message}`);
+            break;
+        }
+
+        const pageJobs = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('table#searchresults tr.data-row'));
+            return rows.map(row => {
+                const titleEl = row.querySelector('.colTitle a.jobTitle-link');
+                const locEl = row.querySelector('.colLocation .jobLocation');
+                const facilityEl = row.querySelector('.colFacility .jobFacility');
+                const dateEl = row.querySelector('.colDate .jobDate');
+
+                const href = titleEl ? titleEl.getAttribute('href') : null;
+                const title = titleEl ? titleEl.innerText.trim() : '';
+                const location = locEl ? locEl.innerText.trim() : '';
+                const facility = facilityEl ? facilityEl.innerText.trim() : '';
+                const date = dateEl ? dateEl.innerText.trim() : '';
+
+                let jobId = '';
+                if (href) {
+                    const match = href.match(/\/(\d{8,})\/?/);
+                    if (match) jobId = match[1];
+                }
+
+                return {
+                    title,
+                    href,
+                    location,
+                    facility,
+                    date,
+                    jobId
+                };
+            });
+        });
+
+        if (!pageJobs || pageJobs.length === 0) {
+            console.log(`🛑 Apotex: No jobs found on page ${pageNum}. Ending pagination.`);
+            break;
+        }
+
+        console.log(`  ↳ Found ${pageJobs.length} jobs on Apotex page ${pageNum}`);
+
+        let newJobsFound = 0;
+        for (const j of pageJobs) {
+            if (!j.title || !j.href) continue;
+            if (results.length >= MAX_JOBS) break;
+            const detailUrl = new URL(j.href, 'https://careers.apotex.com').href;
+
+            if (collectedUrls.has(detailUrl)) continue;
+            collectedUrls.add(detailUrl);
+            newJobsFound++;
+
+            const comp = j.facility || 'Apotex';
+            const job = {
+                title: j.title,
+                detailUrl: detailUrl,
+                applyLink: detailUrl,
+                location: j.location || 'India',
+                facility: comp,
+                postedDate: j.date || 'Not Found',
+                jobId: j.jobId || 'Not Found',
+                company: comp
+            };
+
+            await visitDetailPage(context, job, 'apotex', results, { company: comp });
+            await delay(400);
+        }
+
+        if (newJobsFound === 0) {
+            console.log(`🛑 Apotex: No new unique jobs on page ${pageNum}. Stopping.`);
+            break;
+        }
+
+        if (results.length >= MAX_JOBS) break;
+
+        // Check pagination for next page
+        const hasNext = await page.evaluate(() => {
+            const activeLi = document.querySelector('ul.pagination li.active');
+            if (!activeLi) return false;
+            const nextLi = activeLi.nextElementSibling;
+            if (!nextLi) return false;
+            const nextA = nextLi.querySelector('a');
+            return !!(nextA && !nextA.classList.contains('paginationItemLast'));
+        });
+
+        if (!hasNext) {
+            console.log(`🏁 Apotex: Reached last page (${pageNum}).`);
+            break;
+        }
+
+        pageNum++;
+        startrow += pageJobs.length;
+    }
+}
+
+// 🏎️  MOTHERSON (careers.motherson.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeMotherson(page, context, listingUrl, results) {
+    console.log('🏎️ Scraping Motherson...');
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await page.waitForTimeout(3000);
+    } catch (e) {
+        console.error(`⚠️ Motherson error loading page: ${e.message}`);
+        return;
+    }
+
+    const jobLinks = await page.evaluate(() => {
+        const domJobHrefs = new Set(Array.from(document.querySelectorAll('a[href*="/en/job/"]')).map(a => a.href));
+
+        const el = document.getElementById('__NEXT_DATA__');
+        if (!el) return [];
+
+        try {
+            const data = JSON.parse(el.innerText);
+            const allJobs = data.props?.pageProps?.allJobs || [];
+
+            const items = allJobs.map(j => {
+                const slug = j.slug || '';
+                const detailUrl = `https://careers.motherson.com/en/job/${slug}`;
+                const city = j.location?.name || '';
+                const country = j.location?.country?.name || '';
+                const locationStr = [city, country].filter(Boolean).join(', ');
+                const dept = (j.functionalAreas || []).map(f => f.name).join(', ') || j.careerLevel?.name || '';
+                const companyName = j.company?.name || 'Motherson';
+
+                const idMatch = slug.match(/-(\d+)$/);
+                const jobId = idMatch ? idMatch[1] : (j.id || '');
+
+                return {
+                    title: j.title ? j.title.trim() : '',
+                    detailUrl,
+                    applyLink: detailUrl,
+                    location: locationStr,
+                    company: companyName,
+                    department: dept,
+                    jobId,
+                    date: 'Not Found',
+                    description: '',
+                    country
+                };
+            });
+
+            if (domJobHrefs.size > 0) {
+                return items.filter(j => domJobHrefs.has(j.detailUrl));
+            }
+            return items;
+        } catch (e) {
+            return [];
+        }
+    });
+
+    console.log(`  ↳ Found ${jobLinks.length} jobs on Motherson`);
+
+    for (const job of jobLinks) {
+        const comp = job.company || 'Motherson';
+        await visitDetailPage(context, job, 'motherson', results, { company: comp });
         await delay(400);
     }
 }
@@ -2587,7 +4422,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
     console.log(`    🔎 ${job.title?.slice(0, 60)}`);
     try {
         await page.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await page.waitForTimeout(5000);
+        await page.waitForTimeout((source === 'motherson' || source === 'apotex' || source === 'skf') ? 1000 : 5000);
         await page.waitForLoadState('networkidle').catch(() => { });
 
         // Wait for critical containers
@@ -2601,7 +4436,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
         const details = await page.evaluate(genericJobEvaluator);
 
         // Cleanup: If title is generic or matches company name, use the listing title
-        const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description', 'job opportunities', 'tesla', 'blue star', 'careers at mphasis', 'araymond', 'a. raymond', 'a.raymond'];
+        const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'job opportunities', 'tesla', 'blue star', 'careers at mphasis', 'araymond', 'a. raymond', 'a.raymond', 'ingersoll rand', 'dzconnex', 'single position'];
         let finalTitle = details.title;
         let finalCompanyTemp = (extra.company && extra.company !== 'Not Found') ? extra.company : (details.company !== 'Not Found' ? details.company : '');
         const titleLower = (finalTitle || '').toLowerCase();
@@ -2615,14 +4450,20 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
             finalTitle = job.title;
         }
 
-        // Location priority: If listing has a specific location, keep it. 
-        // Otherwise use detail page location.
+        // Location priority: Combine and deduplicate listing & detail locations
         let finalLocation = details.location || 'Not Found';
         if (job.location && job.location !== 'Not Found') {
-            if (finalLocation !== 'Not Found' && !job.location.toLowerCase().includes(finalLocation.toLowerCase()) && !finalLocation.toLowerCase().includes(job.location.toLowerCase())) {
-                finalLocation = `${job.location}, ${finalLocation}`;
-            } else {
+            if (finalLocation === 'Not Found') {
                 finalLocation = job.location;
+            } else {
+                const combined = `${job.location}, ${finalLocation}`.split(',').map(s => s.trim()).filter(Boolean);
+                const uniqueParts = [];
+                combined.forEach(part => {
+                    if (!uniqueParts.some(p => p.toLowerCase() === part.toLowerCase())) {
+                        uniqueParts.push(part);
+                    }
+                });
+                finalLocation = uniqueParts.length > 0 ? uniqueParts.join(', ') : 'Not Found';
             }
         } else if (!finalLocation || finalLocation === 'Not Found') {
             finalLocation = 'Not Found';
@@ -2636,7 +4477,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
         let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-        if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com')) {
+        if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('successfactors.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('nirmal.co.in') || job.detailUrl.includes('/jobs/Careers') || job.detailUrl.includes('nestle.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com') || job.detailUrl.includes('alstom.com') || job.detailUrl.includes('peoplestrong.com') || job.detailUrl.includes('workable.com') || job.detailUrl.includes('teamtailor.com') || job.detailUrl.includes('talentrecruit.com') || job.detailUrl.includes('gm.com') || job.detailUrl.includes('bradken') || job.detailUrl.includes('systra.com') || job.detailUrl.includes('dzconnex.com') || job.detailUrl.includes('skf.com') || job.detailUrl.includes('apotex.com') || job.detailUrl.includes('motherson.com') || job.detailUrl.includes('airindia.com') || job.detailUrl.includes('deere.com') || job.detailUrl.includes('qualcomm.com') || job.detailUrl.includes('careers.slb.com') || job.detailUrl.includes('careers.godrejindustries.com') || job.detailUrl.includes('jobs.bosch.com') || job.detailUrl.includes('jobs.carrier.com') || job.detailUrl.includes('jobs.whirlpool.com') || job.detailUrl.includes('jobs.ericsson.com') || job.detailUrl.includes('jobs.continental.com')) {
             finalApplyLink = job.detailUrl;
         }
 
@@ -2666,6 +4507,36 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
             finalCompany = 'Blue Star';
         } else if (job.detailUrl.includes('schindler.com')) {
             finalCompany = 'Schindler';
+        } else if (job.detailUrl.includes('alstom.com')) {
+            finalCompany = 'Alstom';
+        } else if (job.detailUrl.includes('larsentoubro')) {
+            finalCompany = 'Larsen & Toubro';
+        } else if (job.detailUrl.includes('nirmal.co.in')) {
+            finalCompany = 'Nirmal Industrial Controls';
+        } else if (job.detailUrl.includes('nestle.com')) {
+            finalCompany = 'Nestlé';
+        } else if (job.detailUrl.includes('gm.com')) {
+            finalCompany = 'General Motors';
+        } else if (job.detailUrl.includes('bradken')) {
+            finalCompany = 'Bradken';
+        } else if (job.detailUrl.includes('systra.com')) {
+            finalCompany = 'SYSTRA';
+        } else if (job.detailUrl.includes('dzconnex.com')) {
+            finalCompany = 'Ingersoll Rand';
+        } else if (job.detailUrl.includes('skf.com')) {
+            finalCompany = 'SKF';
+        } else if (job.detailUrl.includes('apotex.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'Apotex';
+        } else if (job.detailUrl.includes('motherson.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'Motherson';
+        } else if (job.detailUrl.includes('peoplestrong.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'PeopleStrong';
+        } else if (job.detailUrl.includes('workable.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'Workable';
+        } else if (job.detailUrl.includes('teamtailor.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'Teamtailor';
+        } else if (job.detailUrl.includes('talentrecruit.com')) {
+            finalCompany = (extra.company && extra.company !== 'Not Found') ? extra.company : 'TalentRecruit';
         } else if (job.detailUrl.includes('ripplehire.com') && extra.company === 'Mphasis') {
             finalCompany = 'Mphasis';
         } else if (finalCompany === 'Office' || finalCompany === 'Not Found') {
@@ -2685,7 +4556,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
             if (!s || s === 'Not Available' || s === 'Not Found') return true;
             const lower = s.toLowerCase();
             if (lower.includes('billion') || lower.includes('million') || lower.includes('bn') || lower.includes('sales') || lower.includes('revenue') || lower.includes('fiscal')) return true;
-            if (/^[€$£\u20b9\u20ac\u00a3]\s*\d+(?:\.\d+)?$/i.test(s.trim())) return true;
+            if (/^[€$£\u20b9\u20ac\u00a3]\s*[0-9]$/i.test(s.trim())) return true;
             return false;
         };
 
@@ -2781,6 +4652,90 @@ function genericJobEvaluator() {
     const fullText = document.body?.innerText || '';
     const ld = getJsonLd();
 
+    // SuccessFactors detail
+    try {
+        if (window.location.href.toLowerCase().includes('successfactors.com') || document.querySelector('#jobAppPageTitle') || document.querySelector('#candidateProfileTitle')) {
+            const container = document.querySelector('#jobAppPageTitle, #page_content, .joqContent, .jobLayout, .jobPostingContent');
+            let desc = '';
+            if (container) {
+                const clone = container.cloneNode(true);
+                clone.querySelectorAll('script, style, a, button, select, input, [role="button"], .SFContextualMenuLabel, [id*="EmailThisJob"], [class*="EmailThisJob"]').forEach(el => el.remove());
+                desc = clone.innerText.replace(/\n\s*\n/g, '\n').trim();
+                const popIdx = desc.indexOf('Email this job to a friend');
+                if (popIdx !== -1) {
+                    desc = desc.slice(0, popIdx).trim();
+                }
+            }
+            if (!desc) desc = fullText;
+
+            const title = document.querySelector('#candidateProfileTitle, h1')?.innerText?.replace(/^Career Opportunities:\s*/i, '')?.trim() || 'Not Found';
+            const expMatch = desc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
+
+            return {
+                title,
+                location: 'Not Found',
+                company: 'Not Found',
+                date: 'Not Found',
+                description: desc,
+                applyLink: window.location.href,
+                experience: expMatch ? expMatch[0] : 'Not Found',
+                salary: 'Not Available',
+                jobId: window.location.href.match(/career_job_req_id=(\d+)/i)?.[1] || 'Not Found'
+            };
+        }
+    } catch (e) { }
+
+    // Nestlé detail (e.g. jobdetails.nestle.com)
+    try {
+        if (window.location.href.toLowerCase().includes('nestle.com')) {
+            const title = document.querySelector('[itemprop="title"], h1.rtltextaligneligible, h1')?.innerText?.trim() || 'Not Found';
+            const locationMeta = document.querySelector('meta[itemprop="streetAddress"]')?.content;
+            const locationSpan = document.querySelector('[itemprop="jobLocation"]')?.innerText?.trim();
+            const location = locationMeta || locationSpan || 'Not Found';
+            const descEl = document.querySelector('[itemprop="description"], .jobdescription, .jobDisplay');
+            const desc = descEl ? descEl.innerText.trim() : fullText;
+            const date = document.querySelector('meta[itemprop="datePosted"]')?.content || 'Not Found';
+            const idMatch = window.location.href.match(/\/(\d{6,})\//);
+            const jobId = idMatch ? idMatch[1] : 'Not Found';
+
+            return {
+                title,
+                location,
+                company: 'Nestlé',
+                date,
+                description: desc,
+                applyLink: window.location.href,
+                experience: desc.match(/(\d+\+?\s*(years|yrs|year))/i)?.[0] || 'Not Found',
+                salary: 'Not Available',
+                jobId
+            };
+        }
+    } catch (e) { }
+
+    // GM detail (search-careers.gm.com)
+    try {
+        if (window.location.href.toLowerCase().includes('gm.com')) {
+            const title = document.querySelector('h1, h2.card-title, .job-detail h1')?.innerText?.trim() || 'Not Found';
+            const applyLink = window.location.href;
+            const descEl = document.querySelector('article.cms-content, .job-detail, main.main-col');
+            const desc = descEl ? descEl.innerText.trim() : fullText;
+            const idMatch = window.location.href.match(/\/jobs\/(jr-\d+|[a-zA-Z0-9_-]+)\//i);
+            const jobId = idMatch ? idMatch[1] : 'Not Found';
+
+            return {
+                title,
+                location: 'Not Found',
+                company: 'General Motors',
+                date: 'Not Found',
+                description: desc,
+                applyLink,
+                experience: desc.match(/(\d+\+?\s*(years|yrs|year))/i)?.[0] || 'Not Found',
+                salary: 'Not Available',
+                jobId
+            };
+        }
+    } catch (e) { }
+
     // DeJobs detail (Colgate-Palmolive etc.)
     try {
         if (window.location.href.toLowerCase().includes('dejobs.org')) {
@@ -2798,6 +4753,28 @@ function genericJobEvaluator() {
                 experience: desc.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found',
                 salary: 'Not Available',
                 jobId: window.location.href.split('/').filter(Boolean).slice(-2)[0] || 'Not Found'
+            };
+        }
+    } catch (e) { }
+
+    // Motherson detail (careers.motherson.com)
+    try {
+        if (window.location.href.toLowerCase().includes('motherson.com')) {
+            const title = document.querySelector('h1, h2')?.innerText?.trim() || 'Not Found';
+            const descEl = document.querySelector('main') || document.body;
+            const desc = descEl ? descEl.innerText.replace(/\n\s*\n/g, '\n').trim() : fullText;
+            const jobIdMatch = window.location.href.match(/-(\d+)\/?$/);
+            const jobId = jobIdMatch ? jobIdMatch[1] : 'Not Found';
+            return {
+                title,
+                location: 'Not Found',
+                company: 'Motherson',
+                date: 'Not Found',
+                description: desc,
+                applyLink: window.location.href,
+                experience: desc.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found',
+                salary: 'Not Available',
+                jobId
             };
         }
     } catch (e) { }
@@ -2839,6 +4816,125 @@ function genericJobEvaluator() {
                 location,
                 company: 'Not Found', // overridden by visitDetailPage extra.company
                 date: document.querySelector('.posted-date, .date-posted, .posting-date, time')?.innerText?.trim() || 'Not Found',
+                description: desc,
+                applyLink: window.location.href,
+                experience: desc.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found',
+                salary: 'Not Available',
+                jobId
+            };
+        }
+    } catch (e) { }
+
+    // SYSTRA detail (e.g. www.systra.com/en/job-offers/...)
+    try {
+        if (window.location.href.includes('systra.com') || document.querySelector('.job-sidebar_detail') || document.querySelector('.job-content')) {
+            const descEl = document.querySelector('.job-content') || document.querySelector('.entry-content.job');
+            const desc = descEl ? descEl.innerText.trim() : fullText;
+
+            let countryRegion = '', locVal = '', expVal = '';
+            document.querySelectorAll('.job-sidebar_detail_list p').forEach(p => {
+                const txt = p.innerText.trim();
+                const lower = txt.toLowerCase();
+                if (lower.includes('country/region')) countryRegion = txt.split(':').pop()?.trim() || '';
+                else if (lower.includes('location')) locVal = txt.split(':').pop()?.trim() || '';
+                else if (lower.includes('level of experience') || lower.includes('experience')) expVal = txt.split(':').pop()?.trim() || '';
+            });
+
+            const locParts = [locVal, countryRegion].filter(p => p && p.toUpperCase() !== 'NA' && p.toUpperCase() !== 'N/A');
+            const location = locParts.length > 0 ? locParts.join(', ') : (countryRegion || locVal || 'India');
+
+            let title = document.querySelector('h1, .entry-title, .job-content h1, .job-content h2')?.innerText?.trim() || 'Not Found';
+            if (!title || title === 'Not Found' || title.toLowerCase().includes('systra')) {
+                const mainH2 = document.querySelector('.job-content h2');
+                if (mainH2 && mainH2.innerText.trim()) title = mainH2.innerText.trim();
+            }
+
+            const jobId = window.location.pathname.match(/en-(\d+)\/?/i)?.[1] || window.location.pathname.split('/').filter(Boolean).pop() || 'Not Found';
+
+            return {
+                title,
+                location,
+                company: 'SYSTRA',
+                date: 'Not Found',
+                description: desc,
+                applyLink: window.location.href,
+                experience: expVal || 'Not Found',
+                salary: 'Not Available',
+                jobId
+            };
+        }
+    } catch (e) { }
+
+    // Zoho Recruit detail (e.g. sgurrenergy.zohorecruit.com/jobs/careers/...)
+    try {
+        if (document.querySelector('#cw-rich-description') || document.querySelector('.cw-jobdescription') || document.querySelector('.jd-template-two') || document.querySelector('.cw-summary') || window.location.href.includes('zohorecruit.com')) {
+            const descEl = document.querySelector('#cw-rich-description') || document.querySelector('.cw-jobdescription');
+            const desc = descEl ? descEl.innerText.trim() : fullText;
+
+            let city = '', state = '', country = '';
+            let dateOpened = '';
+            let workExperience = '';
+            let salaryVal = '';
+
+            document.querySelectorAll('.cw-summary-list li').forEach(li => {
+                const spans = li.querySelectorAll('span');
+                const label = (spans[0]?.innerText || li.querySelector('span:first-child')?.innerText || '').toLowerCase().trim();
+                const val = (spans[1]?.innerText || li.querySelector('span:nth-child(2)')?.innerText || '').trim();
+
+                if (label.includes('city')) city = val;
+                else if (label.includes('state') || label.includes('province')) state = val;
+                else if (label.includes('country')) country = val;
+                else if (label.includes('date opened') || label.includes('date')) dateOpened = val;
+                else if (label.includes('work experience') || label.includes('experience')) workExperience = val;
+                else if (label.includes('salary')) salaryVal = val;
+            });
+            const locParts = [city, state, country].filter(Boolean);
+            const location = locParts.length > 0 ? locParts.join(', ') : 'Not Found';
+
+            let titleEl = document.querySelector('h1.job_detil, .cw-jobheader-info h1, h1.cw-jobdetail-title, .cw-header-title, [data-zrqa="cw-job2-title"], .cw-2-title, .cw-3-title');
+            let title = titleEl ? titleEl.innerText.trim() : '';
+            if (!title || title.toLowerCase() === 'job information' || title.toLowerCase() === 'current openings' || title.toLowerCase() === 'join us') {
+                const headings = Array.from(document.querySelectorAll('h1, h2, h3'));
+                const valid = headings.find(h => {
+                    const txt = h.innerText.trim().toLowerCase();
+                    return txt && txt !== 'job information' && txt !== 'current openings' && txt !== 'join us' && txt !== 'filter jobs';
+                });
+                title = valid ? valid.innerText.trim() : (title || 'Not Found');
+            }
+
+            const jobId = window.location.pathname.match(/\/jobs\/careers\/([A-Za-z0-9]+)/i)?.[1] || window.location.pathname.match(/\/jobs\/Careers\/([A-Za-z0-9]+)/i)?.[1] || window.location.pathname.split('/').filter(Boolean).pop() || 'Not Found';
+
+            const exp = workExperience || desc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i)?.[0] || 'Not Found';
+            const sal = salaryVal ? (salaryVal.match(/^\d+$/) ? `₹${salaryVal}` : salaryVal) : 'Not Available';
+
+            return {
+                title,
+                location: location,
+                company: 'Not Found', // overridden by visitDetailPage extra.company
+                date: dateOpened || 'Not Found',
+                description: desc,
+                applyLink: window.location.href,
+                experience: exp,
+                salary: sal,
+                jobId
+            };
+        }
+    } catch (e) { }
+
+    // Workable detail (e.g. apply.workable.com/pxgeo/j/184A7CAB14/)
+    try {
+        if (window.location.href.toLowerCase().includes('workable.com')) {
+            const title = document.querySelector('h1[data-ui="job-title"], [data-ui="job-title"], h1')?.innerText?.trim() || 'Not Found';
+            const location = document.querySelector('[data-ui="job-location"]')?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Found';
+            const company = document.querySelector('[data-ui="company-logo"] img, [data-ui="header-logo"] img, .styles--32vFk img')?.getAttribute('alt')?.trim() || 'Not Found';
+            const descEl = document.querySelector('section[data-ui="job-description"], [data-ui="job-description"], main');
+            const desc = descEl ? descEl.innerText.trim() : fullText;
+            const jobId = window.location.pathname.match(/\/j\/([A-Za-z0-9]+)/)?.[1] || window.location.pathname.split('/').filter(Boolean).pop() || 'Not Found';
+            return {
+                title,
+                location,
+                company,
+                date: 'Not Found',
                 description: desc,
                 applyLink: window.location.href,
                 experience: desc.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found',
@@ -3120,7 +5216,7 @@ function genericJobEvaluator() {
         }
     }
 
-    const genericTitles = ['job details page', 'job details', 'careers', 'career', 'job description', 'key responsibilities', 'role summary', 'job summary'];
+    const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'key responsibilities', 'role summary', 'job summary', 'ingersoll rand', 'dzconnex', 'single position'];
     if (title && genericTitles.includes(title.toLowerCase())) {
         title = '';
     }
@@ -3164,7 +5260,7 @@ function genericJobEvaluator() {
     // Description
     let category = getByLabel('Job Category') || getByLabel('Department');
     let jobType = getByLabel('Job Type') || getByLabel('Employee Type');
-    let description = getText(['.p-htmlviewer', '#cw-rich-description', '.cw-jobdescription', '.job-description-container', '.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop="description"]', '.job-description', '.description', '#job-description', '[data-test="job-description"]', '[data-automation="jobAdDetails"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
+    let description = getText(['section[aria-label="Your tasks-Your profile"]', '.M-Rich-Text-Two-Col', '.p-htmlviewer', '#cw-rich-description', '.cw-jobdescription', '.job-description-container', '.job-summary', '.box.p-24', '.ql-editor', '.mjp-job-ad__content', '.ats-description', '.main-jd-body', '.job__description', '#content .content', '.jobdescription', '.fr-view', '[itemprop="description"]', '.job-description', '.description', '#job-description', '[data-test="job-description"]', '[data-automation="jobAdDetails"]', '.job-details__description', '.posting-description', '.jd-desc', '.job-body', '.content-description', 'article']);
     if (!description) description = getAllText('.mjp-show-more__content');
     if (!description) description = getAllText('.text5');
 
@@ -3389,11 +5485,13 @@ async function scrapeKbr(page, context, listingUrl, results) {
     // Dynamic company name based on URL
     let companyName = 'KBR';
     if (listingUrl.includes('careers.philips.com')) companyName = 'Philips';
+    if (listingUrl.includes('pgcareers.com')) companyName = 'Procter & Gamble';
 
     let pageNum = 1;
+    const seenUrls = new Set();
 
     while (true) {
-        console.log(`  📄 KBR Page ${pageNum}...`);
+        console.log(`  📄 ${companyName} Page ${pageNum}...`);
 
         // Wait for at least one job card to appear
         await page.waitForSelector('li.jobs-list-item', { timeout: 40000 }).catch(() => { });
@@ -3404,9 +5502,10 @@ async function scrapeKbr(page, context, listingUrl, results) {
             const cards = [...document.querySelectorAll('li.jobs-list-item')];
             return cards.map(card => {
                 // Title + detail URL
-                const anchor = card.querySelector('a[data-ph-at-id="job-link"]');
+                const anchor = card.querySelector('a[data-ph-at-id="job-link"]') || card.querySelector('a[href*="/job/"]');
                 const title = anchor?.getAttribute('data-ph-at-job-title-text')
                     || anchor?.querySelector('.job-title span')?.innerText?.trim()
+                    || anchor?.innerText?.trim()
                     || 'Not Found';
                 const detailUrl = anchor?.href || '';
 
@@ -3447,9 +5546,15 @@ async function scrapeKbr(page, context, listingUrl, results) {
             }).filter(j => j.detailUrl && j.title !== 'Not Found');
         });
 
-        console.log(`     ↳ KBR: ${jobLinks.length} jobs on page ${pageNum}`);
+        console.log(`     ↳ ${companyName}: ${jobLinks.length} jobs on page ${pageNum}`);
 
+        let newOnPage = 0;
         for (const job of jobLinks) {
+            const linkKey = job.applyLink || job.detailUrl;
+            if (seenUrls.has(linkKey)) continue;
+            seenUrls.add(linkKey);
+            newOnPage++;
+
             if (results.length >= MAX_JOBS) break;
 
             console.log(`    🔎 ${job.title} | ${job.location} | ${job.jobId}`);
@@ -3512,14 +5617,19 @@ async function scrapeKbr(page, context, listingUrl, results) {
                 description: description.slice(0, 3000),
                 experience,
                 salary,
-                url: job.detailUrl,
-                applyLink: job.detailUrl,
+                url: job.applyLink || job.detailUrl,
+                applyLink: job.applyLink || job.detailUrl,
                 source: `${companyName} Careers`,
             });
             // 💾 Turant filtered save
             saveJobsNow(results);
 
             await delay(600);
+        }
+
+        if (newOnPage === 0) {
+            console.log(`  ✅ ${companyName} done — no new jobs on page ${pageNum}.`);
+            break;
         }
 
         if (results.length >= MAX_JOBS) {
@@ -3531,7 +5641,6 @@ async function scrapeKbr(page, context, listingUrl, results) {
 
         // ── Pagination — click the Next button ──
         const hasNext = await page.evaluate(() => {
-            // Phenom People / PeopleHub next-page button patterns
             const nextBtn = (
                 document.querySelector('[data-ph-at-id="pagination-next-link"]') ||
                 document.querySelector('button[ph-tevent="next_page"]') ||
@@ -3556,6 +5665,7 @@ async function scrapeKbr(page, context, listingUrl, results) {
                     nextBtn.classList.contains('disabled') ||
                     nextBtn.closest('li')?.classList.contains('disabled');
                 if (!isDisabled) {
+                    nextBtn.scrollIntoView();
                     nextBtn.click();
                     return true;
                 }
@@ -4343,70 +6453,155 @@ async function scrapeAecom(page, context, listingUrl, results) {
 //            Pagination: Infinite scroll (scroll to bottom to load more)
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapePeopleStrong(page, context, listingUrl, results) {
-    // Derive company name directly from subdomain of the URL
-    const subdomain = new URL(listingUrl).hostname.split('.')[0];
-    const companyName = subdomain;
+    const hostname = new URL(listingUrl).hostname;
+    const subdomain = hostname.split('.')[0];
+    let companyName = subdomain.replace(/careers?$/i, '');
+    companyName = companyName.charAt(0).toUpperCase() + companyName.slice(1);
+
+    if (subdomain.includes('amararaja') || listingUrl.includes('amararaja')) {
+        companyName = 'Amara Raja';
+    } else if (subdomain.includes('larsentoubro') || listingUrl.includes('larsentoubro')) {
+        companyName = 'Larsen & Toubro';
+    } else if (subdomain.includes('leindia') || listingUrl.includes('leindia')) {
+        companyName = 'LE India';
+    }
 
     console.log(`  📄 PeopleStrong listing (${companyName})...`);
 
     // Wait for job cards to appear
-    await page.waitForSelector('.section-card .card-block-inner', { timeout: 35000 }).catch(() => { });
+    await page.waitForSelector('.section-card .card-block-inner, .card-block', { timeout: 35000 }).catch(() => { });
 
-    // Infinite scroll until no new jobs load
-    let noChangeRounds = 0;
+    let pageNum = 1;
+    const allCollectedJobs = [];
+    const seenUrls = new Set();
+
     while (true) {
-        const currentCount = await page.locator('.section-card .card-block:not(.search-block-section)').count();
-        console.log(`     ↳ Loaded ${currentCount} job cards so far...`);
+        await page.waitForTimeout(2000);
 
-        if (currentCount >= MAX_JOBS) break;
+        // Infinite scroll loop on current view to trigger lazy-loaded items
+        let scrollRounds = 0;
+        let lastCount = 0;
+        while (scrollRounds < 4) {
+            const count = await page.locator('.section-card .card-block:not(.search-block-section)').count();
+            if (count > lastCount) {
+                lastCount = count;
+                scrollRounds = 0;
+            } else {
+                scrollRounds++;
+            }
 
-        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await page.waitForTimeout(2500);
+            if (count >= MAX_JOBS) break;
 
-        const newCount = await page.locator('.section-card .card-block:not(.search-block-section)').count();
-        if (newCount === currentCount) {
-            noChangeRounds++;
-            if (noChangeRounds >= 3) break;
-        } else {
-            noChangeRounds = 0;
+            await page.evaluate(() => {
+                const cards = document.querySelectorAll('.section-card .card-block:not(.search-block-section)');
+                if (cards.length > 0) {
+                    cards[cards.length - 1].scrollIntoView({ behavior: 'auto', block: 'end' });
+                }
+                window.scrollTo(0, document.body.scrollHeight || document.documentElement.scrollHeight);
+                const containers = document.querySelectorAll('.jobs-listing, .section-card, div[class*="scroll"]');
+                containers.forEach(c => { c.scrollTop = c.scrollHeight; });
+                window.dispatchEvent(new Event('scroll'));
+                document.dispatchEvent(new Event('scroll'));
+            });
+            await page.waitForTimeout(2000);
         }
+
+        // Collect all cards visible in DOM
+        const origin = new URL(listingUrl).origin;
+        const currentBatch = await page.evaluate((origin) => {
+            return Array.from(document.querySelectorAll('.section-card .card-block-inner, .card-block:not(.search-block-section)')).map(card => {
+                const a = card.querySelector('h2 a.link, h2.title a, a[href*="/job/detail/"], a.link');
+                if (!a) return null;
+
+                const title = a.innerText.trim();
+                if (!title) return null;
+
+                const jobCode = card.querySelector('span.job-code')?.innerText?.trim() || '';
+
+                const locLis = card.querySelectorAll('.orgunit-row ul:first-child li, ul.listing-inline li');
+                const orgUnit = card.querySelector('.orgunit-row li[data-testid*="organizationunit"]')?.innerText?.trim() || '';
+                const locHierarchy = card.querySelector('.orgunit-row li[data-testid*="locationhierarchy"]')?.innerText?.trim() || '';
+                let location = locHierarchy || (locLis[1] || locLis[0])?.innerText?.trim() || 'Not Found';
+
+                const dateSpan = card.querySelector('[data-testid="joblist-li-page-7"] span.link2, .link2, li[data-testid*="li-page"] span');
+                const date = dateSpan ? dateSpan.innerText.trim() : 'Not Found';
+
+                const expEl = card.querySelector('.text-cell.font-bold, [class*="experience"]');
+                const experience = expEl ? expEl.innerText.trim() : 'Not Found';
+
+                let href = a.getAttribute('href') || '';
+                if (href && !href.startsWith('http')) href = origin + href;
+
+                return { title, location, date, experience, detailUrl: href, jobId: jobCode };
+            }).filter(j => j && j.detailUrl && j.title);
+        }, origin);
+
+        let newJobsFound = 0;
+        for (const job of currentBatch) {
+            if (!seenUrls.has(job.detailUrl)) {
+                seenUrls.add(job.detailUrl);
+                allCollectedJobs.push(job);
+                newJobsFound++;
+            }
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} cards visible, ${allCollectedJobs.length} total collected...`);
+
+        if (allCollectedJobs.length >= MAX_JOBS) break;
+
+        // Try clicking Pagination next button / page numbers (e.g. 1, 2, 3, 4, 5... or Next) if pagination controls exist
+        const hasNextPage = await page.evaluate(() => {
+            const nextLi = document.querySelector('ul.pagination li.next:not(.disabled), ul.pagination li.next-page:not(.disabled), [data-testid*="paginator"] li.next:not(.disabled), [data-testid*="paginator"] li.nextview:not(.disabled)');
+            if (nextLi) {
+                const a = nextLi.querySelector('a, button') || nextLi;
+                a.click();
+                return true;
+            }
+
+            const nextBtn = document.querySelector('alt-pagination .next a, alt-pagination .next button, .pagination .next a, button.next-page, a.next-page, [data-testid*="next"], .pagination li.active + li a, ul.pagination li.active + li button, [class*="pagination"] button:not([disabled])');
+            if (nextBtn && !nextBtn.classList.contains('disabled') && !nextBtn.hasAttribute('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+
+            const activePage = document.querySelector('.pagination li.active, alt-pagination .active, [class*="pagination"] .active');
+            if (activePage && activePage.nextElementSibling) {
+                const pageBtn = activePage.nextElementSibling.querySelector('a, button');
+                if (pageBtn && !pageBtn.classList.contains('disabled') && !pageBtn.hasAttribute('disabled')) {
+                    pageBtn.click();
+                    return true;
+                }
+            }
+
+            const arrowNext = document.querySelector('alt-pagination .keyboard_arrow_right, alt-pagination .chevron_right, .icon-next, [class*="arrow-right"]');
+            if (arrowNext) {
+                const clickable = arrowNext.closest('a, button, li');
+                if (clickable && !clickable.classList.contains('disabled') && !clickable.hasAttribute('disabled')) {
+                    clickable.click();
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        if (newJobsFound === 0) {
+            console.log(`  ✅ PeopleStrong listing completed — total ${allCollectedJobs.length} jobs collected`);
+            break;
+        }
+
+        if (!hasNextPage) {
+            console.log(`  ✅ PeopleStrong listing completed — total ${allCollectedJobs.length} jobs collected`);
+            break;
+        }
+
+        await page.waitForTimeout(3000);
+        pageNum++;
     }
 
-    // Extract all job data from listing cards
-    const origin = new URL(listingUrl).origin;
-    const jobLinks = await page.evaluate((origin) => {
-        return Array.from(document.querySelectorAll('.section-card .card-block-inner')).map(card => {
-            const a = card.querySelector('h2 a.link, h2.title a');
-            if (!a) return null;
+    console.log(`     ↳ PeopleStrong: ${allCollectedJobs.length} total jobs found`);
 
-            const title = a.innerText.trim();
-            if (!title) return null;
-
-            // Job code: span.job-code (e.g. LEI/L-SA/1830525)
-            const jobCode = card.querySelector('span.job-code')?.innerText?.trim() || '';
-
-            // Location: 2nd li in first ul of .orgunit-row
-            const locLis = card.querySelectorAll('.orgunit-row ul:first-child li');
-            const location = (locLis[1] || locLis[0])?.innerText?.trim() || 'Not Found';
-
-            // Posted date
-            const dateSpan = card.querySelector('[data-testid="joblist-li-page-7"] span.link2, .link2');
-            const date = dateSpan ? dateSpan.innerText.trim() : 'Not Found';
-
-            // Experience range from listing card
-            const expEl = card.querySelector('.text-cell.font-bold');
-            const experience = expEl ? expEl.innerText.trim() : 'Not Found';
-
-            let href = a.getAttribute('href') || '';
-            if (href && !href.startsWith('http')) href = origin + href;
-
-            return { title, location, date, experience, detailUrl: href, jobId: jobCode };
-        }).filter(j => j && j.detailUrl && j.title);
-    }, origin);
-
-    console.log(`     ↳ PeopleStrong: ${jobLinks.length} jobs found`);
-
-    for (const job of jobLinks) {
+    for (const job of allCollectedJobs) {
         if (results.length >= MAX_JOBS) break;
         await visitDetailPage(context, job, 'peoplestrong', results, { company: companyName });
         await delay(400);
@@ -4474,6 +6669,20 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
         for (const job of jobLinks) {
             if (results.length >= MAX_JOBS) break;
+
+            await viewBtn.click({ force: true });
+
+            await page.waitForSelector('mat-dialog-container', { timeout: 12000 });
+            await page.waitForTimeout(500);
+
+            // Extract description text
+            const descText = await page.$eval('mat-dialog-container', el => el.innerText);
+            pageJobs[i].description = descText.trim();
+
+            // Go back (close modal via Escape)
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(500);
+
             await visitDetailPage(context, job, 'ttcportals', results, { company: companyName });
             await delay(400);
         }
@@ -4501,4 +6710,1943 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// 💼  WORKABLE (apply.workable.com)
+// Site: *.workable.com  (e.g. apply.workable.com/pxgeo)
+// Structure: React SPA — li[data-ui="job"], [data-ui="job"]
+//            Pagination: "Show more" button / Load more scroll
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeWorkable(page, context, listingUrl, results) {
+    const pathParts = new URL(listingUrl).pathname.split('/').filter(Boolean);
+    const companySlug = pathParts[0] || '';
+    let companyName = companySlug ? companySlug.charAt(0).toUpperCase() + companySlug.slice(1) : 'Workable';
+    if (companySlug.toLowerCase() === 'pxgeo') companyName = 'PxGeo';
+
+    console.log(`  📄 Workable listing (${companyName})...`);
+
+    // Wait for job cards to appear
+    await page.waitForSelector('li[data-ui="job"], [data-ui="job"], [data-ui="job-title"], .styles--1vo9F', { timeout: 35000 }).catch(() => { });
+
+    // Handle "Show more" button or scroll pagination for ALL pages
+    let noChangeRounds = 0;
+    while (true) {
+        const currentCount = await page.locator('li[data-ui="job"], [data-ui="job"], .styles--1vo9F').count();
+        console.log(`     ↳ Loaded ${currentCount} job cards so far...`);
+
+        if (currentCount >= MAX_JOBS) break;
+
+        // Scroll to bottom first to bring load-more button into viewport
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1000);
+
+        // Click "Show more" / "Load more" button if visible
+        const clicked = await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button[data-ui*="load"], button[data-ui*="more"], button'));
+            const showMoreBtn = btns.find(b => {
+                const txt = b.innerText?.trim()?.toLowerCase() || '';
+                return txt.includes('show more') || txt.includes('load more') || b.getAttribute('data-ui')?.includes('load-more');
+            });
+            if (showMoreBtn && showMoreBtn.offsetParent !== null) {
+                showMoreBtn.scrollIntoView();
+                showMoreBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (clicked) {
+            await page.waitForTimeout(2500);
+            noChangeRounds = 0;
+        } else {
+            const loadMoreBtn = page.locator('button[data-ui="load-more"], button[data-ui="load-more-button"], button:has-text("Show more"), button:has-text("Load more"), button:has-text("Show More")').first();
+            const isVisible = await loadMoreBtn.isVisible().catch(() => false);
+
+            if (isVisible) {
+                await loadMoreBtn.scrollIntoViewIfNeeded().catch(() => { });
+                await loadMoreBtn.click({ force: true }).catch(() => { });
+                await page.waitForTimeout(2500);
+                noChangeRounds = 0;
+            } else {
+                await page.waitForTimeout(2000);
+                const newCount = await page.locator('li[data-ui="job"], [data-ui="job"], .styles--1vo9F').count();
+                if (newCount === currentCount) {
+                    noChangeRounds++;
+                    if (noChangeRounds >= 3) break;
+                } else {
+                    noChangeRounds = 0;
+                }
+            }
+        }
+    }
+
+    // Try extracting company logo name from page if available
+    const pageCompany = await page.evaluate(() => {
+        const img = document.querySelector('[data-ui="company-logo"] img, [data-ui="header-logo"] img, .styles--32vFk img');
+        return img?.getAttribute('alt')?.trim() || '';
+    });
+    if (pageCompany && pageCompany !== 'Workable') companyName = pageCompany;
+
+    const origin = new URL(listingUrl).origin;
+    const jobLinks = await page.evaluate((origin) => {
+        const cards = [...document.querySelectorAll('li[data-ui="job"], [data-ui="job"], .styles--1vo9F')];
+        return cards.map(card => {
+            const a = card.querySelector('a[href*="/j/"], a.styles--1OnOt') || card.querySelector('a');
+            const titleEl = card.querySelector('[data-ui="job-title"], h3');
+            const title = titleEl?.innerText?.trim() || a?.innerText?.trim() || 'Not Found';
+
+            if (!a || !title || title === 'Not Found') return null;
+
+            let href = a.getAttribute('href') || '';
+            if (href && !href.startsWith('http')) href = origin + href;
+
+            const locEl = card.querySelector('[data-ui="job-location"]');
+            let location = locEl?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Found';
+
+            const deptEl = card.querySelector('[data-ui="job-department"]');
+            const department = deptEl?.innerText?.trim() || '';
+
+            const typeEl = card.querySelector('[data-ui="job-type"]');
+            const jobType = typeEl?.innerText?.trim() || '';
+
+            const workplaceEl = card.querySelector('[data-ui="job-workplace"]');
+            const workplace = workplaceEl?.innerText?.trim() || '';
+
+            const jobId = card.getAttribute('data-id') || href.match(/\/j\/([A-Za-z0-9]+)/)?.[1] || '';
+
+            return { title, location, detailUrl: href, jobId, department, jobType, workplace };
+        }).filter(j => j && j.detailUrl && j.title);
+    }, origin);
+
+    console.log(`     ↳ Workable: ${jobLinks.length} jobs found`);
+
+    for (const job of jobLinks) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'workable', results, { company: companyName, department: job.department });
+        await delay(400);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 👔  TEAMTAILOR (*.teamtailor.com)
+// Site: *.teamtailor.com (e.g. naffco.teamtailor.com)
+// Structure: HTML list with #jobs_list_container, li.block-grid-item
+//            Pagination: "Show more" button / Load more scroll / pagination
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeTeamtailor(page, context, listingUrl, results) {
+    const origin = new URL(listingUrl).origin;
+    const hostname = new URL(listingUrl).hostname;
+    const companySlug = hostname.split('.')[0] || 'Teamtailor';
+    const companyName = companySlug.charAt(0).toUpperCase() + companySlug.slice(1);
+
+    console.log(`  📄 Teamtailor listing (${companyName})...`);
+
+    // Wait for job cards or list container
+    await page.waitForSelector('#jobs_list_container, [data-blocks--jobs-target="jobsListContainer"], li.block-grid-item, a[href*="/jobs/"]', { timeout: 35000 }).catch(() => { });
+
+    let noChangeRounds = 0;
+    while (true) {
+        const currentCount = await page.locator('li.block-grid-item, #jobs_list_container li, [data-blocks--jobs-target="jobsListContainer"] li').count();
+        console.log(`     ↳ Loaded ${currentCount} job cards so far...`);
+
+        if (currentCount >= MAX_JOBS) break;
+
+        // Scroll down to load content or bring show-more button into viewport
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1000);
+
+        // Try clicking "Show more jobs" or similar button
+        const clicked = await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button, a, [data-action*="load-more"], [data-pagination-target]'));
+            const showMoreBtn = btns.find(b => {
+                const txt = b.innerText?.trim()?.toLowerCase() || '';
+                return txt.includes('show more') || txt.includes('load more') || txt.includes('more jobs');
+            });
+            if (showMoreBtn && showMoreBtn.offsetParent !== null) {
+                showMoreBtn.scrollIntoView();
+                showMoreBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (clicked) {
+            await page.waitForTimeout(2500);
+            noChangeRounds = 0;
+        } else {
+            const loadMoreBtn = page.locator('button:has-text("Show more"), button:has-text("Load more"), button:has-text("More jobs"), a:has-text("Show more"), a:has-text("Load more")').first();
+            const isVisible = await loadMoreBtn.isVisible().catch(() => false);
+
+            if (isVisible) {
+                await loadMoreBtn.scrollIntoViewIfNeeded().catch(() => { });
+                await loadMoreBtn.click({ force: true }).catch(() => { });
+                await page.waitForTimeout(2500);
+                noChangeRounds = 0;
+            } else {
+                await page.waitForTimeout(2000);
+                const newCount = await page.locator('li.block-grid-item, #jobs_list_container li, [data-blocks--jobs-target="jobsListContainer"] li').count();
+                if (newCount === currentCount) {
+                    noChangeRounds++;
+                    if (noChangeRounds >= 3) break;
+                } else {
+                    noChangeRounds = 0;
+                }
+            }
+        }
+    }
+
+    const jobLinks = await page.evaluate((origin) => {
+        const cards = [...document.querySelectorAll('#jobs_list_container li, li.block-grid-item, [data-blocks--jobs-target="jobsListContainer"] li')];
+        return cards.map(card => {
+            const a = card.querySelector('a[href*="/jobs/"]') || card.querySelector('a');
+            if (!a) return null;
+
+            const titleSpan = card.querySelector('span[title]') || card.querySelector('span.text-block-base-link, span.company-link-style');
+            let title = titleSpan?.getAttribute('title')?.trim() || titleSpan?.innerText?.trim() || a.innerText?.trim() || 'Not Found';
+
+            if (!a || !title || title === 'Not Found') return null;
+
+            let href = a.getAttribute('href') || '';
+            if (href && !href.startsWith('http')) href = origin + href;
+
+            let department = '';
+            let location = 'Not Found';
+
+            const metaDiv = card.querySelector('div.text-md, .mt-1.text-md');
+            if (metaDiv) {
+                const spans = [...metaDiv.querySelectorAll('span')].map(s => s.innerText.trim()).filter(t => t && t !== '·');
+                if (spans.length >= 2) {
+                    department = spans[0];
+                    location = spans[1];
+                } else if (spans.length === 1) {
+                    location = spans[0];
+                }
+            }
+
+            const jobId = href.match(/\/jobs\/(\d+)/)?.[1] || href.split('/').filter(Boolean).pop() || '';
+
+            return { title, location, detailUrl: href, jobId, department };
+        }).filter(j => j && j.detailUrl && j.title);
+    }, origin);
+
+    console.log(`     ↳ Teamtailor: ${jobLinks.length} jobs found`);
+
+    for (const job of jobLinks) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'teamtailor', results, { company: companyName, department: job.department });
+        await delay(400);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🎯 TALENTRECRUIT (*.talentrecruit.com)
+// Site: *.talentrecruit.com (e.g. voltas.talentrecruit.com)
+// Structure: Angular SPA — .card-wrap cards inside .right-listing
+//            Data: span.left-col.job-title, p>.bold-text for meta, .skills-block divs
+//            No <a> links on cards — detailUrl = listingUrl
+//            Pagination: scroll-triggered Load More or mat-paginator
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeTalentRecruit(page, context, listingUrl, results) {
+    const origin = new URL(listingUrl).origin;
+    const hostname = new URL(listingUrl).hostname;
+    const companySlug = hostname.split('.')[0] || 'TalentRecruit';
+    const companyName = companySlug.charAt(0).toUpperCase() + companySlug.slice(1);
+
+    console.log(`  📄 TalentRecruit listing (${companyName})...`);
+
+    // Check if content is wrapped in an iframe (e.g. Voltas)
+    try {
+        const iframeSrc = await page.evaluate(() => {
+            const iframe = document.querySelector('iframe[src*="talentrecruit.com"], iframe[src*="sortName="]');
+            return iframe ? iframe.src : null;
+        });
+        if (iframeSrc && iframeSrc !== listingUrl) {
+            console.log(`  🔄 Redirecting to iframe source: ${iframeSrc}`);
+
+            // Inject script to intercept the Apply URL token sent via postMessage
+            await page.addInitScript(() => {
+                window.interceptedPayloads = [];
+                const originalPostMessage = window.parent.postMessage;
+                window.parent.postMessage = function (message, targetOrigin, transfer) {
+                    if (typeof message === 'string' && message.startsWith('U2FsdGVkX1')) {
+                        window.interceptedPayloads.push(message);
+                    }
+                };
+            });
+
+            await page.goto(iframeSrc, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            await page.waitForTimeout(3000);
+        }
+    } catch (e) { }
+
+    // Step 1: Wait specifically for .card-wrap (not broad OR — Angular renders cards after container)
+    try {
+        await page.waitForSelector('.card-wrap', { timeout: 45000 });
+        await page.waitForTimeout(2500); // let remaining cards render
+    } catch {
+        console.log(`     ↳ [WARN] .card-wrap not found after 45s, attempting to extract anyway`);
+    }
+
+    const allCollectedJobs = [];
+    const seenJobKeys = new Set();
+    let pageNum = 1;
+    let stuckCount = 0;
+
+    while (true) {
+        await page.waitForTimeout(800);
+
+        const cardCount = await page.locator('.card-wrap').count();
+        console.log(`     ↳ Page ${pageNum}: ${cardCount} .card-wrap elements visible`);
+
+        const pageJobs = await page.evaluate((listingUrl) => {
+            // Real DOM: div.card-wrap > div.row-one > div.left-col
+            const cards = [...document.querySelectorAll('div.card-wrap')];
+            return cards.map(card => {
+                // Title: span with classes left-col job-title
+                const titleEl = card.querySelector('span.job-title, span.left-col');
+                let title = titleEl?.innerText?.trim() || 'Not Found';
+                title = title.replace(/\s+/g, ' ').trim();
+                if (!title || title === 'Not Found' || title.toLowerCase() === 'back to search') return null;
+
+                // Job ID & posted date from .posted-text <p> elements
+                const postedTexts = [...card.querySelectorAll('p.posted-text')];
+                let jobId = '';
+                let date = 'Not Found';
+                for (const p of postedTexts) {
+                    const txt = p.innerText.trim();
+                    if (/^ID\s*\d/i.test(txt)) {
+                        jobId = txt.replace(/^ID\s*/i, '').trim();
+                    } else if (txt.toLowerCase().startsWith('posted')) {
+                        date = txt;
+                    }
+                }
+
+                // No <a> links on cards — use listing URL as apply link
+                const detailUrl = listingUrl;
+
+                // Meta fields from .job-type > div > p elements
+                let location = 'Not Found';
+                let department = '';
+                let jobType = '';
+                let experience = 'Not Found';
+
+                const metaPs = [...card.querySelectorAll('.job-type p')];
+                for (const p of metaPs) {
+                    const fullText = p.innerText.trim();
+                    const boldEl = p.querySelector('.bold-text');
+                    const boldText = boldEl?.innerText?.trim() || '';
+                    // Extra span (e.g. "(Work From Office)")
+                    const extraSpans = [...p.querySelectorAll('span:not(.bold-text):not(.mat-tooltip-trigger)')]
+                        .map(s => s.innerText.trim()).filter(Boolean).join(' ');
+
+                    if (fullText.includes('Job Location')) {
+                        location = boldText ? (extraSpans ? `${boldText} ${extraSpans}` : boldText) : fullText.replace('Job Location', '').trim();
+                    } else if (fullText.includes('Business Group') || fullText.includes('Department')) {
+                        department = boldText || fullText.replace(/Business Group|Department/g, '').trim();
+                    } else if (fullText.includes('Job Type')) {
+                        jobType = boldText || fullText.replace('Job Type', '').trim();
+                    } else if (fullText.includes('Experience')) {
+                        experience = boldText || fullText.replace('Experience', '').trim();
+                    }
+                }
+
+                // Skills from .skills-block > div
+                const skills = [...card.querySelectorAll('.skills-block div')]
+                    .map(d => d.innerText.replace(/•/g, '').trim()).filter(Boolean).join(', ');
+
+                return { title, location, detailUrl, jobId, department, jobType, experience, date, skills, description: 'Not Found' };
+            }).filter(j => j && j.title && j.title !== 'Not Found');
+        }, listingUrl);
+
+        // Click into each job to extract full description
+        for (let i = 0; i < pageJobs.length; i++) {
+            if (allCollectedJobs.length + i >= MAX_JOBS) break;
+            try {
+                const card = page.locator('.card-wrap').nth(i);
+
+                // 1. Get Apply URL by clicking Apply (doesn't navigate, just sends postMessage)
+                const applyBtn = card.locator('button.apply-job-btn, button:has-text("Apply")').first();
+                await applyBtn.scrollIntoViewIfNeeded();
+                await applyBtn.click({ force: true });
+                await page.waitForTimeout(500);
+
+                const token = await page.evaluate(() => window.interceptedPayloads ? window.interceptedPayloads.pop() : null);
+                if (token) {
+                    pageJobs[i].applyLink = `https://${companyName.toLowerCase()}.talentrecruit.com/career-page/apply/${encodeURIComponent(token)}?viewJD=true`;
+                } else {
+                    pageJobs[i].applyLink = listingUrl;
+                }
+
+                // 2. Get Rich Description by opening the modal
+                const viewBtn = card.locator('button:has-text("View Details"), .cancel-job-btn').first();
+                await viewBtn.scrollIntoViewIfNeeded();
+                await viewBtn.click({ force: true });
+
+                await page.waitForSelector('mat-dialog-container, view-jd-dialog', { timeout: 12000 });
+                await page.waitForTimeout(500); // Let Angular settle
+
+                const description = await page.evaluate(() => {
+                    // Extract just the description parts (Job Description, Qualification Criteria, etc.), avoiding the header card
+                    const parts = document.querySelectorAll('view-jd-dialog > div.ng-star-inserted > div:not(.card-wrap):not(.mid-section)');
+                    if (parts.length > 0) {
+                        return Array.from(parts).map(el => el.parentElement.innerHTML).join('<br><br>').trim();
+                    }
+                    const backupEl = document.querySelector('view-jd-dialog, mat-dialog-container');
+                    return backupEl ? backupEl.innerHTML.trim() : 'Not Found';
+                });
+
+                pageJobs[i].description = description;
+
+                // Go back (close modal)
+                await page.keyboard.press('Escape');
+
+                await page.waitForSelector('.card-wrap', { timeout: 5000 });
+                await page.waitForTimeout(500);
+            } catch (err) {
+                console.log(`       ❌ Failed description for ${pageJobs[i].title}: ${err.message}`);
+                try {
+                    await page.keyboard.press('Escape');
+                    await page.waitForTimeout(500);
+                } catch (e) { }
+            }
+        }
+
+        let newJobsOnPage = 0;
+        for (const j of pageJobs) {
+            const key = j.jobId ? `id_${j.jobId}` : `${j.title}_${j.location}`;
+            if (!seenJobKeys.has(key)) {
+                seenJobKeys.add(key);
+                allCollectedJobs.push(j);
+                newJobsOnPage++;
+            }
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${pageJobs.length} parsed, ${newJobsOnPage} new (${allCollectedJobs.length} total)`);
+
+        if (allCollectedJobs.length >= MAX_JOBS) break;
+        if (newJobsOnPage === 0) { stuckCount++; if (stuckCount >= 2) break; } else stuckCount = 0;
+
+        // Try pagination: mat-paginator next OR Load More button INSIDE .right-listing (not filter sidebar)
+        const hasNext = await page.evaluate(() => {
+            // mat-paginator next button
+            const nextBtn = document.querySelector(
+                'mat-paginator button.mat-paginator-navigation-next, button[aria-label="Next page"], button[aria-label="Next Page"]'
+            );
+            if (nextBtn && !nextBtn.disabled && !nextBtn.classList.contains('mat-button-disabled')
+                && nextBtn.getAttribute('aria-disabled') !== 'true') {
+                nextBtn.scrollIntoView();
+                nextBtn.click();
+                return true;
+            }
+
+            // "Load More" button specifically inside .right-listing (not filter sidebar)
+            const rightListing = document.querySelector('.right-listing');
+            if (rightListing) {
+                const loadMore = [...rightListing.querySelectorAll('button')].find(b => {
+                    const t = b.innerText?.trim()?.toLowerCase() || '';
+                    return (t.includes('load more') || t.includes('show more') || t.includes('load jobs'))
+                        && b.offsetParent !== null && !b.disabled;
+                });
+                if (loadMore) { loadMore.scrollIntoView(); loadMore.click(); return true; }
+            }
+
+            // Fallback: scroll to bottom (infinite scroll)
+            const before = document.querySelectorAll('.card-wrap').length;
+            window.scrollTo(0, document.body.scrollHeight);
+            return false; // caller will check if count grew
+        });
+
+        if (!hasNext) {
+            // Give page time to respond to scroll
+            await page.waitForTimeout(2500);
+            const afterCount = await page.locator('.card-wrap').count();
+            if (afterCount <= cardCount) {
+                console.log(`     ↳ No more pages. Done.`);
+                break;
+            }
+            // More cards loaded via infinite scroll — keep looping
+        } else {
+            await page.waitForSelector('.card-wrap', { timeout: 12000 }).catch(() => { });
+            await page.waitForTimeout(1500);
+        }
+
+        pageNum++;
+    }
+
+    console.log(`     ↳ TalentRecruit: ${allCollectedJobs.length} total jobs found`);
+
+    for (const job of allCollectedJobs) {
+        if (results.length >= MAX_JOBS) break;
+
+        // Push directly to results since there's no separate detail URL
+        results.push({
+            source: 'talentrecruit',
+            url: job.applyLink || job.detailUrl,
+            title: job.title,
+            location: job.location,
+            company: companyName,
+            date: job.date || 'Not Found',
+            experience: job.experience || 'Not Found',
+            description: job.description || 'Not Found',
+            applyLink: job.applyLink || job.detailUrl,
+            salary: 'Not Available',
+            jobId: job.jobId || 'Not Found',
+            department: job.department || ''
+        });
+    }
+
+    // Save results immediately
+    saveJobsNow(results);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏗️  KONECRANES / ATTRAX ATS (*.careers, attrax-vacancy-tile)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeKonecranes(page, context, listingUrl, results) {
+    const origin = new URL(listingUrl).origin;
+    const hostname = new URL(listingUrl).hostname;
+    const companySlug = hostname.split('.')[0] || 'Konecranes';
+    const companyName = companySlug.charAt(0).toUpperCase() + companySlug.slice(1);
+
+    console.log(`  📄 ${companyName} listing (${listingUrl})...`);
+
+    try {
+        await page.waitForSelector('.attrax-vacancy-tile', { timeout: 40000 });
+        await page.waitForTimeout(2000);
+    } catch {
+        console.log(`     ↳ [WARN] .attrax-vacancy-tile not found after 40s`);
+    }
+
+    const seenUrls = new Set();
+    let pageNum = 1;
+
+    while (true) {
+        await page.waitForTimeout(800);
+
+        const pageJobs = await page.evaluate((baseUrl) => {
+            const tiles = [...document.querySelectorAll('.attrax-vacancy-tile')];
+            return tiles.map(tile => {
+                const titleAnchor = tile.querySelector('a.attrax-vacancy-tile__title, a.attrax-vacancy-tile__learn-more');
+                const title = titleAnchor?.innerText?.trim() || 'Not Found';
+                const relHref = titleAnchor?.getAttribute('href') || '';
+                const detailUrl = relHref ? new URL(relHref, baseUrl).href : '';
+
+                const location = tile.querySelector('.attrax-vacancy-tile__location-freetext .attrax-vacancy-tile__item-value')?.innerText?.trim()
+                    || tile.querySelector('.attrax-vacancy-tile__option-location-valueset .attrax-vacancy-tile__item-value')?.innerText?.trim()
+                    || 'Not Found';
+
+                const department = tile.querySelector('.attrax-vacancy-tile__option-department-valueset .attrax-vacancy-tile__item-value')?.innerText?.trim() || '';
+                const jobType = tile.querySelector('.attrax-vacancy-tile__option-full-time-part-time-valueset .attrax-vacancy-tile__item-value')?.innerText?.trim()
+                    || tile.querySelector('.attrax-vacancy-tile__option-job-type-valueset .attrax-vacancy-tile__item-value')?.innerText?.trim() || '';
+
+                const salary = tile.querySelector('.attrax-vacancy-tile__salary-value')?.innerText?.replace(/\s+/g, ' ')?.trim() || 'Not Available';
+                const teaser = tile.querySelector('.attrax-vacancy-tile__description-value')?.innerText?.trim() || '';
+                const jobId = tile.getAttribute('data-jobid') || tile.querySelector('.attrax-vacancy-tile__reference-value')?.innerText?.trim() || '';
+
+                const applyAnchor = tile.querySelector('a.attrax-vacancy-tile__learn-more, a[href*="/job/"]');
+                const applyLink = applyAnchor?.getAttribute('href') ? new URL(applyAnchor.getAttribute('href'), baseUrl).href : detailUrl;
+
+                return { title, detailUrl, location, department, jobType, salary, teaser, jobId, applyLink };
+            }).filter(j => j.detailUrl && j.title !== 'Not Found');
+        }, page.url());
+
+        let newOnPage = 0;
+        for (const job of pageJobs) {
+            const linkKey = job.applyLink || job.detailUrl;
+            if (seenUrls.has(linkKey)) continue;
+            seenUrls.add(linkKey);
+            newOnPage++;
+
+            if (results.length >= MAX_JOBS) break;
+
+            console.log(`    🔎 ${job.title} | ${job.location} | ${job.jobId}`);
+
+            let description = job.teaser;
+            let experience = 'Not Found';
+
+            if (job.detailUrl) {
+                const detailPage = await context.newPage();
+                try {
+                    await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
+                    await detailPage.waitForTimeout(2000);
+
+                    const detail = await detailPage.evaluate(() => {
+                        let desc = '';
+                        try {
+                            const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
+                            if (ld.description) desc = ld.description.replace(/<[^>]+>/g, ' ').trim();
+                        } catch (_) { }
+
+                        if (!desc) {
+                            const descEl = document.querySelector('.attrax-vacancy-details__description, [data-type="JobDescriptionWidget"], .attrax-vacancy-description');
+                            desc = descEl?.innerText?.trim() || '';
+                        }
+
+                        const expMatch = desc.match(/(\d+\+?\s*(years|yrs|year))/i);
+                        const experience = expMatch ? expMatch[0] : 'Not Found';
+
+                        return { description: desc.slice(0, 3000), experience };
+                    });
+
+                    if (detail.description) description = detail.description;
+                    if (detail.experience) experience = detail.experience;
+                } catch (err) {
+                    console.log(`      ⚠️ Detail page failed: ${err.message}`);
+                } finally {
+                    await detailPage.close();
+                }
+            }
+
+            results.push({
+                source: 'konecranes',
+                url: job.applyLink || job.detailUrl,
+                title: job.title,
+                location: job.location,
+                company: companyName,
+                date: 'Not Found',
+                experience,
+                description: description || 'Not Found',
+                applyLink: job.applyLink || job.detailUrl,
+                salary: job.salary || 'Not Available',
+                jobId: job.jobId || 'Not Found',
+                department: job.department || ''
+            });
+
+            saveJobsNow(results);
+            await delay(400);
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${pageJobs.length} parsed, ${newOnPage} new (${results.length} total)`);
+
+        if (newOnPage === 0) {
+            console.log(`     ↳ No new jobs on page ${pageNum}. Done.`);
+            break;
+        }
+        if (results.length >= MAX_JOBS) break;
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('.attrax-pagination__next a, a[aria-label*="Next pagination page" i]');
+            if (nextBtn) {
+                const isDisabled = nextBtn.disabled ||
+                    nextBtn.getAttribute('aria-disabled') === 'true' ||
+                    nextBtn.classList.contains('disabled') ||
+                    nextBtn.closest('li')?.classList.contains('disabled');
+                if (!isDisabled) {
+                    nextBtn.scrollIntoView();
+                    nextBtn.click();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`     ↳ No more pages. Done.`);
+            break;
+        } else {
+            await page.waitForTimeout(3000);
+        }
+
+        pageNum++;
+    }
+
+    console.log(`     ↳ Konecranes: ${results.length} total jobs found`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🌊  RIPPLEHIRE (tatasteel.ripplehire.com, etc.)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeRipplehire(page, context, listingUrl, results) {
+    const hostname = new URL(listingUrl).hostname;
+    const subdomain = hostname.split('.')[0];
+    let companyName = subdomain.charAt(0).toUpperCase() + subdomain.slice(1);
+    if (subdomain.includes('tatasteel')) companyName = 'Tata Steel';
+    else if (subdomain.includes('mphasis')) companyName = 'Mphasis';
+
+    console.log(`  📄 RippleHire listing (${companyName})...`);
+
+    // Wait for job cards to appear
+    await page.waitForSelector('.list-job-box li, #joblist-panel, .job-title, a[href*="#detail/job/"]', { timeout: 35000 }).catch(() => { });
+    await page.waitForTimeout(2500);
+
+    const jobMap = new Map();
+    const baseUrl = listingUrl.split('#')[0];
+
+    let pageNum = 1;
+    while (true) {
+        // Auto scroll to trigger lazy loading / DOM render
+        for (let s = 0; s < 5; s++) {
+            await page.mouse.wheel(0, 1000);
+            await page.evaluate(() => {
+                window.scrollBy(0, 800);
+                const el = document.querySelector('#joblist-panel, .list-job-box');
+                if (el) el.scrollTop += 800;
+            });
+            await page.waitForTimeout(400);
+        }
+
+        const currentBatch = await page.evaluate(({ baseUrl, companyName }) => {
+            const cards = Array.from(document.querySelectorAll('.list-job-box li#row, .list-job-box li.job, #joblist-panel li'));
+            return cards.map(card => {
+                const a = card.querySelector('a.job-title, a[href*="#detail/job/"], h3 a, h4 a, a.title');
+                if (!a) return null;
+
+                const title = a.innerText?.trim();
+                if (!title) return null;
+
+                let href = a.getAttribute('href') || '';
+                let detailUrl = '';
+                if (href.startsWith('#')) {
+                    detailUrl = baseUrl + href;
+                } else if (href.startsWith('http')) {
+                    detailUrl = href;
+                } else {
+                    detailUrl = baseUrl + '#' + href;
+                }
+
+                // Extract Job ID
+                const idMatch = href.match(/\/job\/(\d+)/i) || card.innerText.match(/Job ID:\s*(\d+)/i);
+                const jobId = idMatch ? idMatch[1] : '';
+
+                // Extract Location
+                const locLi = card.querySelector('.location-text, li[class*="location"]');
+                let location = locLi ? locLi.innerText.replace(/[\r\n\t]+/g, ' ').replace(/^location\s*/i, '').trim() : 'Not Found';
+
+                // Extract Experience
+                let experience = 'Not Found';
+                const lis = Array.from(card.querySelectorAll('ul.list-job li, ul li'));
+                for (const li of lis) {
+                    const text = li.innerText.trim();
+                    if (text.includes('Years') || text.includes('Yrs') || text.match(/\d+\s*-\s*\d+/)) {
+                        experience = text;
+                        break;
+                    }
+                }
+
+                return {
+                    title,
+                    location: location || 'Not Found',
+                    experience,
+                    jobId: jobId || 'Not Found',
+                    detailUrl,
+                    applyLink: detailUrl,
+                    company: companyName
+                };
+            }).filter(j => j && j.title && j.detailUrl);
+        }, { baseUrl, companyName });
+
+        let newCount = 0;
+        for (const j of currentBatch) {
+            if (!jobMap.has(j.detailUrl)) {
+                jobMap.set(j.detailUrl, j);
+                newCount++;
+            }
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} visible, ${jobMap.size} total collected...`);
+
+        if (newCount === 0 && pageNum > 1) break;
+
+        // Check for Pagination Next button
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('.pagination li.next:not(.disabled) a, .pagination li.next:not(.disabled) button, a.next-page, [data-page="next"], .pagination li.active + li a');
+            if (nextBtn && !nextBtn.classList.contains('disabled')) {
+                nextBtn.click();
+                return true;
+            }
+            return false;
+        });
+
+        if (!hasNext) break;
+        await page.waitForTimeout(2500);
+        pageNum++;
+    }
+
+    const jobList = Array.from(jobMap.values());
+    console.log(`  ↳ RippleHire (${companyName}): ${jobList.length} total jobs collected`);
+
+    for (const job of jobList) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'ripplehire', results, { company: companyName });
+        await delay(400);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🪺  NESTLÉ (nestle.com / jobdetails.nestle.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeNestle(page, context, listingUrl, results) {
+    console.log('  📄 Nestlé listing...');
+
+    let searchUrl = 'https://jobdetails.nestle.com/search/?q=&locationsearch=India';
+    if (listingUrl.includes('jobdetails.nestle.com')) {
+        searchUrl = listingUrl;
+    } else {
+        try {
+            const parsed = new URL(listingUrl);
+            const kw = parsed.searchParams.get('keyword') || parsed.searchParams.get('q') || '';
+            const loc = parsed.searchParams.get('location') || parsed.searchParams.get('country') || 'India';
+            searchUrl = `https://jobdetails.nestle.com/search/?q=${encodeURIComponent(kw)}&locationsearch=${encodeURIComponent(loc === 'IN' ? 'India' : loc)}`;
+        } catch (e) { }
+    }
+
+    const jobMap = new Map();
+    let startrow = 0;
+    let pageNum = 1;
+
+    while (true) {
+        const pagedUrl = searchUrl.includes('startrow=')
+            ? searchUrl.replace(/startrow=\d+/, `startrow=${startrow}`)
+            : `${searchUrl}${searchUrl.includes('?') ? '&' : '?'}startrow=${startrow}`;
+
+        await page.goto(pagedUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.waitForSelector('tr.data-row, tr.searchResultsRow, a[href*="/job/"]', { timeout: 15000 }).catch(() => { });
+        await page.waitForTimeout(2000);
+
+        const currentBatch = await page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('tr.data-row, tr.searchResultsRow, .jobs-card, .views-row'));
+            return rows.map(row => {
+                const a = row.querySelector('a.jobTitle-link, a[href*="jobdetails.nestle.com"], a[href*="/job/"]');
+                if (!a) return null;
+
+                const title = a.innerText?.trim();
+                if (!title) return null;
+
+                let href = a.getAttribute('href') || '';
+                if (!href.startsWith('http')) {
+                    href = new URL(href, window.location.origin).href;
+                }
+
+                const locEl = row.querySelector('.jobLocation, .collocation, .jobs-location, .views-field-country-name');
+                let location = locEl ? locEl.innerText.replace(/[\r\n\t]+/g, ' ').replace(/^Location\s*/i, '').trim() : 'Not Found';
+
+                const dateEl = row.querySelector('.jobDate, .coldate');
+                let date = dateEl ? dateEl.innerText.trim() : 'Not Found';
+
+                const deptEl = row.querySelector('.jobDepartment, .coldept, .jobs-career-area');
+                let department = deptEl ? deptEl.innerText.trim() : '';
+
+                const idMatch = href.match(/\/(\d{6,})\//);
+                const jobId = idMatch ? idMatch[1] : 'Not Found';
+
+                return {
+                    title,
+                    location: location || 'Not Found',
+                    date,
+                    experience: 'Not Found',
+                    jobId,
+                    detailUrl: href,
+                    applyLink: href,
+                    company: 'Nestlé',
+                    department
+                };
+            }).filter(j => j && j.title && j.detailUrl);
+        });
+
+        if (currentBatch.length === 0) break;
+
+        let newCount = 0;
+        for (const j of currentBatch) {
+            if (!jobMap.has(j.detailUrl)) {
+                jobMap.set(j.detailUrl, j);
+                newCount++;
+            }
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} visible, ${jobMap.size} total collected...`);
+
+        if (newCount === 0) break;
+
+        const hasNext = await page.evaluate(({ startrow }) => {
+            const nextRow = startrow + 10;
+            const paginationLinks = Array.from(document.querySelectorAll('a[href*="startrow="]'));
+            return paginationLinks.some(a => a.href.includes(`startrow=${nextRow}`));
+        }, { startrow });
+
+        if (!hasNext && currentBatch.length < 10) break;
+
+        startrow += 10;
+        pageNum++;
+    }
+
+    const jobList = Array.from(jobMap.values());
+    console.log(`  ✅ Nestlé listing completed — total ${jobList.length} jobs collected`);
+
+    for (const job of jobList) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'nestle', results, { company: 'Nestlé' });
+        await delay(400);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🪢  BHARAT WIRE ROPES (bharatwireropes.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeBharatWireRopes(page, context, listingUrl, results) {
+    console.log('  📄 Bharat Wire Ropes listing...');
+
+    await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForSelector('.job-card', { timeout: 20000 }).catch(() => { });
+    await page.waitForTimeout(2000);
+
+    const cards = await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('.job-card'));
+        return els.map(el => {
+            const h5 = el.querySelector('h5')?.innerText?.trim();
+            if (!h5) return null;
+
+            const viewBtn = el.querySelector('.view-details-btn');
+            const applyBtn = el.querySelector('.apply-btn');
+            const jobId = viewBtn?.getAttribute('data-job-id') || applyBtn?.getAttribute('data-job-id') || '';
+
+            let department = '';
+            let location = 'Not Found';
+            let date = 'Not Found';
+
+            const ps = Array.from(el.querySelectorAll('p'));
+            for (const p of ps) {
+                const text = p.innerText.trim();
+                if (text.toLowerCase().includes('department:')) {
+                    department = text.replace(/^department:\s*/i, '').trim();
+                } else if (text.toLowerCase().includes('location:')) {
+                    location = text.replace(/^location:\s*/i, '').trim();
+                } else if (text.toLowerCase().includes('posted:')) {
+                    date = text.replace(/^posted:\s*/i, '').trim();
+                }
+            }
+
+            const detailUrl = window.location.href;
+
+            return {
+                title: h5,
+                location: location || 'Not Found',
+                department,
+                date: date || 'Not Found',
+                jobId: jobId || 'Not Found',
+                detailUrl,
+                applyLink: detailUrl,
+                company: 'Bharat Wire Ropes'
+            };
+        }).filter(Boolean);
+    });
+
+    console.log(`  ✅ Bharat Wire Ropes listing completed — total ${cards.length} jobs collected`);
+
+    for (const job of cards) {
+        if (results.length >= MAX_JOBS) break;
+
+        let fullDesc = '';
+        let experience = 'Not Found';
+
+        if (job.jobId && job.jobId !== 'Not Found') {
+            try {
+                const detailData = await page.evaluate(async (jobId) => {
+                    const res = await fetch(`/job-desc/${jobId}`);
+                    if (!res.ok) return null;
+                    return await res.json();
+                }, job.jobId);
+
+                if (detailData && detailData.status === 'success' && detailData.data) {
+                    const d = detailData.data;
+                    const descText = (d.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                    const eduText = (d.education || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+                    fullDesc = [descText, eduText].filter(Boolean).join('\n\n');
+
+                    const expMatch = eduText.match(/(\d+\s*(?:to|-)?\s*\d*\s*(?:Years|Yrs|year|yrs))/i) || descText.match(/(\d+\s*(?:to|-)?\s*\d*\s*(?:Years|Yrs|year|yrs))/i);
+                    if (expMatch) experience = expMatch[0];
+                }
+            } catch (e) { }
+        }
+
+        if (!fullDesc) {
+            fullDesc = `Position: ${job.title}\nDepartment: ${job.department}\nLocation: ${job.location}`;
+        }
+
+        const fullJob = {
+            source: 'bharatwireropes',
+            url: job.detailUrl,
+            title: job.title,
+            location: job.location,
+            company: 'Bharat Wire Ropes',
+            date: job.date,
+            experience,
+            description: fullDesc,
+            applyLink: job.applyLink,
+            salary: 'Not Available',
+            jobId: job.jobId
+        };
+
+        results.push(fullJob);
+        saveJobsNow(results);
+        console.log(`    🔎 ${fullJob.title}`);
+        await delay(200);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🚗  GENERAL MOTORS (search-careers.gm.com)
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeGm(page, context, listingUrl, results) {
+    console.log('  📄 General Motors (GM) listing...');
+
+    const jobMap = new Map();
+    let pageNum = 1;
+    let currentUrl = listingUrl;
+
+    while (true) {
+        await page.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.waitForSelector('.card.card-job, #js-job-search-results', { timeout: 15000 }).catch(() => { });
+        await page.waitForTimeout(2000);
+
+        const currentBatch = await page.evaluate(() => {
+            const cards = Array.from(document.querySelectorAll('.card.card-job, #js-job-search-results .card'));
+            return cards.map(card => {
+                const a = card.querySelector('a.stretched-link, h2.card-title a, a[href*="/jobs/"]');
+                if (!a) return null;
+
+                const title = a.innerText?.trim();
+                if (!title) return null;
+
+                let href = a.getAttribute('href') || '';
+                if (!href.startsWith('http')) {
+                    href = new URL(href, window.location.origin).href;
+                }
+
+                const metaLis = Array.from(card.querySelectorAll('.job-meta li, .list-inline-item'));
+                let department = '';
+                let location = 'Not Found';
+
+                for (const li of metaLis) {
+                    const text = li.innerText.trim();
+                    if (text.toLowerCase().includes('karnātaka') || text.toLowerCase().includes('bengaluru') || text.toLowerCase().includes('india') || text.includes(',')) {
+                        location = text;
+                    } else if (text) {
+                        department = text;
+                    }
+                }
+
+                const idMatch = href.match(/\/jobs\/(jr-\d+|[a-zA-Z0-9_-]+)\//i);
+                const jobId = idMatch ? idMatch[1] : 'Not Found';
+
+                return {
+                    title,
+                    location: location || 'Not Found',
+                    department,
+                    date: 'Not Found',
+                    jobId,
+                    detailUrl: href,
+                    applyLink: href,
+                    company: 'General Motors'
+                };
+            }).filter(j => j && j.title && j.detailUrl);
+        });
+
+        if (currentBatch.length === 0) break;
+
+        let newCount = 0;
+        for (const j of currentBatch) {
+            if (!jobMap.has(j.detailUrl)) {
+                jobMap.set(j.detailUrl, j);
+                newCount++;
+            }
+        }
+
+        console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} visible, ${jobMap.size} total collected...`);
+
+        if (newCount === 0) break;
+
+        const nextHref = await page.evaluate(() => {
+            const nextBtn = document.querySelector('.pagination a[rel="next"], .pagination li.next a, a[aria-label="Next"], .pagination li:last-child a');
+            if (nextBtn && !nextBtn.parentElement?.classList.contains('disabled') && nextBtn.href && !nextBtn.href.endsWith('#')) {
+                return nextBtn.href;
+            }
+            return null;
+        });
+
+        if (!nextHref || nextHref === currentUrl) break;
+
+        currentUrl = nextHref;
+        pageNum++;
+    }
+
+    const jobList = Array.from(jobMap.values());
+    console.log(`  ✅ General Motors listing completed — total ${jobList.length} jobs collected`);
+
+    for (const job of jobList) {
+        if (results.length >= MAX_JOBS) break;
+        await visitDetailPage(context, job, 'gm', results, { company: 'General Motors' });
+        await delay(400);
+    }
+}
+
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
+async function scrapeKiaIndia(page, context, listingUrl, results) {
+    console.log(`\n🚗 Scraping Kia India...`);
+
+    // Intercept the Zwayam public API which powers the Kia India careers page
+    let jobsApiData = null;
+    page.on('response', async (response) => {
+        if (response.url().includes('zwayam.com/jobs/search') && !jobsApiData) {
+            try {
+                const body = await response.json();
+                if (body && body.data && body.data.data) {
+                    jobsApiData = body;
+                }
+            } catch (e) { }
+        }
+    });
+
+    try {
+        console.log(`▶️ Kia India: Loading ${listingUrl}...`);
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+        // Wait until the API response has been captured (max 20s)
+        const waitStart = Date.now();
+        while (!jobsApiData && Date.now() - waitStart < 20000) {
+            await page.waitForTimeout(500);
+        }
+
+        if (!jobsApiData) {
+            console.log(`  ⚠️ Could not intercept Zwayam API response. Falling back...`);
+            return;
+        }
+
+        const apiJobs = jobsApiData.data.data || [];
+        console.log(`  ↳ Found ${apiJobs.length} jobs from Zwayam API`);
+
+        for (const entry of apiJobs) {
+            if (results.length >= MAX_JOBS) break;
+
+            const src = entry._source || {};
+            const jobId = src.id || src.jobId;
+            const jobUrl = src.jobUrl || '';
+            const title = src.jobTitle || 'Untitled';
+            const location = src.location || src.officeLocation || 'India';
+            const minExp = src.minYearOfExperience;
+            const maxExp = src.maxYearOfExperience;
+            const experience = (minExp != null && maxExp != null)
+                ? `${minExp} - ${maxExp} years`
+                : src.yrsOfExperience || 'Not Found';
+            const description = src.mediumDescriptionWithoutHtml || src.responsibility || '';
+            const applyLink = (jobId && jobUrl)
+                ? `https://career.kiaindia.net/kiaindia/jobview/${jobUrl}?id=${jobId}`
+                : listingUrl;
+
+            const job = {
+                source: 'kiaindia',
+                url: applyLink,
+                title,
+                location,
+                experience,
+                company: 'Kia India',
+                description,
+                applyLink,
+                date: src.jobCreatedDate || new Date().toISOString(),
+                jobId: jobId ? String(jobId) : 'Not Found',
+            };
+
+            results.push(job);
+            console.log(`    🔎 ${title} | ${location}`);
+            if (typeof saveJobsNow === 'function') saveJobsNow(results);
+        }
+
+    } catch (e) {
+        console.error(`  ❌ Error scraping Kia India:`, e.message);
+    }
+}
+async function scrapeMacegroup(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Macegroup...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ Macegroup: Fetching Page ${pageNum} (${listingUrl})...`);
+        try {
+            await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(5000);
+
+            // Wait explicitly for jobs to render
+            await page.waitForSelector('.jobs-list-item', { timeout: 30000 }).catch(() => console.log('Timeout waiting for cards'));
+            await page.waitForTimeout(2000);
+
+            const jobs = await page.evaluate(() => {
+                const pageResults = [];
+                const cards = document.querySelectorAll('.jobs-list-item');
+
+                cards.forEach(card => {
+                    const titleEl = card.querySelector('.job-title');
+                    if (!titleEl) return;
+
+                    const title = titleEl.innerText.trim();
+
+                    let location = 'India';
+                    const locEl = card.querySelector('.job-location');
+                    if (locEl) {
+                        location = locEl.innerText.replace('Location', '').trim();
+                    }
+
+                    let experience = 'Not Found';
+
+                    let description = '';
+                    const descEl = card.querySelector('.job-description');
+                    if (descEl) {
+                        description = descEl.innerText.trim();
+                    }
+
+                    let category = '';
+                    const catEl = card.querySelector('.job-category');
+                    if (catEl) {
+                        category = catEl.innerText.replace('Category', '').trim();
+                    }
+
+                    let applyLink = '';
+                    const linkEl = card.querySelector('a[data-ph-at-id="job-link"], a[ph-tevent="job_click"]');
+                    if (linkEl && linkEl.href) {
+                        applyLink = linkEl.href;
+                    } else {
+                        applyLink = window.location.href;
+                    }
+
+                    let jobId = '';
+                    const idEl = card.querySelector('.jobId span[innerhtml\\.bind], .jobId span.au-target, .jobId');
+                    if (idEl) {
+                        jobId = idEl.innerText.replace('Job Id', '').trim();
+                    }
+                    if (!jobId && linkEl) {
+                        const idAttr = linkEl.getAttribute('data-ph-at-job-id-text');
+                        if (idAttr) jobId = idAttr;
+                    }
+
+                    // clean up jobId text if it contains extra newlines or spaces
+                    jobId = jobId.split('\n').pop().trim();
+
+                    pageResults.push({
+                        title,
+                        location,
+                        experience,
+                        applyLink,
+                        company: 'Macegroup',
+                        description: description || category,
+                        jobId: jobId || 'Not Found'
+                    });
+                });
+                return pageResults;
+            });
+
+            console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+            if (jobs.length === 0) {
+                console.log(`  ⚠️ No jobs found on page ${pageNum}. Assuming end of list.`);
+                break;
+            }
+
+            for (const job of jobs) {
+                if (results.length >= MAX_JOBS) break;
+
+                if (job.applyLink && job.applyLink.includes('/job/')) {
+                    try {
+                        const detailPage = await context.newPage();
+                        await detailPage.goto(job.applyLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                        await detailPage.waitForTimeout(3000); // Give it time to render the description
+                        const fullDesc = await detailPage.evaluate(() => {
+                            const jd = document.querySelector('.jd-info, [data-ph-at-id="jobdescription-text"]');
+                            return jd ? jd.innerText.trim() : '';
+                        });
+                        if (fullDesc) {
+                            job.description = fullDesc;
+                        }
+                        await detailPage.close();
+                    } catch (e) {
+                        console.log(`    ⚠️ Could not fetch full description for ${job.jobId}`);
+                    }
+                }
+
+                results.push({
+                    ...job,
+                    id: `macegroup-${job.jobId !== 'Not Found' ? job.jobId : job.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+                    date: new Date().toISOString()
+                });
+                console.log(`    🔎 ${job.title} | ${job.location}`);
+                if (typeof saveJobsNow === 'function') saveJobsNow(results);
+            }
+
+            // Check for pagination
+            const clickedNext = await page.evaluate(() => {
+                const nextBtn = document.querySelector('a.next-page, li.next a, a[aria-label="Next page"], a[aria-label="View next page"], a[data-ph-at-id="pagination-next-link"]');
+                if (nextBtn && !nextBtn.hasAttribute('disabled') && !nextBtn.classList.contains('disabled')) {
+                    nextBtn.click();
+                    return true;
+                }
+
+                const nextPaginationBtn = document.querySelector('.pagination .next button, .pagination-next button');
+                if (nextPaginationBtn && !nextPaginationBtn.disabled) {
+                    nextPaginationBtn.click();
+                    return true;
+                }
+
+                // Some phenom pages use load more
+                const loadMoreBtn = document.querySelector('button.load-more-btn, button[data-ph-at-id="load-more-button"]');
+                if (loadMoreBtn) {
+                    loadMoreBtn.click();
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (clickedNext) {
+                pageNum++;
+                await page.waitForTimeout(4000);
+                listingUrl = page.url();
+            } else {
+                hasNextPage = false;
+            }
+
+        } catch (e) {
+            console.error(`  ❌ Error scraping Macegroup page ${pageNum}:`, e.message);
+            hasNextPage = false;
+        }
+    }
+}
+
+async function scrapeAbb(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping ABB...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ ABB: Fetching Page ${pageNum} (${listingUrl})...`);
+        try {
+            await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(5000);
+
+            // Wait explicitly for jobs to render
+            await page.waitForSelector('.jobs-list-item', { timeout: 30000 }).catch(() => console.log('Timeout waiting for cards'));
+            await page.waitForTimeout(2000);
+
+            const jobs = await page.evaluate(() => {
+                const pageResults = [];
+                const cards = document.querySelectorAll('.jobs-list-item');
+
+                cards.forEach(card => {
+                    const titleEl = card.querySelector('.job-title');
+                    if (!titleEl) return;
+
+                    const title = titleEl.innerText.trim();
+
+                    let location = 'India';
+                    const locEl = card.querySelector('.job-location');
+                    if (locEl) {
+                        location = locEl.innerText.replace('Location', '').trim();
+                    }
+
+                    let experience = 'Not Found';
+
+                    let description = '';
+                    const descEl = card.querySelector('.job-description');
+                    if (descEl) {
+                        description = descEl.innerText.trim();
+                    }
+
+                    let category = '';
+                    const catEl = card.querySelector('.job-category');
+                    if (catEl) {
+                        category = catEl.innerText.replace('Category', '').trim();
+                    }
+
+                    let applyLink = '';
+                    const linkEl = card.querySelector('a[data-ph-at-id="job-link"], a[ph-tevent="job_click"]');
+                    if (linkEl && linkEl.href) {
+                        applyLink = linkEl.href;
+                    } else {
+                        applyLink = window.location.href;
+                    }
+
+                    let jobId = '';
+                    const idEl = card.querySelector('.jobId span[innerhtml\\.bind], .jobId span.au-target, .jobId');
+                    if (idEl) {
+                        jobId = idEl.innerText.replace('Job Id', '').trim();
+                    }
+                    if (!jobId && linkEl) {
+                        const idAttr = linkEl.getAttribute('data-ph-at-job-id-text');
+                        if (idAttr) jobId = idAttr;
+                    }
+
+                    // clean up jobId text if it contains extra newlines or spaces
+                    jobId = jobId.split('\n').pop().trim();
+
+                    pageResults.push({
+                        title,
+                        location,
+                        experience,
+                        applyLink,
+                        company: 'ABB',
+                        description: description || category,
+                        jobId: jobId || 'Not Found'
+                    });
+                });
+                return pageResults;
+            });
+
+            console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+            if (jobs.length === 0) {
+                console.log(`  ⚠️ No jobs found on page ${pageNum}. Assuming end of list.`);
+                break;
+            }
+
+            for (const job of jobs) {
+                if (results.length >= MAX_JOBS) break;
+
+                if (job.applyLink && job.applyLink.includes('/job/')) {
+                    try {
+                        const detailPage = await context.newPage();
+                        await detailPage.goto(job.applyLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                        await detailPage.waitForTimeout(3000); // Give it time to render the description
+                        const fullDesc = await detailPage.evaluate(() => {
+                            const jd = document.querySelector('.jd-info, [data-ph-at-id="jobdescription-text"]');
+                            return jd ? jd.innerText.trim() : '';
+                        });
+                        if (fullDesc) {
+                            job.description = fullDesc;
+                        }
+                        await detailPage.close();
+                    } catch (e) {
+                        console.log(`    ⚠️ Could not fetch full description for ${job.jobId}`);
+                    }
+                }
+
+                results.push({
+                    ...job,
+                    id: `abb-${job.jobId !== 'Not Found' ? job.jobId : job.title.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}`,
+                    date: new Date().toISOString()
+                });
+                console.log(`    🔎 ${job.title} | ${job.location}`);
+                if (typeof saveJobsNow === 'function') saveJobsNow(results);
+            }
+
+            // Check for pagination
+            const clickedNext = await page.evaluate(() => {
+                const nextBtn = document.querySelector('a.next-page, li.next a, a[aria-label="Next page"], a[aria-label="View next page"], a[data-ph-at-id="pagination-next-link"]');
+                if (nextBtn && !nextBtn.hasAttribute('disabled') && !nextBtn.classList.contains('disabled')) {
+                    nextBtn.click();
+                    return true;
+                }
+
+                const nextPaginationBtn = document.querySelector('.pagination .next button, .pagination-next button');
+                if (nextPaginationBtn && !nextPaginationBtn.disabled) {
+                    nextPaginationBtn.click();
+                    return true;
+                }
+
+                // Some phenom pages use load more
+                const loadMoreBtn = document.querySelector('button.load-more-btn, button[data-ph-at-id="load-more-button"]');
+                if (loadMoreBtn) {
+                    loadMoreBtn.click();
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (clickedNext) {
+                pageNum++;
+                await page.waitForTimeout(4000);
+                listingUrl = page.url();
+            } else {
+                hasNextPage = false;
+            }
+
+        } catch (e) {
+            console.error(`  ❌ Error scraping ABB page ${pageNum}:`, e.message);
+            hasNextPage = false;
+        }
+    }
+}
+
+async function scrapeEightfold(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Eightfold...`);
+    let pageNum = 1;
+    let hasNextPage = true;
+
+    while (hasNextPage && results.length < MAX_JOBS) {
+        console.log(`▶️ Eightfold: Fetching Page ${pageNum} (${listingUrl})...`);
+        try {
+            await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(5000);
+
+            // Wait explicitly for jobs to render
+            await page.waitForSelector('.results-list__item, .job-card', { timeout: 30000 }).catch(() => console.log('Timeout waiting for cards'));
+            await page.waitForTimeout(2000);
+
+            const jobs = await page.evaluate(() => {
+                const pageResults = [];
+                const cards = document.querySelectorAll('.results-list__item');
+
+                cards.forEach(card => {
+                    const titleEl = card.querySelector('.results-list__item-title--link');
+                    if (!titleEl) return;
+
+                    const title = titleEl.innerText.trim();
+                    let applyLink = titleEl.href;
+                    if (!applyLink.startsWith('http')) {
+                        applyLink = window.location.origin + applyLink;
+                    }
+
+                    let location = 'India';
+                    const locEl = card.querySelector('.results-list__item-street--label');
+                    if (locEl) {
+                        location = locEl.innerText.trim();
+                    }
+
+                    let experience = 'Not Found';
+
+                    let jobId = '';
+                    const idEl = card.querySelector('.results-list__req-id--label');
+                    if (idEl) {
+                        jobId = idEl.innerText.trim();
+                    }
+
+                    // Extract company name roughly from URL or domain
+                    let domainStr = window.location.hostname.replace('careers.', '').replace('.com', '').replace('.eightfold.ai', '');
+                    let company = domainStr.charAt(0).toUpperCase() + domainStr.slice(1);
+
+                    pageResults.push({
+                        title,
+                        location,
+                        experience,
+                        applyLink,
+                        url: applyLink,
+                        company,
+                        description: '',
+                        jobId: jobId || 'Not Found'
+                    });
+                });
+                return pageResults;
+            });
+
+            console.log(`  ↳ Found ${jobs.length} jobs on page ${pageNum}`);
+            if (jobs.length === 0) {
+                console.log(`  ⚠️ No jobs found on page ${pageNum}. Assuming end of list.`);
+                break;
+            }
+
+            for (const job of jobs) {
+                if (results.length >= MAX_JOBS) break;
+
+                if (job.applyLink) {
+                    try {
+                        const detailPage = await context.newPage();
+                        await detailPage.goto(job.applyLink, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                        await detailPage.waitForTimeout(3000);
+                        const fullDesc = await detailPage.evaluate(() => {
+                            const jd = document.querySelector('.job-description, [data-testid="job-description"], .c-job-description');
+                            return jd ? jd.innerText.trim() : '';
+                        });
+                        if (fullDesc) {
+                            job.description = fullDesc;
+                        }
+                        await detailPage.close();
+                    } catch (e) {
+                        console.log(`    ⚠️ Could not fetch full description for ${job.jobId}`);
+                    }
+                }
+
+                results.push({
+                    ...job,
+                    url: job.applyLink,
+                    id: `eightfold-${job.jobId !== 'Not Found' ? job.jobId : job.title.replace(/\\s+/g, '-').toLowerCase()}-${Date.now()}`,
+                    date: new Date().toISOString()
+                });
+                console.log(`    🔎 ${job.title} | ${job.location}`);
+                if (typeof saveJobsNow === 'function') saveJobsNow(results);
+            }
+
+            // Check for pagination
+            const clickedNext = await page.evaluate(() => {
+                const nextBtn = document.querySelector('a.page-link-next:not([aria-disabled="true"]), li.next a, a[aria-label="Next Page"], [data-testid="jobs-pagination_link_next"]');
+                if (nextBtn && !nextBtn.hasAttribute('disabled') && !nextBtn.classList.contains('disabled') && nextBtn.getAttribute('aria-disabled') !== 'true') {
+                    nextBtn.click();
+                    return true;
+                }
+                return false;
+            });
+
+            if (clickedNext) {
+                pageNum++;
+                await page.waitForTimeout(4000);
+                listingUrl = page.url();
+            } else {
+                hasNextPage = false;
+            }
+
+        } catch (e) {
+            console.error(`  ❌ Error scraping Eightfold page ${pageNum}:`, e.message);
+            hasNextPage = false;
+        }
+    }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏢  BOSCH
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// 🏢  CARRIER — jobs.carrier.com (Phenom People ATS)
+// Selector: li.jobs-list-item / a[data-ph-at-id="job-link"]
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeCarrier(page, context, listingUrl, results) {
+    const companyName = 'Carrier';
+    console.log(`\n🏢 Scraping ${companyName}...`);
+
+    let pageNum = 1;
+    const seenUrls = new Set();
+
+    while (pageNum <= 30) {
+        console.log(`  📄 ${companyName} Page ${pageNum}...`);
+
+        const pageUrl = pageNum === 1 ? listingUrl : `${listingUrl}?p=${pageNum}`;
+        await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
+        await page.waitForTimeout(3000);
+        await page.waitForSelector('section#search-results-list ul li', { timeout: 20000 }).catch(() => { });
+
+        const jobLinks = await page.evaluate(() => {
+            const cards = [...document.querySelectorAll('section#search-results-list ul li')];
+            return cards.map(card => {
+                const anchor = card.querySelector('a');
+                if (!anchor) return null;
+
+                const title = anchor.querySelector('h2')?.innerText?.trim() || anchor.innerText?.trim() || 'Not Found';
+                const detailUrl = anchor.href || '';
+                const location = card.querySelector('.job-location')?.innerText?.trim() || 'Not Found';
+                const jobId = anchor.getAttribute('data-job-id') || '';
+
+                return {
+                    title,
+                    location,
+                    detailUrl,
+                    applyLink: detailUrl,
+                    jobId,
+                    date: 'Not Found',
+                    category: 'Not Found',
+                    company: 'Carrier',
+                    experience: 'Not Found',
+                    description: ''
+                };
+            }).filter(j => j && j.detailUrl && j.title !== 'Not Found');
+        });
+
+        console.log(`     ↳ ${companyName}: ${jobLinks.length} jobs on page ${pageNum}`);
+
+        let newOnPage = 0;
+        for (const job of jobLinks) {
+            if (seenUrls.has(job.detailUrl)) continue;
+            seenUrls.add(job.detailUrl);
+            newOnPage++;
+
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'carrier', results, { company: 'Carrier' });
+            saveJobsNow(results);
+        }
+
+        if (newOnPage === 0) {
+            console.log(`  ✅ ${companyName} done — no new jobs on page ${pageNum}.`);
+            break;
+        }
+
+        if (results.length >= MAX_JOBS) {
+            console.log(`  🛑 ${companyName}: MAX_JOBS (${MAX_JOBS}) reached, stopping.`);
+            break;
+        }
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('a.next');
+            return nextBtn && !nextBtn.classList.contains('disabled') && nextBtn.style.display !== 'none';
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ ${companyName} done — no more pages.`);
+            break;
+        }
+
+        pageNum++;
+    }
+}
+
+
+async function scrapeBosch(page, context, listingUrl, results) {
+    console.log(`\n🏢 Scraping Bosch...`);
+    try {
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => { });
+        await page.waitForTimeout(5000);
+        await page.waitForSelector('.M-JobSearchResultsGroup__item', { timeout: 30000 }).catch(() => { });
+
+        let hasMore = true;
+        let attempt = 0;
+        while (hasMore && attempt < 50) {
+            attempt++;
+            hasMore = await page.evaluate(() => {
+                const btn = document.querySelector('.M-JobSearchResultsGroup__loadMore button');
+                if (btn && btn.style.display !== 'none' && !btn.disabled) {
+                    btn.click();
+                    return true;
+                }
+                return false;
+            });
+            if (hasMore) {
+                console.log(`     ↳ Clicked "Load More" (${attempt})`);
+                await page.waitForTimeout(3000);
+            }
+        }
+
+        const jobs = await page.evaluate(() => {
+            const pageResults = [];
+            const cards = document.querySelectorAll('.M-JobSearchResultsGroup__item');
+
+            cards.forEach(card => {
+                const titleEl = card.querySelector('.A-JobPanel__title');
+                const linkEl = card.querySelector('a.A-JobPanel__header');
+
+                if (!titleEl || !linkEl) return;
+
+                const title = titleEl.innerText.trim();
+                const applyLink = linkEl.href;
+                let location = 'Not Found';
+                let date = 'Not Found';
+                let category = 'Not Found';
+
+                const details = card.querySelectorAll('.A-JobPanel__description');
+                details.forEach(desc => {
+                    const label = desc.querySelector('.A-JobPanel__label')?.innerText || '';
+                    const value = desc.querySelector('.A-JobPanel__value')?.innerText || '';
+
+                    if (label.includes('Location')) location = value.replace(/\n|On-Site|Hybrid|Remote/g, '').trim();
+                    if (label.includes('Job posted')) date = value.trim();
+                    if (label.includes('Fields of work')) category = value.trim();
+                });
+
+                pageResults.push({
+                    title,
+                    location,
+                    date,
+                    category,
+                    applyLink,
+                    detailUrl: applyLink,
+                    company: 'Bosch',
+                    experience: 'Not Found',
+                    description: ''
+                });
+            });
+
+            return pageResults;
+        });
+
+        console.log(`     ↳ Total found ${jobs.length} jobs on Bosch`);
+
+        for (const job of jobs) {
+            if (results.length >= 1000) break;
+            await visitDetailPage(context, job, 'bosch', results, { company: 'Bosch' });
+        }
+
+    } catch (e) {
+        console.log(`  ❌ Failed to scrape Bosch: ${e.message}`);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏢 WHIRLPOOL — jobs.whirlpool.com
+// Selector: .cardListItem-3iAXI
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeWhirlpool(page, context, listingUrl, results) {
+    const companyName = 'Whirlpool';
+    console.log(`\n🏢 Scraping ${companyName}...`);
+
+    let pageNum = 1;
+    const seenUrls = new Set();
+
+    await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
+    await page.waitForTimeout(5000);
+
+    while (pageNum <= 30) {
+        console.log(`  📄 ${companyName} Page ${pageNum}...`);
+
+        await page.waitForSelector('.cardListItem-3iAXI', { timeout: 20000 }).catch(() => { });
+
+        const jobLinks = await page.evaluate(() => {
+            const cards = [...document.querySelectorAll('.cardListItem-3iAXI')];
+            return cards.map(card => {
+                const anchor = card.querySelector('a');
+                if (!anchor) return null;
+
+                const title = card.querySelector('.title-1aNJK')?.innerText?.trim() || anchor.innerText?.trim() || 'Not Found';
+                const detailUrl = anchor.href || '';
+
+                const fieldValues = [...card.querySelectorAll('.fieldValue-3kEar')];
+                const location = fieldValues[0]?.innerText?.trim() || 'Not Found';
+                const category = fieldValues[1]?.innerText?.trim() || 'Not Found';
+
+                const date = card.querySelector('.subData-13Lm1')?.innerText?.trim() || 'Not Found';
+
+                let jobId = '';
+                const match = detailUrl.match(/\/job\/(\d+)/);
+                if (match) jobId = match[1];
+
+                return {
+                    title,
+                    location,
+                    detailUrl,
+                    applyLink: detailUrl,
+                    jobId,
+                    date,
+                    category,
+                    company: 'Whirlpool',
+                    experience: 'Not Found',
+                    description: ''
+                };
+            }).filter(j => j && j.detailUrl && j.title !== 'Not Found');
+        });
+
+        console.log(`     ↳ ${companyName}: ${jobLinks.length} jobs on page ${pageNum}`);
+
+        let newOnPage = 0;
+        for (const job of jobLinks) {
+            if (seenUrls.has(job.detailUrl)) continue;
+            seenUrls.add(job.detailUrl);
+            newOnPage++;
+
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'whirlpool', results, { company: 'Whirlpool' });
+            saveJobsNow(results);
+        }
+
+        if (newOnPage === 0) {
+            console.log(`  ✅ ${companyName} done — no new jobs on page ${pageNum}.`);
+            break;
+        }
+
+        if (results.length >= MAX_JOBS) {
+            console.log(`  🛑 ${companyName}: MAX_JOBS (${MAX_JOBS}) reached, stopping.`);
+            break;
+        }
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('button[aria-label="Next jobs"]');
+            if (nextBtn) {
+                const isDisabled = nextBtn.disabled || nextBtn.getAttribute('aria-disabled') === 'true' || nextBtn.classList.contains('button-module_disabled__c0pm5');
+                if (!isDisabled) {
+                    nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    nextBtn.click();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ ${companyName} done — no more pages.`);
+            break;
+        }
+
+        console.log(`  ➡️ Next page clicked — waiting for page ${pageNum + 1}...`);
+        await page.waitForTimeout(5000);
+        pageNum++;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 🏢 ERICSSON — jobs.ericsson.com (eightfold.ai)
+// Selector: .cardListItem-3iAXI
+// ════════════════════════════════════════════════════════════════════════════
+async function scrapeEricsson(page, context, listingUrl, results) {
+    const companyName = 'Ericsson';
+    console.log(`\n🏢 Scraping ${companyName}...`);
+
+    let pageNum = 1;
+    const seenUrls = new Set();
+
+    await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
+    await page.waitForTimeout(5000);
+
+    while (pageNum <= 50) {
+        console.log(`  📄 ${companyName} Page ${pageNum}...`);
+
+        await page.waitForSelector('.cardListItem-3iAXI', { timeout: 20000 }).catch(() => { });
+
+        const jobLinks = await page.evaluate(() => {
+            const cards = [...document.querySelectorAll('.cardListItem-3iAXI')];
+            return cards.map(card => {
+                const anchor = card.querySelector('a');
+                if (!anchor) return null;
+
+                const title = card.querySelector('.title-1aNJK')?.innerText?.trim() || anchor.innerText?.trim() || 'Not Found';
+                const detailUrl = anchor.href || '';
+
+                const fieldValues = [...card.querySelectorAll('.fieldValue-3kEar')];
+                const location = fieldValues[0]?.innerText?.trim() || 'Not Found';
+                const category = fieldValues[1]?.innerText?.trim() || 'Not Found';
+
+                const date = card.querySelector('.subData-13Lm1')?.innerText?.trim() || 'Not Found';
+
+                let jobId = '';
+                const match = detailUrl.match(/\/job\/(\d+)/);
+                if (match) jobId = match[1];
+
+                return {
+                    title,
+                    location,
+                    detailUrl,
+                    applyLink: detailUrl,
+                    jobId,
+                    date,
+                    category,
+                    company: 'Ericsson',
+                    experience: 'Not Found',
+                    description: ''
+                };
+            }).filter(j => j && j.detailUrl && j.title !== 'Not Found');
+        });
+
+        console.log(`     ↳ ${companyName}: ${jobLinks.length} jobs on page ${pageNum}`);
+
+        let newOnPage = 0;
+        for (const job of jobLinks) {
+            if (seenUrls.has(job.detailUrl)) continue;
+            seenUrls.add(job.detailUrl);
+            newOnPage++;
+
+            if (results.length >= MAX_JOBS) break;
+            await visitDetailPage(context, job, 'ericsson', results, { company: 'Ericsson' });
+            saveJobsNow(results);
+        }
+
+        if (newOnPage === 0) {
+            console.log(`  ✅ ${companyName} done — no new jobs on page ${pageNum}.`);
+            break;
+        }
+
+        if (results.length >= MAX_JOBS) {
+            console.log(`  🛑 ${companyName}: MAX_JOBS (${MAX_JOBS}) reached, stopping.`);
+            break;
+        }
+
+        const hasNext = await page.evaluate(() => {
+            const nextBtn = document.querySelector('button[aria-label="Next jobs"]');
+            if (nextBtn) {
+                const isDisabled = nextBtn.disabled || nextBtn.getAttribute('aria-disabled') === 'true' || nextBtn.classList.contains('button-module_disabled__c0pm5');
+                if (!isDisabled) {
+                    nextBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    nextBtn.click();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        if (!hasNext) {
+            console.log(`  ✅ ${companyName} done — no more pages.`);
+            break;
+        }
+
+        console.log(`  ➡️ Next page clicked — waiting for page ${pageNum + 1}...`);
+        await page.waitForTimeout(5000);
+        pageNum++;
+    }
+}
