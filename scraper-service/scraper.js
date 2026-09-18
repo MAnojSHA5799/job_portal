@@ -422,12 +422,12 @@ function cleanDescription(desc = '') {
 }
 
 function cleanDate(d = '') {
-  if (!d || d === 'Not Found') return new Date().toISOString().split('T')[0];
-  // \"Mon Apr 27 00:00:00 UTC 2026\" → \"2026-04-27\"
-  const parsed = new Date(d);
-  return isNaN(parsed.getTime())
-    ? new Date().toISOString().split('T')[0]
-    : parsed.toISOString().split('T')[0];
+  // Jo bhi JSON se aaye → wahi exactly save karo (koi parsing/conversion nahi)
+  // "2026-04-27"       → "2026-04-27"
+  // "Not Found"        → "Not Found"
+  // ""                 → "" (empty string)
+  // "Posted 3 days ago"→ "Posted 3 days ago"
+  return d ?? '';
 }
 
 function deriveJobType(title = '', desc = '') {
@@ -467,19 +467,31 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
   const dupsRemoved = jobs.length - uniqueJobs.length;
   if (dupsRemoved > 0) console.log(`  🔁 Duplicates removed from batch: ${dupsRemoved}`);
 
-  // ── Step 2: Existing jobs in DB for this source URL ────────────────────
+  // ── Step 2: Stale jobs cleanup — source_url ke saare purane jobs fetch karo ──
+  // (Woh jobs jo DB mein hain lekin is baar scrape mein nahi aaye → company ne hata diye)
   const { data: existingJobsForUrl } = await supabase
     .from('jobs')
-    .select('id, apply_link, is_approved')
+    .select('id, apply_link')
     .eq('source_url', sourceUrl);
-  const existingLinks = new Map((existingJobsForUrl || []).map(j => [j.apply_link, j]));
 
-  // ── Step 3: Stale jobs cleanup ─────────────────────────────────────────
   const scrapedLinks = new Set(uniqueJobs.map(j => j.applyLink).filter(Boolean));
   const jobsToDelete = (existingJobsForUrl || []).filter(j => !scrapedLinks.has(j.apply_link));
   for (const stale of jobsToDelete) {
     await supabase.from('jobs').delete().eq('id', stale.id);
     console.log(`  🗑️  Deleted stale job id=${stale.id}`);
+  }
+
+  // ── Step 3: Global duplicate check — applyLink globally DB mein check karo ──
+  // (Source URL se fark nahi, agar apply_link pehle se DB mein hai → skip)
+  const applyLinksInBatch = uniqueJobs.map(j => j.applyLink).filter(Boolean);
+  let existingLinks = new Map();
+  if (applyLinksInBatch.length > 0) {
+    const { data: existingByLink } = await supabase
+      .from('jobs')
+      .select('id, apply_link, is_approved')
+      .in('apply_link', applyLinksInBatch);
+    existingLinks = new Map((existingByLink || []).map(j => [j.apply_link, j]));
+    console.log(`  🔍 DB mein pehle se exist: ${existingByLink?.length || 0} / ${applyLinksInBatch.length} jobs`);
   }
 
   // ── Step 4: Company ID for scraper_logs ────────────────────────────────
@@ -647,30 +659,9 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
     const existingJob = existingLinks.get(job.applyLink);
 
     if (existingJob) {
-      // ── DUPLICATE: Skip ──────────────────────────────────────────────
-      if (scraperFilters.duplicateJob === 'Skip') {
-        console.log(`  ⏭️  Skip duplicate: ${title}`);
-        continue;
-      }
-      // ── DUPLICATE: Overwrite ─────────────────────────────────────────
-      const { error } = await supabase.from('jobs').update({
-        title,
-        company_id: companyId,
-        description,
-        location,
-        salary_range: salary,
-        job_type: jobTypeFinal,
-        experience_level: experience,
-        category,
-        source_url: sourceUrl,
-        date_posted,
-        focus_keyword: focusKeyword,
-        url_slug,
-        // is_approved — intentionally NOT updated
-      }).eq('id', existingJob.id);
-
-      if (!error) { saved++; console.log(`  💾 Updated: ${title} | ${location} | ${job.company}`); }
-      else console.error(`  ❌ Update error (${title}):`, error.message);
+      // ── DUPLICATE: Hamesha Skip — dobara save mat karo ───────────────
+      console.log(`  ⏭️  Skip (already in DB): ${title}`);
+      continue;
 
     } else {
       // ── NEW JOB: Insert ──────────────────────────────────────────────
@@ -6261,7 +6252,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-    if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('successfactors.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('nirmal.co.in') || job.detailUrl.includes('/jobs/Careers') || job.detailUrl.includes('nestle.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com') || job.detailUrl.includes('alstom.com') || job.detailUrl.includes('peoplestrong.com') || job.detailUrl.includes('workable.com') || job.detailUrl.includes('teamtailor.com') || job.detailUrl.includes('talentrecruit.com') || job.detailUrl.includes('gm.com') || job.detailUrl.includes('bradken') || job.detailUrl.includes('systra.com') || job.detailUrl.includes('dzconnex.com') || job.detailUrl.includes('skf.com') || job.detailUrl.includes('apotex.com') || job.detailUrl.includes('motherson.com') || job.detailUrl.includes('airindia.com') || job.detailUrl.includes('deere.com') || job.detailUrl.includes('qualcomm.com') || job.detailUrl.includes('careers.slb.com') || job.detailUrl.includes('careers.godrejindustries.com') || job.detailUrl.includes('jobs.bosch.com') || job.detailUrl.includes('jobs.carrier.com') || job.detailUrl.includes('jobs.whirlpool.com') || job.detailUrl.includes('jobs.ericsson.com') || job.detailUrl.includes('jobs.continental.com') || job.detailUrl.includes('jobs.dana.com') || job.detailUrl.includes('dayforcehcm.com') || job.detailUrl.includes('jobs.porsche.com') || (job.detailUrl.includes('oraclecloud.com') && job.detailUrl.includes('/job/'))) {
+    if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('successfactors.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('nirmal.co.in') || job.detailUrl.includes('/jobs/Careers') || job.detailUrl.includes('nestle.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com') || job.detailUrl.includes('alstom.com') || job.detailUrl.includes('peoplestrong.com') || job.detailUrl.includes('workable.com') || job.detailUrl.includes('teamtailor.com') || job.detailUrl.includes('talentrecruit.com') || job.detailUrl.includes('gm.com') || job.detailUrl.includes('bradken') || job.detailUrl.includes('systra.com') || job.detailUrl.includes('dzconnex.com') || job.detailUrl.includes('skf.com') || job.detailUrl.includes('apotex.com') || job.detailUrl.includes('motherson.com') || job.detailUrl.includes('airindia.com') || job.detailUrl.includes('deere.com') || job.detailUrl.includes('qualcomm.com') || job.detailUrl.includes('careers.slb.com') || job.detailUrl.includes('careers.godrejindustries.com') || job.detailUrl.includes('jobs.bosch.com') || job.detailUrl.includes('jobs.carrier.com') || job.detailUrl.includes('jobs.whirlpool.com') || job.detailUrl.includes('jobs.ericsson.com') || job.detailUrl.includes('jobs.continental.com') || job.detailUrl.includes('jobs.dana.com') || job.detailUrl.includes('dayforcehcm.com') || job.detailUrl.includes('jobs.porsche.com') || ((job.detailUrl.includes('oraclecloud.com') || job.detailUrl.includes('adani.com')) && (job.detailUrl.includes('/job/') || job.detailUrl.includes('/requisitions/')))) {
       finalApplyLink = job.detailUrl;
     }
 
@@ -7326,12 +7317,36 @@ function genericJobEvaluator() {
   if (!salary) salary = 'Not Available';
 
   // Job ID
-  let jobId = getByLabel('Job ID') || getByLabel('Job number') || fullText.match(/Job\s+requisition\s+ID\s*::?\s*(\S+)/i)?.[1] || fullText.match(/Job\s*I[Dd][:\s#]*(\S+)/i)?.[1] || fullText.match(/Req(?:uisition)?\s*(?:ID|No|#)[:\s]*(\S+)/i)?.[1] || '';
-  if (!jobId) { const m = window.location.pathname.match(/\/(\d{5,})/); jobId = m?.[1] || ''; }
-  if (!jobId) { const p = new URLSearchParams(window.location.search); jobId = p.get('jobId') || p.get('id') || p.get('job_id') || p.get('jid') || ''; }
-  if (!jobId) jobId = getText(['[data-careersite-propertyid=\"adcode\"]', '[data-careersite-propertyid=\"jobid\"]', '[class*=\"job-id\"]', '[class*=\"jobid\"]', '[data-test=\"job-id\"]', '[data-job-id]', '[id*=\"job-id\"]', '.req-id', '[class*=\"req-id\"]', '.reference-id', '[class*=\"reference\"]']);
+  let jobId = '';
+
+  // 1. Explicit platform overrides (highest priority)
+  if (window.location.hash && window.location.hash.match(/\/(?:job|requisitions\/preview)\/(\d+)/i)) {
+    jobId = window.location.hash.match(/\/(?:job|requisitions\/preview)\/(\d+)/i)[1];
+  } else if (window.location.href.match(/\/(?:job|requisitions\/preview)\/(\d{4,})/i)) {
+    jobId = window.location.href.match(/\/(?:job|requisitions\/preview)\/(\d{4,})/i)[1];
+  } else if (window.location.href.toLowerCase().includes('mokahr.com')) {
+    const m = window.location.href.match(/job\/([a-fA-F0-9\-]+)/);
+    if (m) jobId = m[1];
+  }
+
+  // 2. Explicit data attributes and metadata
   if (!jobId) jobId = document.querySelector('[data-job-id]')?.getAttribute('data-job-id') || '';
+  if (!jobId) jobId = getText(['[data-careersite-propertyid=\"adcode\"]', '[data-careersite-propertyid=\"jobid\"]', '[class*=\"job-id\"]', '[class*=\"jobid\"]', '[data-test=\"job-id\"]', '[data-job-id]', '[id*=\"job-id\"]', '.req-id', '[class*=\"req-id\"]', '.reference-id', '[class*=\"reference\"]']);
   if (!jobId && ld) jobId = ld.identifier?.value || String(ld.identifier || '') || '';
+  
+  // 3. URL search params
+  if (!jobId) { const p = new URLSearchParams(window.location.search); jobId = p.get('jobId') || p.get('id') || p.get('job_id') || p.get('jid') || ''; }
+  
+  // 4. URL path (5+ digit number)
+  if (!jobId && !window.location.href.includes('mokahr.com')) { const m = window.location.pathname.match(/\/(\d{5,})/); jobId = m?.[1] || ''; }
+
+  // 5. DOM labels
+  if (!jobId) jobId = getByLabel('Job ID') || getByLabel('Job number');
+
+  // 6. Generic regex fallbacks
+  if (!jobId) jobId = fullText.match(/Job\s+requisition\s+ID\s*::?\s*(\S+)/i)?.[1] || '';
+  if (!jobId) jobId = fullText.match(/Job\s*I[Dd][:\s#]*(\S+)/i)?.[1] || '';
+  if (!jobId) jobId = fullText.match(/Req(?:uisition)?\s*(?:ID|No|#)[:\s]*(\S+)/i)?.[1] || '';
   if (!jobId) jobId = fullText.match(/Ref(?:erence)?\s*(?:No|#|ID)[:\s]*(\S+)/i)?.[1] || '';
   if (!jobId) jobId = fullText.match(/Position\s*ID[:\s]*(\S+)/i)?.[1] || '';
   if (!jobId) jobId = fullText.match(/Opening\s*(?:ID|No|#)[:\s]*(\S+)/i)?.[1] || '';
@@ -7988,11 +8003,17 @@ async function scrapeMokaHr(page, context, listingUrl, results) {
         const locEl = card.querySelector('[class*="sd-foundation-body-primary-b0MG4"], [class*="mgt8-"]');
         const loc = locEl ? locEl.textContent.trim() : 'Not Found';
 
+        // Extract actual job UUID from MokaHR URL (e.g. #/job/3dead540-83ae-47a0-9ff5-ba0afe0d8ca3)
+        let jobId = 'Not Found';
+        const jMatch = detailUrl.match(/job\/([a-fA-F0-9\-]+)/);
+        if (jMatch) jobId = jMatch[1];
+
         return {
           title,
           location: loc,
           detailUrl,
-          department: dept
+          department: dept,
+          jobId
         };
       }).filter(j => j.detailUrl);
     });
