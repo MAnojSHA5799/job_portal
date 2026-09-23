@@ -459,8 +459,9 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
   const seenKeys = new Set();
   const uniqueJobs = jobs.filter(job => {
     if (job.error) return false;
-    const key = (job.jobId && job.jobId !== 'Not Found') ? job.jobId : job.applyLink;
-    if (!key || seenKeys.has(key)) return false;
+    const baseKey = (job.jobId && job.jobId !== 'Not Found') ? job.jobId : job.applyLink;
+    const key = baseKey ? `${baseKey}_${cleanTitle(job.title)}` : `_no_link_${cleanTitle(job.title)}_${job.location}`;
+    if (seenKeys.has(key)) return false;
     seenKeys.add(key);
     return true;
   });
@@ -481,16 +482,16 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
     console.log(`  🗑️  Deleted stale job id=${stale.id}`);
   }
 
-  // ── Step 3: Global duplicate check — applyLink globally DB mein check karo ──
-  // (Source URL se fark nahi, agar apply_link pehle se DB mein hai → skip)
+  // ── Step 3: Local duplicate check — applyLink check ONLY for the SAME source_url ──
   const applyLinksInBatch = uniqueJobs.map(j => j.applyLink).filter(Boolean);
   let existingLinks = new Map();
   if (applyLinksInBatch.length > 0) {
     const { data: existingByLink } = await supabase
       .from('jobs')
-      .select('id, apply_link, is_approved')
+      .select('id, apply_link, title, is_approved')
+      .eq('source_url', sourceUrl)
       .in('apply_link', applyLinksInBatch);
-    existingLinks = new Map((existingByLink || []).map(j => [j.apply_link, j]));
+    existingLinks = new Map((existingByLink || []).map(j => [`${j.apply_link}_${cleanTitle(j.title)}`, j]));
     console.log(`  🔍 DB mein pehle se exist: ${existingByLink?.length || 0} / ${applyLinksInBatch.length} jobs`);
   }
 
@@ -656,7 +657,7 @@ async function filterAndSaveJobs(jobs, sourceUrl, runLogId) {
     const focusKeyword = `${title} ${location.split(',')[0]}`.trim();
     const url_slug = focusKeyword.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-    const existingJob = existingLinks.get(job.applyLink);
+    const existingJob = existingLinks.get(`${job.applyLink}_${title}`);
 
     if (existingJob) {
       // ── DUPLICATE: Hamesha Skip — dobara save mat karo ───────────────
