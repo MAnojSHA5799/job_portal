@@ -816,7 +816,8 @@ Instructions:
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Date Posted</label>
               </div>
               <Input 
-                type="date"
+                type="text"
+                placeholder="YYYY-MM-DD or Text"
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                 value={currentJob.date_posted || ''}
                 onChange={e => setCurrentJob({...currentJob, date_posted: e.target.value})}
@@ -827,7 +828,8 @@ Instructions:
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Valid Through</label>
               </div>
               <Input 
-                type="date"
+                type="text"
+                placeholder="YYYY-MM-DD or Text"
                 className="h-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                 value={currentJob.valid_through || ''}
                 onChange={e => setCurrentJob({...currentJob, valid_through: e.target.value})}
