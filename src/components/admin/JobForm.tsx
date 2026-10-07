@@ -91,6 +91,30 @@ export function JobForm({
   title = "Job Posting",
   subtitle = "Fill in the details below"
 }: JobFormProps) {
+  const formatDateText = (dateStr?: string) => {
+    if (!dateStr) return '';
+    
+    if (dateStr.includes("Posted on:")) {
+      const match = dateStr.match(/Posted on:\s*([\d\/]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    if (dateStr.includes(" UTC ")) {
+      const parts = dateStr.split(" ");
+      if (parts.length >= 6) {
+        return `${parts[0]} ${parts[1]} ${parts[2]} ${parts[5]}`;
+      }
+    }
+    
+    if (dateStr.includes("T")) {
+      return dateStr.split('T')[0];
+    }
+    
+    return dateStr;
+  };
+
   const [currentJob, setCurrentJob] = useState<Job>({
     title: '',
     description: '',
@@ -103,14 +127,14 @@ export function JobForm({
     source_url: '',
     company_id: '',
     new_company_name: '',
-    date_posted: new Date().toISOString().split('T')[0],
     seo_title: '',
     meta_description: '',
     focus_keyword: '',
     url_slug: '',
     seo_score: 0,
-    valid_through: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 60 days
-    ...initialData
+    ...initialData,
+    date_posted: formatDateText(initialData?.date_posted) || new Date().toISOString().split('T')[0],
+    valid_through: formatDateText(initialData?.valid_through) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
   const [isEnhancing, setIsEnhancing] = useState(false);
