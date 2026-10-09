@@ -2,7 +2,7 @@ console.log("⚡ Scraper Script Loaded");
 const { chromium } = require('playwright');
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
-const MAX_JOBS = 1000;
+const MAX_JOBS = Infinity;
 
 // ════════════════════════════════════════════════════════════════════════════
 // 🔐  SUPABASE CONFIG
@@ -175,11 +175,11 @@ let currentExistingLinks = new Set();
   }
 
   const browser = await chromium.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: false,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
   });
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   });
 
   let totalJobsSaved = 0;
@@ -285,6 +285,7 @@ let currentExistingLinks = new Set();
       else if (type === 'mokahr') { await scrapeMokaHr(page, context, listingUrl, jobsBatch); }
       else if (type === 'workline') { await scrapeWorkline(page, context, listingUrl, jobsBatch); }
       else if (type === 'mphasis') { await scrapeMphasis(page, context, listingUrl, jobsBatch); }
+      else if (type === 'peoplestrong') { await scrapePeopleStrong(page, context, listingUrl, jobsBatch); }
       else if (type === 'dejobs') { await scrapeDeJobs(page, context, listingUrl, jobsBatch); }
       else if (type === 'atlascopco') { await scrapeAtlasCopco(page, context, listingUrl, jobsBatch); }
       else if (type === 'aecom') { await scrapeAecom(page, context, listingUrl, jobsBatch); }
@@ -1111,7 +1112,7 @@ async function scrapeAtherEnergy(page, context, listingUrl, results) {
 
           const fullDesc = await detailPage.evaluate(() => {
             const detailEl = document.querySelector('.jobDetail');
-            return detailEl ? detailEl.innerHTML.trim() : '';
+            return detailEl ? detailEl.innerText.trim() : '';
           });
 
           if (fullDesc) {
@@ -1197,7 +1198,7 @@ async function scrapeSpGlobal(page, context, listingUrl, results) {
           await detailPage.waitForTimeout(3000);
           const fullDesc = await detailPage.evaluate(() => {
             const el = document.querySelector('#jibe-container, .jibe-container .columns .left, .job-description');
-            return el ? el.innerHTML.trim() : '';
+            return el ? el.innerText.trim() : '';
           });
           if (fullDesc) job.description = fullDesc;
           await detailPage.close();
@@ -1292,7 +1293,7 @@ async function scrapeTataProjects(page, context, listingUrl, results) {
           await detailPage.waitForTimeout(2000);
           const fullDesc = await detailPage.evaluate(() => {
             const el = document.querySelector('.jobdescription, .job-description, [data-careersite-propertyid="description"]');
-            return el ? el.innerHTML.trim() : '';
+            return el ? el.innerText.trim() : '';
           });
           if (fullDesc) job.description = fullDesc;
           await detailPage.close();
@@ -1351,8 +1352,8 @@ async function scrapeTataElxsi(page, context, listingUrl, results) {
 
         return {
           title: titleEl?.innerText?.trim() || 'Not Found',
-          location: location,
-          experience: experience,
+          location,
+          experience,
           date: dateEl?.innerText?.trim() || 'Not Found',
           detailUrl: a ? new URL(a.getAttribute('href'), window.location.origin).href : '',
         };
@@ -1360,16 +1361,87 @@ async function scrapeTataElxsi(page, context, listingUrl, results) {
     });
 
     console.log(`     ↳ Tata Elxsi: ${jobLinks.length} jobs`);
+
     for (const job of jobLinks) {
       if (results.length >= MAX_JOBS) break;
-      await visitDetailPage(context, job, 'tataelxsi', results, { company: 'Tata Elxsi' });
-      await delay(500);
+      console.log(`    🔎 ${job.title} | ${job.location}`);
+
+      const detailPage = await context.newPage();
+      try {
+        await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await detailPage.waitForTimeout(3000);
+        await detailPage.waitForLoadState('networkidle').catch(() => { });
+
+        // Wait for the detail container
+        await detailPage.waitForSelector('.jbaplcn, .jbpam', { timeout: 15000 }).catch(() => { });
+
+        const detail = await detailPage.evaluate(() => {
+          // ── Real title from detail page ──
+          const titleEl = document.querySelector('.jbpam h2');
+          const title = titleEl?.innerText?.trim() || '';
+
+          // ── Full description from .jbpam1 (no char limit) ──
+          const descEl = document.querySelector('.jbpam1');
+          let description = '';
+          if (descEl) {
+            description = descEl.innerText.trim();
+          } else {
+            // Fallback to any visible job body
+            const fallback = document.querySelector('.jbaplcn') || document.querySelector('main');
+            description = fallback ? fallback.innerText.trim() : (document.body?.innerText?.slice(0, 8000) || '');
+          }
+
+          // ── Apply link ──
+          const applyEl = document.querySelector('a.japlynw[href]');
+          const applyLink = applyEl?.href || window.location.href;
+
+          // ── Experience from description ──
+          const expMatch = description.match(/(\d+\+?\s*(years|yrs|year))/i);
+          const experience = expMatch ? expMatch[0] : '';
+
+          return { title, description, applyLink, experience };
+        });
+
+        const finalTitle = detail.title || job.title;
+        const finalDesc = detail.description || '';
+        const expMatch = finalDesc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
+        const finalExp = expMatch ? expMatch[0] : (job.experience || 'Not Found');
+
+        results.push({
+          source: 'tataelxsi',
+          url: job.detailUrl,
+          title: finalTitle,
+          location: job.location,
+          company: 'Tata Elxsi',
+          date: job.date,
+          experience: finalExp,
+          description: finalDesc,
+          applyLink: job.detailUrl,
+          salary: 'Not Available',
+          jobId: 'Not Found',
+        });
+
+        // 💾 Turant save — har job ke baad jobs.json update hota hai
+        try {
+          fs.writeFileSync(require('path').join(__dirname, 'jobs.json'), JSON.stringify(results, null, 2));
+        } catch (_) { }
+
+        console.log(`       ✅ OK — "${finalTitle.slice(0, 60)}"`);
+      } catch (err) {
+        console.log(`       ❌ Detail failed: ${err.message}`);
+        results.push({ source: 'tataelxsi', url: job.detailUrl, title: job.title, company: 'Tata Elxsi', error: true, message: err.message });
+      } finally {
+        await detailPage.close();
+      }
+
+      await delay(600);
     }
 
     if (results.length >= MAX_JOBS) break;
 
     const hasNext = await page.evaluate(() => {
-      const nextBtn = [...document.querySelectorAll('.pagination a')].find(a => a.innerText.includes('»') || a.innerText.toLowerCase().includes('next'));
+      const nextBtn = [...document.querySelectorAll('.pagination a')].find(a =>
+        a.innerText.includes('»') || a.innerText.toLowerCase().includes('next'));
       if (nextBtn && nextBtn.href) {
         nextBtn.click();
         return true;
@@ -1378,7 +1450,7 @@ async function scrapeTataElxsi(page, context, listingUrl, results) {
     });
 
     if (!hasNext) {
-      console.log(`  ✅ Tata Elxsi done — ${pageNum} pages`);
+      console.log(`  ✅ Tata Elxsi done — ${pageNum} page(s)`);
       break;
     }
 
@@ -3203,7 +3275,7 @@ async function scrapeHoneywell(page, context, listingUrl, results) {
           jobId: id,
           title: (r.Title || 'Not Found').replace(/\s+/g, ' ').trim(),
           location: uniqLocs.join(', ') || 'Not Found',
-          description: String(r.ShortDescriptionStr || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'Not Found',
+          description: String(r.ShortDescriptionStr || '').trim() || 'Not Found',
           date: r.PostedDate || 'Not Found',
           experience: r.WorkDurationYears ? `${r.WorkDurationYears} Years` : 'Not Found',
           url: `${jobsBase}/job/${id}`,
@@ -6143,6 +6215,15 @@ function tidyExperience(raw, title = '') {
   const norm = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 
   const numeric = (s) => {
+    // "More than 3-5 years", "at least 5 years", "minimum 5 years", "minimum 5+ years" etc.
+    const prefixed = s.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-–—to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?|months?)/i);
+    if (prefixed) {
+      const lo = prefixed[1], hi = prefixed[2];
+      const unit = /month/i.test(prefixed[3]) ? 'months' : 'years';
+      if (hi && +lo < 35 && +hi < 40) return `${lo}-${hi}+ ${unit}`;
+      if (+lo < 35) return `${lo}+ ${unit}`;
+    }
+
     const range = s.match(/(\d{1,2})\s*\+?\s*(?:-|–|—|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?|months?)/i);
     if (range && +range[1] < 35 && +range[2] < 40) {
       return `${range[1]}-${range[2]} ${/month/i.test(range[3]) ? 'months' : 'years'}`;
@@ -6178,6 +6259,7 @@ function tidyExperience(raw, title = '') {
   return out || 'Not Available';
 }
 
+
 async function visitDetailPage(context, job, source, results, extra = {}) {
   if (!job.detailUrl || global.processedUrls?.has(job.detailUrl)) return;
 
@@ -6209,7 +6291,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
     const details = await page.evaluate(genericJobEvaluator);
 
     // Cleanup: If title is generic or matches company name, use the listing title
-    const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'job opportunities', 'tesla', 'blue star', 'careers at mphasis', 'araymond', 'a. raymond', 'a.raymond', 'ingersoll rand', 'dzconnex', 'single position'];
+    const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'job opportunities', 'tesla', 'blue star', 'careers at mphasis', 'araymond', 'a. raymond', 'a.raymond', 'ingersoll rand', 'dzconnex', 'single position', 'mainpage.jobdetailspage', 'welcome to tüv süd group job portal!', 'welcome to tuv sud group job portal!'];
     let finalTitle = details.title;
     let finalCompanyTemp = (extra.company && extra.company !== 'Not Found') ? extra.company : (details.company !== 'Not Found' ? details.company : extractFallbackCompany(job.detailUrl));
     const titleLower = (finalTitle || '').toLowerCase();
@@ -6253,7 +6335,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
 
     let finalApplyLink = (!details.applyLink || details.applyLink === 'Not Found' || details.applyLink === 'Apply button (JS trigger)' || (details.applyLink && String(details.applyLink).startsWith('mailto:'))) ? job.detailUrl : details.applyLink;
 
-    if (job.detailUrl.includes('csod.com') || job.detailUrl.includes('successfactors.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('nirmal.co.in') || job.detailUrl.includes('/jobs/Careers') || job.detailUrl.includes('nestle.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com') || job.detailUrl.includes('alstom.com') || job.detailUrl.includes('peoplestrong.com') || job.detailUrl.includes('workable.com') || job.detailUrl.includes('teamtailor.com') || job.detailUrl.includes('talentrecruit.com') || job.detailUrl.includes('gm.com') || job.detailUrl.includes('bradken') || job.detailUrl.includes('systra.com') || job.detailUrl.includes('dzconnex.com') || job.detailUrl.includes('skf.com') || job.detailUrl.includes('apotex.com') || job.detailUrl.includes('motherson.com') || job.detailUrl.includes('airindia.com') || job.detailUrl.includes('deere.com') || job.detailUrl.includes('qualcomm.com') || job.detailUrl.includes('careers.slb.com') || job.detailUrl.includes('careers.godrejindustries.com') || job.detailUrl.includes('jobs.bosch.com') || job.detailUrl.includes('jobs.carrier.com') || job.detailUrl.includes('jobs.whirlpool.com') || job.detailUrl.includes('jobs.ericsson.com') || job.detailUrl.includes('jobs.continental.com') || job.detailUrl.includes('jobs.dana.com') || job.detailUrl.includes('dayforcehcm.com') || job.detailUrl.includes('jobs.porsche.com') || ((job.detailUrl.includes('oraclecloud.com') || job.detailUrl.includes('adani.com')) && (job.detailUrl.includes('/job/') || job.detailUrl.includes('/requisitions/')))) {
+    if (job.detailUrl.includes('atlascopcogroup.com') || job.detailUrl.includes('csod.com') || job.detailUrl.includes('successfactors.com') || job.detailUrl.includes('hitachienergy.com') || job.detailUrl.includes('jobs.tuvsud.com') || job.detailUrl.includes('join.cnh.com') || job.detailUrl.includes('jobs.mahindracareers.com') || job.detailUrl.includes('jobs.halliburton.com') || job.detailUrl.includes('heromotocorp.com') || job.detailUrl.includes('darwinbox.in') || job.detailUrl.includes('unilever.com') || job.detailUrl.includes('caterpillar.com') || job.detailUrl.includes('tenneco.com') || job.detailUrl.includes('bajajelectricals.com') || job.detailUrl.includes('technipfmc.com') || job.detailUrl.includes('royalenfield.com') || job.detailUrl.includes('panasonic.com') || job.detailUrl.includes('careers.jabil.com') || job.detailUrl.includes('hillenbrand.wd3.myworkdayjobs.com') || job.detailUrl.includes('rockwellautomation.wd1.myworkdayjobs.com') || job.detailUrl.includes('weir.wd3.myworkdayjobs.com') || job.detailUrl.includes('careers.bp.com') || job.detailUrl.includes('careers.regalrexnord.com') || job.detailUrl.includes('careers.se.com') || job.detailUrl.includes('ramboll.com') || job.detailUrl.includes('zohorecruit.com') || job.detailUrl.includes('nirmal.co.in') || job.detailUrl.includes('/jobs/Careers') || job.detailUrl.includes('nestle.com') || job.detailUrl.includes('myworkdayjobs.com') || job.detailUrl.includes('careers.adityabirla.com') || job.detailUrl.includes('jobs.siemens.com') || job.detailUrl.includes('bajajauto.com') || job.detailUrl.includes('tataprojects.com') || job.detailUrl.includes('tatainternational.com') || job.detailUrl.includes('tataconsumer.com') || job.detailUrl.includes('tataelectronics.com') || job.detailUrl.includes('jobs.zf.com') || job.detailUrl.includes('jobs.danfoss.com') || job.detailUrl.includes('workline.hr') || job.detailUrl.includes('ripplehire.com') || job.detailUrl.includes('schindler.com') || job.detailUrl.includes('alstom.com') || job.detailUrl.includes('peoplestrong.com') || job.detailUrl.includes('workable.com') || job.detailUrl.includes('teamtailor.com') || job.detailUrl.includes('talentrecruit.com') || job.detailUrl.includes('gm.com') || job.detailUrl.includes('bradken') || job.detailUrl.includes('systra.com') || job.detailUrl.includes('dzconnex.com') || job.detailUrl.includes('skf.com') || job.detailUrl.includes('apotex.com') || job.detailUrl.includes('motherson.com') || job.detailUrl.includes('airindia.com') || job.detailUrl.includes('deere.com') || job.detailUrl.includes('qualcomm.com') || job.detailUrl.includes('careers.slb.com') || job.detailUrl.includes('careers.godrejindustries.com') || job.detailUrl.includes('jobs.bosch.com') || job.detailUrl.includes('jobs.carrier.com') || job.detailUrl.includes('jobs.whirlpool.com') || job.detailUrl.includes('jobs.ericsson.com') || job.detailUrl.includes('jobs.continental.com') || job.detailUrl.includes('jobs.dana.com') || job.detailUrl.includes('dayforcehcm.com') || job.detailUrl.includes('jobs.porsche.com') || ((job.detailUrl.includes('oraclecloud.com') || job.detailUrl.includes('adani.com')) && (job.detailUrl.includes('/job/') || job.detailUrl.includes('/requisitions/')))) {
       finalApplyLink = job.detailUrl;
     }
 
@@ -6363,7 +6445,7 @@ async function visitDetailPage(context, job, source, results, extra = {}) {
       const salaryPatterns = finalSalary !== 'Not Available' ? [] : [
         /(?:AED|aed)\s*[\d,]+(?:\s*[-–to]+\s*(?:AED|aed)?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum)))?/i,
         /(?:₹|INR)\s*[\d,]{4,}(?:\s*[-–to]+\s*(?:₹|INR)?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum|pa)))?(?:\s*(?:lakh|lakhs|l|LPA))?/i,
-        /Rs\.?\s*[\d,]{4,}(?:\s*[-–to]+\s*Rs\.?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum|pa)))?(?:\s*(?:lakh|lakhs|LPA))?/i,
+        /\b(?:Rs\.?)\s*[\d,]{4,}(?:\s*[-–to]+\s*(?:Rs\.?)?\s*[\d,]+)?(?:\s*(?:per\s+(?:month|annum|year|yr)|\/(?:month|yr|year|annum|pa)))?(?:\s*(?:lakh|lakhs|LPA))?/i,
         /\$[\d,]+(?:\.\d+)?(?:\s*[-–to]+\s*\$[\d,]+(?:\.\d+)?)?(?:\s*(?:per\s+(?:hour|hr|month|annum|year)|\/(?:hour|hr|yr|year|annum|annually)))?/i,
         /[£€]\s*[\d,]+(?:\.\d+)?(?:\s*[-–to]+\s*[£€]?\s*[\d,]+(?:\.\d+)?)?(?:\s*(?:per\s+(?:annum|year|month)|\/(?:yr|year|annum|pa)))?/i,
         /[\d,]+(?:\.\d+)?\s*(?:LPA|lpa|lakhs?\s*per\s*annum|lakhs?\s*p\.?a\.?)/i,
@@ -6465,6 +6547,101 @@ function genericJobEvaluator() {
   const fullText = document.body?.innerText || '';
   const ld = getJsonLd();
 
+  // CSOD detail (*.csod.com)
+  try {
+    if (window.location.href.toLowerCase().includes('csod.com')) {
+      const title = document.querySelector('[data-tag="displayJobTitle"], h1, h2')?.innerText?.trim() || 'Not Found';
+      // Collect all available locations (Henkel-style: multiple [data-tag="LocationDisplayTitle"])
+      const locationEls = [...document.querySelectorAll('[data-tag="LocationDisplayTitle"]')];
+      let location = locationEls.length
+        ? [...new Set(locationEls.map(el => el.innerText?.trim()).filter(Boolean))].join(' | ')
+        : (document.querySelector('[data-tag="displayJobLocation"]')?.innerText?.trim() || 'Not Found');
+      const date = document.querySelector('[data-tag="displayJobPostingDate"]')?.innerText?.trim() || 'Not Found';
+      const jobIdMatch = window.location.href.match(/requisition[_-]?id[=\/]([^&\/]+)/i) || window.location.href.match(/\/(\d+)(?:[?#]|$)/);
+      const jobId = jobIdMatch ? jobIdMatch[1] : 'Not Found';
+
+      // Grab full HTML of the job description panel
+      // .p-htmlviewer is nested inside .p-view-jobdetailsad — use parent as primary selector
+      const descEl = document.querySelector('.p-view-jobdetailsad')
+        || document.querySelector('.p-view-jobdetailsad .p-htmlviewer')
+        || document.querySelector('.p-htmlviewer')
+        || document.querySelector('#cw-rich-description')
+        || document.querySelector('.cw-jobdescription');
+      const description = descEl ? descEl.innerHTML.trim() : (document.body?.innerText || '');
+
+      return {
+        title,
+        location,
+        company: 'Not Found',
+        date,
+        description,
+        applyLink: window.location.href,
+        experience: 'Not Available',
+        salary: 'Not Available',
+        jobId
+      };
+    }
+  } catch (e) { }
+
+  // Atlas Copco detail
+
+  try {
+    if (window.location.href.toLowerCase().includes('jobs.atlascopcogroup.com/job')) {
+      let title = document.querySelector('h1')?.innerText?.trim() || '';
+      if (!title) {
+        title = document.title?.split(/Job Details|\|/i)[0]?.trim() || 'Not Found';
+      }
+      
+      const spans = Array.from(document.querySelectorAll('span.rtltextaligneligible'))
+        .map(s => s.innerText.trim())
+        .filter(s => s && s.length > 1 && s.length < 40 && !s.includes('/') && s !== 'On-Site' && s !== 'Remote' && s !== 'Hybrid' && s !== title && s !== 'Quality' && !s.toLowerCase().includes('co.,'));
+        
+      const location = [...new Set(spans)].slice(0, 2).join(', ') || 'Not Found';
+      
+      const descEl = document.querySelector('.jobdescription, .job-description, main') || document.body;
+      const desc = descEl ? descEl.innerText.trim() : fullText;
+      const expMatch = desc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
+      const jobIdMatch = window.location.href.match(/\/(\d+)-en_US/i);
+
+      return {
+        title,
+        location,
+        company: 'Atlas Copco Group',
+        date: 'Not Found',
+        description: desc,
+        applyLink: window.location.href,
+        experience: expMatch ? expMatch[0] : 'Not Found',
+        salary: 'Not Available',
+        jobId: jobIdMatch ? jobIdMatch[1] : 'Not Found'
+      };
+    }
+  } catch (e) { }
+
+  // TUV SUD detail (jobs.tuvsud.com)
+  try {
+    if (window.location.href.toLowerCase().includes('jobs.tuvsud.com/job')) {
+      // h1 is a generic portal header — extract real title from document.title
+      const title = document.title?.split(/Job Details|\|/i)[0]?.trim() || 'Not Found';
+
+      const descEl = document.querySelector('.jobdescription, .job-description, main') || document.body;
+      const desc = descEl ? descEl.innerText.trim() : fullText;
+      const expMatch = desc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
+      const jobIdMatch = window.location.href.match(/\/(\d+)-en_US/i);
+
+      return {
+        title,
+        location: 'Not Found',
+        company: 'TÜV SÜD',
+        date: 'Not Found',
+        description: desc,
+        applyLink: window.location.href,
+        experience: expMatch ? expMatch[0] : 'Not Found',
+        salary: 'Not Available',
+        jobId: jobIdMatch ? jobIdMatch[1] : 'Not Found'
+      };
+    }
+  } catch (e) { }
+
   // Continental detail (jobs.continental.com)
   try {
     if (window.location.href.toLowerCase().includes('jobs.continental.com')) {
@@ -6559,11 +6736,22 @@ function genericJobEvaluator() {
       const idMatch = window.location.href.match(/\/jobs\/(jr-\d+|[a-zA-Z0-9_-]+)\//i);
       const jobId = idMatch ? idMatch[1] : 'Not Found';
 
+      let date = 'Not Found';
+      let location = 'Not Found';
+      document.querySelectorAll('.job-meta li').forEach(li => {
+        const label = li.querySelector('span')?.innerText?.trim().toLowerCase();
+        if (label === 'posted') {
+          date = li.querySelector('time')?.innerText?.trim() || li.querySelector('strong')?.innerText?.trim() || date;
+        } else if (label === 'location') {
+          location = li.querySelector('.multi-locations')?.innerText?.trim() || location;
+        }
+      });
+
       return {
         title,
-        location: 'Not Found',
+        location,
         company: 'General Motors',
-        date: 'Not Found',
+        date,
         description: desc,
         applyLink,
         experience: desc.match(/(\d+\+?\s*(years|yrs|year))/i)?.[0] || 'Not Found',
@@ -6643,19 +6831,58 @@ function genericJobEvaluator() {
   // PeopleStrong detail (e.g. leindiacareers.peoplestrong.com)
   try {
     if (window.location.href.toLowerCase().includes('peoplestrong.com')) {
-      const title = document.querySelector('h1.job-title, h2.job-title, .job-detail-header h1, .job-detail-header h2, .detail-head h1, h1, h2.title')?.innerText?.trim() || 'Not Found';
-      const location = document.querySelector('.job-location, .location, .city, .detail-location, [class*="location"]')?.innerText?.trim() || 'Not Found';
-      const descEl = document.querySelector('.detail-description, .jd-desc, .job-description, .job-detail-desc, [class*="detail-desc"], .content-block, main');
-      const desc = descEl ? descEl.innerText.trim() : fullText;
+      const titleEl = document.querySelector('h1.job-title, h2.job-title, .job-detail-header h1, .job-detail-header h2, .detail-head h1, h2.title, h1');
+      const title = titleEl ? (titleEl.querySelector('span') ? titleEl.querySelector('span').innerText : titleEl.innerText).trim() : 'Not Found';
+      
+      // Location extraction: try panel rows first
+      let locationParts = [];
+      document.querySelectorAll('.panel-row').forEach(row => {
+        const col1 = row.querySelector('.panel-col1')?.innerText?.toLowerCase() || '';
+        const colVal = row.querySelector('.text-bold-cell')?.innerText?.trim() || '';
+        if (colVal && colVal !== '--') {
+          if (col1.includes('working location') || col1.includes('town') || col1.includes('city') || col1.includes('district') || col1.includes('state') || col1.includes('country')) {
+            locationParts.push(colVal);
+          }
+        }
+      });
+      let location = locationParts.length > 0 ? [...new Set(locationParts)].join(', ') : 'Not Found';
+      if (location === 'Not Found') {
+         location = document.querySelector('.job-location, .location, .city, .detail-location, [class*="location"]')?.innerText?.trim() || 'Not Found';
+      }
+
+      // Grab full HTML of the job details component to preserve formatting and tables
+      const fullContentEl = document.querySelector('app-job-details, .container-inner, .job-details-inner, .detail-wrapper');
+      let descHtml = '';
+      let descText = '';
+      if (fullContentEl) {
+        descHtml = fullContentEl.innerHTML.trim();
+        descText = fullContentEl.innerText?.trim() || '';
+      } else {
+        const jobDescHeading = Array.from(document.querySelectorAll('.panel-heading, .job-desc-heading, h2, h3')).find(el => el.innerText.toLowerCase().includes('job description'));
+        const descEl = (jobDescHeading ? jobDescHeading.parentElement.querySelector('.panel-body, .desc-body, .job-description') : null) || document.querySelector('.detail-description, .jd-desc, .job-description, .job-detail-desc, [class*="detail-desc"], .content-block, .panel-body, main');
+        descHtml = descEl ? descEl.innerHTML.trim() : (document.body?.innerText || '');
+        descText = descEl ? descEl.innerText?.trim() : (document.body?.innerText || '');
+      }
+
       const jobId = window.location.pathname.split('/').filter(Boolean).pop() || 'Not Found';
+
+      let date = document.querySelector('.posted-date, .date-posted, .posting-date, time, .formatdate-ar')?.innerText?.trim();
+      if (!date) {
+        const postedOnSpan = Array.from(document.querySelectorAll('.text-cell')).find(el => el.innerText.includes('Posted On'));
+        if (postedOnSpan && postedOnSpan.nextElementSibling) {
+          date = postedOnSpan.nextElementSibling.innerText.trim();
+        }
+      }
+      date = date || 'Not Found';
+
       return {
         title,
         location,
         company: 'Not Found', // overridden by visitDetailPage extra.company
-        date: document.querySelector('.posted-date, .date-posted, .posting-date, time')?.innerText?.trim() || 'Not Found',
-        description: desc,
+        date,
+        description: descHtml || descText,
         applyLink: window.location.href,
-        experience: desc.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found',
+        experience: descText.match(/(\d{1,2}\s*\+?\s*(?:-|\u2013|\u2014|to)\s*\d{1,2}\s*\+?\s*(?:years?|yrs?))|(\d+\+?\s*(?:years?|yrs?))/i)?.[0] || 'Not Found',
         salary: 'Not Available',
         jobId
       };
@@ -6665,8 +6892,15 @@ function genericJobEvaluator() {
   // SYSTRA detail (e.g. www.systra.com/en/job-offers/...)
   try {
     if (window.location.href.includes('systra.com') || document.querySelector('.job-sidebar_detail') || document.querySelector('.job-content')) {
-      const descEl = document.querySelector('.job-content') || document.querySelector('.entry-content.job');
-      const desc = descEl ? descEl.innerText.trim() : fullText;
+      const rawEl = document.querySelector('.job-content') || document.querySelector('.entry-content.job');
+      let desc = '';
+      if (rawEl) {
+        const clone = rawEl.cloneNode(true);
+        // Remove branding sections, images, figures
+        clone.querySelectorAll('.marque_employeur, section.marque_employeur, figure, img, picture, noscript, .tile, .who-block-content-feed, script, style').forEach(el => el.remove());
+        desc = clone.innerText.trim();
+      }
+      if (!desc) desc = fullText;
 
       let countryRegion = '', locVal = '', expVal = '';
       document.querySelectorAll('.job-sidebar_detail_list p').forEach(p => {
@@ -6702,7 +6936,37 @@ function genericJobEvaluator() {
     }
   } catch (e) { }
 
+
   // Zoho Recruit detail (e.g. sgurrenergy.zohorecruit.com/jobs/careers/...)
+  // Ripplehire detail (e.g. tatasteel.ripplehire.com)
+  try {
+    if (window.location.href.toLowerCase().includes('ripplehire.com')) {
+      const titleEl = document.querySelector('h1, h2, h3, .job-title');
+      const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
+      const locationEl = document.querySelector('.location-text, li[class*="location"], [data-id="location"]');
+      const location = locationEl ? locationEl.innerText.replace(/[\r\n\t]+/g, ' ').replace(/^location\s*/i, '').trim() : 'Not Found';
+      
+      const pd24El = document.querySelector('.PD24, .job-desc, .description, .job-description');
+      const descHtml = pd24El ? pd24El.innerHTML.trim() : (document.body?.innerText || '');
+      
+      const jobIdMatch = window.location.href.match(/job\/(\d+)/i) || document.body?.innerText?.match(/Job ID:\s*(\d+)/i);
+      const jobId = jobIdMatch ? jobIdMatch[1] : 'Not Found';
+      
+      return {
+        title,
+        location,
+        company: 'Not Found',
+        date: 'Not Found',
+        description: descHtml,
+        applyLink: window.location.href,
+        experience: descHtml.match(/(\d+\+?\s*(?:years?|yrs?))/i)?.[0] || 'Not Found',
+        salary: 'Not Available',
+        jobId
+      };
+    }
+  } catch (e) {}
+
+  // Zoho Recruit
   try {
     if (document.querySelector('#cw-rich-description') || document.querySelector('.cw-jobdescription') || document.querySelector('.jd-template-two') || document.querySelector('.cw-summary') || window.location.href.includes('zohorecruit.com')) {
       const descEl = document.querySelector('#cw-rich-description') || document.querySelector('.cw-jobdescription');
@@ -6826,7 +7090,7 @@ function genericJobEvaluator() {
           const data = JSON.parse(s.innerText);
           if (data['@type'] === 'JobPosting') {
             if (data.title && !title) title = data.title;
-            if (data.description) desc = data.description.replace(/<[^>]+>/g, '').trim();
+            if (data.description) desc = data.description.trim();
             if (data.datePosted) date = data.datePosted;
             if (data.jobLocation && data.jobLocation.address) {
               const a = data.jobLocation.address;
@@ -6877,7 +7141,7 @@ function genericJobEvaluator() {
   } catch (e) { }
 
   // Oracle KO.js
-  try { const root = document.querySelector('job-details-page'); if (window.ko && root) { const koData = window.ko.dataFor(root); if (koData?.pageData) { const jd = koData.pageData().job; return { title: jd.title || '', location: jd.primaryLocation || '', company: document.querySelector('meta[property=\"og:site_name\"]')?.content || 'Not Found', date: jd.postedDate || 'Not Found', description: jd.description?.replace(/<[^>]+>/g, '') || 'Not Found', applyLink: window.location.href, experience: jd.description?.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found', salary: 'Not Available', jobId: String(jd.id || 'Not Found') }; } } } catch (e) { }
+  try { const root = document.querySelector('job-details-page'); if (window.ko && root) { const koData = window.ko.dataFor(root); if (koData?.pageData) { const jd = koData.pageData().job; return { title: jd.title || '', location: jd.primaryLocation || '', company: document.querySelector('meta[property="og:site_name"]')?.content || 'Not Found', date: jd.postedDate || 'Not Found', description: jd.description || 'Not Found', applyLink: window.location.href, experience: jd.description?.match(/(\d+\+?\s*(years|yrs))/i)?.[0] || 'Not Found', salary: 'Not Available', jobId: String(jd.id || 'Not Found') }; } } } catch (e) { }
 
   // Porsche detail
   try {
@@ -6964,7 +7228,7 @@ function genericJobEvaluator() {
       };
       const dateVal = getField('Posted since');
       const descEl = document.querySelector('#section1__content .article__content__view__field__value');
-      const desc = descEl?.innerText?.trim() || descEl?.textContent?.trim() || '';
+      const desc = descEl?.innerText?.trim() || descEl?.innerText?.trim() || '';
       const jobIdVal = getField('Job ID');
       if (dateVal || jobIdVal) {
         // Extract salary from full page text
@@ -6989,6 +7253,48 @@ function genericJobEvaluator() {
           experience: getField('Experience level') || 'Not Found',
           salary: siemensSalary,
           jobId: jobIdVal || '',
+        };
+      }
+    }
+  } catch (e) { }
+
+  // Worley detail (jobs.worley.com/careers/job/...)
+  try {
+    if (window.location.href.toLowerCase().includes('jobs.worley.com') || document.querySelector('#job-description-container')) {
+      const title = document.querySelector('h2.position-title-3TPtN, h1')?.innerText?.trim() || 'Not Found';
+      const locationEl = document.querySelector('.position-location-12ZUO, [class*="position-location"]');
+      const location = locationEl?.innerText?.trim() || 'Not Found';
+
+      // Date posted from dt/dd list
+      let date = 'Not Found';
+      const dts = [...document.querySelectorAll('dl dt')];
+      const dateDt = dts.find(dt => /date\s*posted/i.test(dt.innerText));
+      if (dateDt && dateDt.nextElementSibling) date = dateDt.nextElementSibling.innerText.trim();
+
+      // Job ID from URL or dt/dd
+      let jobId = 'Not Found';
+      const reqDt = dts.find(dt => /requisition\s*id/i.test(dt.innerText));
+      if (reqDt && reqDt.nextElementSibling) jobId = reqDt.nextElementSibling.innerText.trim();
+      if (!jobId || jobId === 'Not Found') {
+        const m = window.location.pathname.match(/\/job\/(\d+)/);
+        if (m) jobId = m[1];
+      }
+
+      // Full description HTML from the container
+      const descEl = document.querySelector('#job-description-container .container-3Gm1a, #job-description-container, .container-3Gm1a');
+      const desc = descEl ? descEl.innerText.trim() : '';
+
+      if (desc || date !== 'Not Found') {
+        return {
+          title,
+          location,
+          company: 'Worley',
+          date,
+          description: desc || 'Not Found',
+          applyLink: document.querySelector('a[href*="/careers/apply"]')?.href || window.location.href,
+          experience: (document.body?.innerText || '').match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|Total)?\s*(\d{1,2}\+?)\s*(?:[-–to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)\s*of\s*experience/i)?.[0] || 'Not Found',
+          salary: 'Not Available',
+          jobId,
         };
       }
     }
@@ -7135,7 +7441,7 @@ function genericJobEvaluator() {
     }
   }
 
-  const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'key responsibilities', 'role summary', 'job summary', 'ingersoll rand', 'dzconnex', 'single position'];
+  const genericTitles = ['job detail', 'job details', 'job detail page', 'job details page', 'careers', 'career', 'job description', 'key responsibilities', 'role summary', 'job summary', 'ingersoll rand', 'dzconnex', 'single position', 'mainpage.jobdetailspage'];
   if (title && genericTitles.includes(title.toLowerCase())) {
     title = '';
   }
@@ -7242,42 +7548,63 @@ function genericJobEvaluator() {
     applyLink = btn ? 'Apply button (JS trigger)' : 'Not Found';
   }
 
-  // Experience
+  // Experience — use plain innerText (not innerHTML fullText) to avoid false positives from HTML attributes
+  const expText = document.body?.innerText || '';
+
   let experience = getByLabel('Experience range (Years)') || '';
+  // Highest priority: regexes explicitly containing "experience" or "exp"
   if (!experience) {
-    const m = fullText.match(/(\d+\+?\s*(to|-)?\s*\d*\+?\s*(years?|yrs?)(\s+of(\s+relevant)?\s+experience)?)/i);
-    if (m) {
-      const yrs = parseInt(m[1], 10);
-      if (yrs < 35) experience = m[0];
+    const m = expText.match(/(\d{1,2})\s*\+?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?)\s+of(\s+relevant)?\s+experience/i);
+    if (m && parseInt(m[1], 10) < 35 && parseInt(m[2], 10) < 40) experience = m[0];
+  }
+  if (!experience) {
+    const m = expText.match(/(\d{1,2}\+?)\s+years?\s+of\s+(work\s+)?(experience|exp\.?)/i);
+    if (m && parseInt(m[1], 10) < 35) experience = m[0];
+  }
+  if (!experience) {
+    const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)\s+(of\s+)?experience/i);
+    if (m && parseInt(m[1], 10) < 35) experience = m[0];
+  }
+  if (!experience) {
+    const m = expText.match(/(\d{1,2})\s*\+?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?)/i);
+    if (m && parseInt(m[1], 10) < 35 && parseInt(m[2], 10) < 40) experience = m[0];
+  }
+  if (!experience) {
+    const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)/i);
+    if (m && parseInt(m[1], 10) < 35) {
+       // Make sure it doesn't match generic company age
+       if (!/operating.*for more than|established.*years/i.test(expText.slice(Math.max(0, m.index - 50), m.index + 50))) {
+         experience = m[0];
+       }
     }
   }
-  if (!experience) experience = getText(['.experience-range p', '[data-careersite-propertyid=\"experience\"]', '[class*=\"experience\"]', '[data-test=\"experience\"]', '.job-experience', '.experience-level', '[itemprop=\"experienceRequirements\"]', '.years-experience', '[class*=\"exp-level\"]', '[class*=\"exp-years\"]']);
+  if (!experience) experience = getText(['.experience-range p', '[data-careersite-propertyid="experience"]', '[class*="experience"]', '[data-test="experience"]', '.job-experience', '.experience-level', '[itemprop="experienceRequirements"]', '.years-experience', '[class*="exp-level"]', '[class*="exp-years"]']);
   if (!experience && ld) experience = ld.experienceRequirements?.monthsOfExperience ? `${Math.round(ld.experienceRequirements.monthsOfExperience / 12)} years` : String(ld.experienceRequirements || '');
   if (!experience) [...document.querySelectorAll('p,li,span,td,dt,dd')].some(el => { const t = el.innerText?.trim(); if (t?.match(/^Experience\s*:/i)) { experience = t.replace(/^Experience\s*:/i, '').trim(); return true; } });
   if (!experience) {
-    const m = fullText.match(/(\d+\+?)\s+years?\s+of\s+(work\s+)?(experience|exp\.?)/i);
+    const m = expText.match(/(\d{1,2}\+?)\s+years?\s+of\s+(work\s+)?(experience|exp\.?)/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[0];
   }
   if (!experience) {
-    const m = fullText.match(/minimum\s+(\d+\+?)\s+years?/i);
+    const m = expText.match(/minimum\s+(\d{1,2}\+?)\s+years?/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[0];
   }
   if (!experience) {
-    const m = fullText.match(/at\s+least\s+(\d+\+?)\s+years?/i);
+    const m = expText.match(/at\s+least\s+(\d{1,2}\+?)\s+years?/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[0];
   }
   if (!experience) {
-    const m = fullText.match(/(\d+\+)\s*years?/i);
+    const m = expText.match(/(\d{1,2}\+)\s*years?/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[0];
   }
-  if (!experience && /fresher|entry[\s-]level|0[\s-]?\d?\s*years?/i.test(fullText)) experience = 'Fresher / Entry Level';
-  if (!experience) experience = fullText.match(/\b(junior|mid[\s-]?level|senior|lead|principal|staff)\b/i)?.[0] || '';
+  if (!experience && /fresher|entry[\s-]level|0[\s-]?\d?\s*years?/i.test(expText)) experience = 'Fresher / Entry Level';
+  if (!experience) experience = expText.match(/\b(junior|mid[\s-]?level|senior|lead|principal|staff)\b/i)?.[0] || '';
   if (!experience) {
-    const m = (document.querySelector('meta[name=\"description\"]')?.content || '').match(/(\d+\+?\s*(to|-)?\s*\d*\+?\s*(years?|yrs?))/i);
+    const m = (document.querySelector('meta[name="description"]')?.content || '').match(/(\d+\+?\s*(to|-)?\s*\d*\+?\s*(years?|yrs?))/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[0];
   }
   if (!experience) {
-    const m = fullText.match(/\bExp[:\s]+(\d+\+?\s*(to|-)?\s*\d*\+?\s*(years?|yrs?))/i);
+    const m = expText.match(/\bExp[:\s]+(\d+\+?\s*(to|-)?\s*\d*\+?\s*(years?|yrs?))/i);
     if (m && parseInt(m[1], 10) < 35) experience = m[1];
   }
 
@@ -7334,10 +7661,10 @@ function genericJobEvaluator() {
   if (!jobId) jobId = document.querySelector('[data-job-id]')?.getAttribute('data-job-id') || '';
   if (!jobId) jobId = getText(['[data-careersite-propertyid=\"adcode\"]', '[data-careersite-propertyid=\"jobid\"]', '[class*=\"job-id\"]', '[class*=\"jobid\"]', '[data-test=\"job-id\"]', '[data-job-id]', '[id*=\"job-id\"]', '.req-id', '[class*=\"req-id\"]', '.reference-id', '[class*=\"reference\"]']);
   if (!jobId && ld) jobId = ld.identifier?.value || String(ld.identifier || '') || '';
-  
+
   // 3. URL search params
   if (!jobId) { const p = new URLSearchParams(window.location.search); jobId = p.get('jobId') || p.get('id') || p.get('job_id') || p.get('jid') || ''; }
-  
+
   // 4. URL path (5+ digit number)
   if (!jobId && !window.location.href.includes('mokahr.com')) { const m = window.location.pathname.match(/\/(\d{5,})/); jobId = m?.[1] || ''; }
 
@@ -7548,7 +7875,7 @@ async function scrapeKbr(page, context, listingUrl, results) {
             // Try JSON-LD
             try {
               const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
-              if (ld.description) desc = ld.description.replace(/<[^>]+>/g, ' ').trim();
+              if (ld.description) desc = ld.description.trim();
             } catch (_) { }
 
             // Experience from description text
@@ -7716,15 +8043,23 @@ async function scrapeTitan(page, context, listingUrl, results) {
           await detailPage.waitForLoadState('networkidle').catch(() => { });
 
           const detail = await detailPage.evaluate(() => {
+            // Phenom People ATS — real attribute is "jobdescription-text" (no hyphen between job+description)
             const descEl = document.querySelector(
-              '[data-ph-at-id="job-description"], .job-description-main, .ats-description, ' +
+              '[data-ph-at-id="jobdescription-text"], ' +
+              '.jd-info, ' +
+              '[data-ph-at-id="job-description"], ' +
+              '.job-description-main, .ats-description, ' +
               '[class*="job-description"], .phj-jobad-description, section.ph-description'
             );
-            let desc = descEl?.innerText?.trim() || document.body?.innerText?.slice(0, 2000) || '';
-            try {
-              const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
-              if (ld.description) desc = ld.description.replace(/<[^>]+>/g, ' ').trim();
-            } catch (_) { }
+            let desc = descEl?.innerText?.trim() || '';
+            // Fallback: ld+json
+            if (!desc) {
+              try {
+                const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
+                if (ld.description) desc = ld.description.trim();
+              } catch (_) { }
+            }
+            if (!desc) desc = document.body?.innerText?.slice(0, 5000) || '';
             const expMatch = desc.match(/(\d+\+?\s*(years|yrs|year))/i);
             const experience = expMatch ? expMatch[0] : '';
             // Only treat it as a salary if the snippet actually carries a number /
@@ -7734,7 +8069,7 @@ async function scrapeTitan(page, context, listingUrl, results) {
             const salary = (salaryMatch && /[\d$€£₹]|\b(?:usd|inr|eur|gbp|lpa|per\s+(?:annum|year|month|hour))\b/i.test(salaryMatch[0]))
               ? salaryMatch[0].trim()
               : 'Not Available';
-            return { description: desc.slice(0, 3000), experience, salary };
+            return { description: desc, experience, salary };
           });
 
           description = detail.description || job.teaser;
@@ -7755,7 +8090,7 @@ async function scrapeTitan(page, context, listingUrl, results) {
         jobType: job.jobType,
         date: job.date,
         jobId: job.jobId,
-        description: description.slice(0, 3000),
+        description: description,
         experience,
         salary,
         url: job.detailUrl,
@@ -7889,14 +8224,24 @@ async function autoScroll(page) {
   await page.evaluate(async () => {
     await new Promise(resolve => {
       let lastH = 0;
+      let retries = 0;
+      const maxRetries = 6; // Wait 6 * 800ms = 4.8 seconds for new jobs to load
       const t = setInterval(() => {
-        window.scrollBy(0, 600);
-        if (document.body.scrollHeight === lastH) { clearInterval(t); resolve(); }
-        lastH = document.body.scrollHeight;
+        window.scrollBy(0, 800);
+        if (document.body.scrollHeight === lastH) {
+          retries++;
+          if (retries >= maxRetries) {
+            clearInterval(t);
+            resolve();
+          }
+        } else {
+          retries = 0;
+          lastH = document.body.scrollHeight;
+        }
       }, 800);
     });
   });
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -7972,19 +8317,62 @@ async function scrapeARaymond(page, context, listingUrl, results) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🏗️  MOKAHR
+// 🏗️  MOKAHR (Tesla)
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeMokaHr(page, context, listingUrl, results) {
   let pageNum = 1;
   while (true) {
     console.log(`  📄 MokaHR Page ${pageNum}...`);
-    await page.waitForSelector('[class*="container-aOp138AX_X"], [class*="card-BtpcjTxIfE"]', { timeout: 35000 }).catch(() => { });
+
+    // Wait for job cards — both old and new class patterns
+    await page.waitForSelector(
+      '[class*="container-"][class*="mEGs"], [class*="container-aOp138AX_X"], [class*="card-BtpcjTxIfE"]',
+      { timeout: 35000 }
+    ).catch(() => { });
     await page.waitForTimeout(3000);
     await autoScroll(page);
 
     const jobLinks = await page.evaluate(() => {
-      const cards = [...document.querySelectorAll('[class*="container-aOp138AX_X"], [class*="card-BtpcjTxIfE"]')];
-      return cards.map(card => {
+      // ── New MokaHR UI (hire-r1) ──
+      // Each job is a div[class*="container-"] that wraps the title + info
+      const newCards = [...document.querySelectorAll('[class*="container-mEGs"]')];
+      if (newCards.length) {
+        return newCards.map(card => {
+          // Title
+          const titleEl = card.querySelector('[class*="title-ROUQFdjmhP"], [class*="title-u2qk9xX9Ie"]');
+          const title = titleEl?.textContent?.trim() || 'Not Found';
+
+          // Info bar: "Full-time | AI & Robotics | India"
+          const infoEl = card.querySelector('[class*="info-UcB_mxJq8y"]');
+          const infoText = infoEl?.textContent?.trim() || '';
+          const infoParts = infoText.split('|').map(s => s.trim()).filter(Boolean);
+          const jobType = infoParts[0] || 'Not Found';
+          const department = infoParts[1] || 'Not Found';
+          const location = infoParts[2] || 'Not Found';
+
+          // Detail URL — card itself might be wrapped in an <a>, or find closest parent <a>
+          let detailUrl = '';
+          const parentA = card.closest('a');
+          if (parentA) {
+            detailUrl = parentA.href;
+          } else {
+            // Try data attribute or child link
+            const childA = card.querySelector('a');
+            if (childA) detailUrl = childA.href;
+          }
+
+          // Extract job UUID from URL hash  (#/job/<uuid>  or  /job/<uuid>)
+          let jobId = 'Not Found';
+          const jMatch = detailUrl.match(/job\/([a-fA-F0-9\-]{8,})/);
+          if (jMatch) jobId = jMatch[1];
+
+          return { title, location, jobType, department, detailUrl, jobId };
+        }).filter(j => j.detailUrl && j.title !== 'Not Found');
+      }
+
+      // ── Old MokaHR UI fallback ──
+      const oldCards = [...document.querySelectorAll('[class*="container-aOp138AX_X"], [class*="card-BtpcjTxIfE"]')];
+      return oldCards.map(card => {
         const a = card.querySelector('a');
         const titleEl = card.querySelector('[class*="title-u2qk9xX9Ie"]');
         const title = titleEl ? titleEl.textContent.trim() : (a ? a.textContent.trim() : 'Not Found');
@@ -7994,51 +8382,121 @@ async function scrapeMokaHr(page, context, listingUrl, results) {
         } else if (detailUrl && !detailUrl.startsWith('http')) {
           detailUrl = window.location.origin + detailUrl;
         }
-
         const infoEl = card.querySelector('[class*="info-tPG_"]');
-        let dept = 'Not Found';
-        if (infoEl) {
-          dept = infoEl.textContent.trim().replace(/\s*\|\s*/g, ' | ');
-        }
-
+        const dept = infoEl ? infoEl.textContent.trim().replace(/\s*\|\s*/g, ' | ') : 'Not Found';
         const locEl = card.querySelector('[class*="sd-foundation-body-primary-b0MG4"], [class*="mgt8-"]');
         const loc = locEl ? locEl.textContent.trim() : 'Not Found';
-
-        // Extract actual job UUID from MokaHR URL (e.g. #/job/3dead540-83ae-47a0-9ff5-ba0afe0d8ca3)
         let jobId = 'Not Found';
         const jMatch = detailUrl.match(/job\/([a-fA-F0-9\-]+)/);
         if (jMatch) jobId = jMatch[1];
-
-        return {
-          title,
-          location: loc,
-          detailUrl,
-          department: dept,
-          jobId
-        };
+        return { title, location: loc, department: dept, detailUrl, jobId };
       }).filter(j => j.detailUrl);
     });
 
     console.log(`     ↳ MokaHR: ${jobLinks.length} jobs`);
+
     for (const job of jobLinks) {
       if (results.length >= MAX_JOBS) break;
-      await visitDetailPage(context, job, 'mokahr', results, { company: 'Tesla' });
-      await delay(500);
+      console.log(`    🔎 ${job.title} | ${job.location}`);
+
+      const detailPage = await context.newPage();
+      try {
+        await detailPage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await detailPage.waitForTimeout(4000);
+        await detailPage.waitForLoadState('networkidle').catch(() => { });
+
+        // Wait for job description to load
+        await detailPage.waitForSelector(
+          '[class*="job-description-VvfEUGocNE"], [class*="job-description-"]',
+          { timeout: 15000 }
+        ).catch(() => { });
+
+        const detail = await detailPage.evaluate(() => {
+          // ── Title ──
+          const titleEl = document.querySelector('[class*="title-ROUQFdjmhP"], [class*="title-u2qk9xX9Ie"], h1');
+          const title = titleEl?.textContent?.trim() || '';
+
+          // ── Full description (no limit) ──
+          // Deduplicate: MokaHR renders 2 copies (visible + shadow for clamping)
+          const descEl = document.querySelector('[class*="job-description-VvfEUGocNE"]');
+          const description = descEl?.innerText?.trim() || document.body?.innerText?.slice(0, 8000) || '';
+
+          // ── Job info rows: Employment type, Job function, Department, Location ──
+          const infoRows = [...document.querySelectorAll('[class*="info-row-HSEUCEHeFr"]')];
+          const infoMap = {};
+          infoRows.forEach(row => {
+            const label = row.querySelector('[class*="sd-foundation-body-tertiary"]')?.textContent?.trim()?.toLowerCase() || '';
+            const value = row.querySelector('[class*="value-mOhfHL5YFY"] [id="clamp-container"]')?.textContent?.trim() || '';
+            if (label && value) infoMap[label] = value;
+          });
+
+          const jobType = infoMap['employment type'] || '';
+          const department = infoMap['job function'] || infoMap['department'] || '';
+          const location = infoMap['department'] || '';
+
+          // ── Experience from description ──
+          const expMatch = description.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
+          const experience = expMatch ? expMatch[0] : '';
+
+          return { title, description, jobType, department, location, experience, infoMap };
+        });
+
+        const finalTitle = detail.title || job.title;
+        const finalLoc = detail.infoMap?.['department'] || job.location;
+        const finalExp = detail.experience || 'Not Found';
+        const finalJobType = detail.jobType || job.jobType || 'Not Found';
+        const finalDept = detail.department || job.department || 'Not Found';
+
+        results.push({
+          source: 'mokahr',
+          url: job.detailUrl,
+          title: finalTitle,
+          location: finalLoc,
+          company: 'Tesla',
+          date: 'Not Found',
+          experience: finalExp,
+          description: detail.description || '',
+          applyLink: job.detailUrl,
+          salary: 'Not Available',
+          jobId: job.jobId,
+          category: finalDept,
+          jobType: finalJobType,
+        });
+
+        // 💾 Turant save — har job ke baad jobs.json update
+        try {
+          fs.writeFileSync(require('path').join(__dirname, 'jobs.json'), JSON.stringify(results, null, 2));
+        } catch (_) { }
+
+        console.log(`       ✅ OK — "${finalTitle.slice(0, 60)}"`);
+      } catch (err) {
+        console.log(`       ❌ Detail failed: ${err.message}`);
+        results.push({ source: 'mokahr', url: job.detailUrl, title: job.title, company: 'Tesla', error: true, message: err.message });
+      } finally {
+        await detailPage.close();
+      }
+
+      await delay(600);
     }
 
     if (results.length >= MAX_JOBS) break;
 
+    // ── Pagination ──
     const hasNext = await page.evaluate(() => {
-      const nextBtn = document.querySelector('button[class*="sd-Pagination-forward-"]');
-      if (nextBtn && !nextBtn.disabled && nextBtn.getAttribute('aria-disabled') !== 'true') {
-        nextBtn.click();
+      // New UI: sd-Pagination forward button
+      const fwdBtn = document.querySelector('button[class*="sd-Pagination-forward-"], button[class*="next"]');
+      if (fwdBtn && !fwdBtn.disabled && fwdBtn.getAttribute('aria-disabled') !== 'true') {
+        fwdBtn.click();
         return true;
       }
+      // Old UI
+      const oldNext = document.querySelector('button[class*="sd-Pagination-forward-"]');
+      if (oldNext && !oldNext.disabled) { oldNext.click(); return true; }
       return false;
     });
 
     if (!hasNext) {
-      console.log(`  ✅ MokaHR done — ${pageNum} pages`);
+      console.log(`  ✅ MokaHR done — ${pageNum} page(s)`);
       break;
     }
 
@@ -8319,7 +8777,7 @@ async function scrapeDeJobs(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeAtlasCopco(page, context, listingUrl, results) {
   console.log(`  📄 Atlas Copco listing...`);
-  await page.waitForSelector('.ds_ais-Hits-item', { timeout: 35000 }).catch(() => { });
+  await page.waitForSelector('a[href*="/job/"]', { timeout: 35000 }).catch(() => { });
 
   const jobLinks = [];
   let pageNum = 1;
@@ -8330,26 +8788,27 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
     await page.waitForTimeout(2000);
 
     const pageJobs = await page.evaluate(() => {
-      return Array.from(document.querySelectorAll('.ds_ais-Hits-item')).map(item => {
-        const a = item.querySelector('a.ds_ais-Hit-link');
-        if (!a) return null;
-
-        const titleEl = item.querySelector('.ds_ais-Hit-title');
-        const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
-
-        // Parse tags (brand, region, category, country/location)
-        const tags = Array.from(item.querySelectorAll('.ds_ais-Hit-tag')).map(t => t.innerText.trim());
-        const location = tags.join(', ') || 'India';
-
+      return Array.from(document.querySelectorAll('a[href*="/job/"]')).map(a => {
+        const title = a.innerText.trim();
         const detailUrl = a.href;
+        
+        let location = 'India';
+        const card = a.closest('li') || a.closest('div[class*="jobCard"]');
+        if (card) {
+            const footerValues = Array.from(card.querySelectorAll('[class*="jobCardFooterValue"]')).map(el => el.innerText.trim());
+            if (footerValues.length > 0) {
+                location = footerValues.join(', ');
+            }
+        }
+        
         return { title, location, detailUrl };
-      }).filter(j => j && j.detailUrl && j.title !== 'Not Found');
+      }).filter(j => j && j.detailUrl && j.title);
     });
 
     jobLinks.push(...pageJobs);
 
     // Look for next page button
-    const nextBtn = page.locator('li.ais-Pagination-item--nextPage a, button.ais-Pagination-item--nextPage').first();
+    const nextBtn = page.locator('button[aria-label="Go to next page"], a[aria-label="Go to next page"]').first();
     const isVisible = await nextBtn.isVisible().catch(() => false);
     if (!isVisible) {
       console.log(`     ↳ No next page button found or reached the end.`);
@@ -8357,10 +8816,11 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
     }
 
     const isDisabled = await nextBtn.evaluate(el =>
-      el.classList.contains('ais-Pagination-item--disabled') ||
-      el.closest('li')?.classList.contains('ais-Pagination-item--disabled') ||
-      el.hasAttribute('disabled')
+      el.classList.contains('disabled') ||
+      el.hasAttribute('disabled') || 
+      el.getAttribute('aria-disabled') === 'true'
     ).catch(() => false);
+    
     if (isDisabled) {
       console.log(`     ↳ Next page button is disabled.`);
       break;
@@ -8475,13 +8935,14 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
   } else if (subdomain.includes('larsentoubro') || listingUrl.includes('larsentoubro')) {
     companyName = 'Larsen & Toubro';
   } else if (subdomain.includes('leindia') || listingUrl.includes('leindia')) {
-    companyName = 'LE India';
+    companyName = 'Linde';
   }
 
   console.log(`  📄 PeopleStrong listing (${companyName})...`);
 
   // Wait for job cards to appear
   await page.waitForSelector('.section-card .card-block-inner, .card-block', { timeout: 35000 }).catch(() => { });
+  await page.waitForTimeout(2000);
 
   let pageNum = 1;
   const allCollectedJobs = [];
@@ -8490,10 +8951,10 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
   while (true) {
     await page.waitForTimeout(2000);
 
-    // Infinite scroll loop on current view to trigger lazy-loaded items
+    // ── Step 1: Infinite-scroll — keep scrolling until no new cards load ──
     let scrollRounds = 0;
     let lastCount = 0;
-    while (scrollRounds < 4) {
+    while (scrollRounds < 5) {
       const count = await page.locator('.section-card .card-block:not(.search-block-section)').count();
       if (count > lastCount) {
         lastCount = count;
@@ -8501,14 +8962,10 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
       } else {
         scrollRounds++;
       }
-
       if (count >= MAX_JOBS) break;
-
       await page.evaluate(() => {
         const cards = document.querySelectorAll('.section-card .card-block:not(.search-block-section)');
-        if (cards.length > 0) {
-          cards[cards.length - 1].scrollIntoView({ behavior: 'auto', block: 'end' });
-        }
+        if (cards.length > 0) cards[cards.length - 1].scrollIntoView({ behavior: 'auto', block: 'end' });
         window.scrollTo(0, document.body.scrollHeight || document.documentElement.scrollHeight);
         const containers = document.querySelectorAll('.jobs-listing, .section-card, div[class*="scroll"]');
         containers.forEach(c => { c.scrollTop = c.scrollHeight; });
@@ -8518,7 +8975,7 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
       await page.waitForTimeout(2000);
     }
 
-    // Collect all cards visible in DOM
+    // ── Step 2: Collect all cards now visible in DOM ──
     const origin = new URL(listingUrl).origin;
     const currentBatch = await page.evaluate((origin) => {
       return Array.from(document.querySelectorAll('.section-card .card-block-inner, .card-block:not(.search-block-section)')).map(card => {
@@ -8531,7 +8988,6 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
         const jobCode = card.querySelector('span.job-code')?.innerText?.trim() || '';
 
         const locLis = card.querySelectorAll('.orgunit-row ul:first-child li, ul.listing-inline li');
-        const orgUnit = card.querySelector('.orgunit-row li[data-testid*="organizationunit"]')?.innerText?.trim() || '';
         const locHierarchy = card.querySelector('.orgunit-row li[data-testid*="locationhierarchy"]')?.innerText?.trim() || '';
         let location = locHierarchy || (locLis[1] || locLis[0])?.innerText?.trim() || 'Not Found';
 
@@ -8557,58 +9013,60 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
       }
     }
 
-    console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} cards visible, ${allCollectedJobs.length} total collected...`);
+    console.log(`     ↳ Page ${pageNum}: ${currentBatch.length} cards visible (+${newJobsFound} new), ${allCollectedJobs.length} total collected...`);
 
     if (allCollectedJobs.length >= MAX_JOBS) break;
 
-    // Try clicking Pagination next button / page numbers (e.g. 1, 2, 3, 4, 5... or Next) if pagination controls exist
+    // If no new jobs and no scroll growth — check for pagination next
+    // ── Step 3: Pagination — try native Playwright click (Angular needs real events) ──
+    const nextViewLocator = page.locator('li.nextview:not(.disabled) a, li.nextview:not(.disabled) button').first();
+    if (await nextViewLocator.count() > 0) {
+      try {
+        await nextViewLocator.click({ timeout: 5000 });
+        await page.waitForTimeout(3500);
+        pageNum++;
+        continue;
+      } catch (e) {
+        console.log(`  ⚠️  nextview click failed: ${e.message}`);
+      }
+    }
+
+    // Fallback: JS click via evaluate (for other PeopleStrong variants)
     const hasNextPage = await page.evaluate(() => {
-      const nextLi = document.querySelector('ul.pagination li.next:not(.disabled), ul.pagination li.next-page:not(.disabled), [data-testid*="paginator"] li.next:not(.disabled), [data-testid*="paginator"] li.nextview:not(.disabled)');
-      if (nextLi) {
-        const a = nextLi.querySelector('a, button') || nextLi;
-        a.click();
-        return true;
-      }
+      const nextLi = document.querySelector('ul.pagination li.next:not(.disabled), ul.pagination li.next-page:not(.disabled)');
+      if (nextLi) { (nextLi.querySelector('a, button') || nextLi).click(); return true; }
 
-      const nextBtn = document.querySelector('alt-pagination .next a, alt-pagination .next button, .pagination .next a, button.next-page, a.next-page, [data-testid*="next"], .pagination li.active + li a, ul.pagination li.active + li button, [class*="pagination"] button:not([disabled])');
-      if (nextBtn && !nextBtn.classList.contains('disabled') && !nextBtn.hasAttribute('disabled')) {
-        nextBtn.click();
-        return true;
-      }
-
-      const activePage = document.querySelector('.pagination li.active, alt-pagination .active, [class*="pagination"] .active');
+      const activePage = document.querySelector('.pagination li.active, alt-pagination .active');
       if (activePage && activePage.nextElementSibling) {
-        const pageBtn = activePage.nextElementSibling.querySelector('a, button');
-        if (pageBtn && !pageBtn.classList.contains('disabled') && !pageBtn.hasAttribute('disabled')) {
-          pageBtn.click();
-          return true;
+        const btn = activePage.nextElementSibling.querySelector('a, button');
+        if (btn && !btn.closest('li')?.classList.contains('disabled') && !btn.hasAttribute('disabled')) {
+          btn.click(); return true;
         }
       }
 
-      const arrowNext = document.querySelector('alt-pagination .keyboard_arrow_right, alt-pagination .chevron_right, .icon-next, [class*="arrow-right"]');
-      if (arrowNext) {
-        const clickable = arrowNext.closest('a, button, li');
-        if (clickable && !clickable.classList.contains('disabled') && !clickable.hasAttribute('disabled')) {
-          clickable.click();
-          return true;
-        }
+      const nextBtn = document.querySelector('alt-pagination .next a, alt-pagination .next button, .pagination .next a, button.next-page, a.next-page');
+      if (nextBtn && !nextBtn.classList.contains('disabled') && !nextBtn.hasAttribute('disabled')) {
+        nextBtn.click(); return true;
       }
 
       return false;
     });
 
+    if (hasNextPage) {
+      await page.waitForTimeout(3500);
+      pageNum++;
+      continue;
+    }
+
+    // No new jobs AND no next page — truly done
     if (newJobsFound === 0) {
       console.log(`  ✅ PeopleStrong listing completed — total ${allCollectedJobs.length} jobs collected`);
       break;
     }
 
-    if (!hasNextPage) {
-      console.log(`  ✅ PeopleStrong listing completed — total ${allCollectedJobs.length} jobs collected`);
-      break;
-    }
-
-    await page.waitForTimeout(3000);
-    pageNum++;
+    // Had new jobs but no next page (infinite scroll end)
+    console.log(`  ✅ PeopleStrong listing completed — total ${allCollectedJobs.length} jobs collected`);
+    break;
   }
 
   console.log(`     ↳ PeopleStrong: ${allCollectedJobs.length} total jobs found`);
@@ -9085,10 +9543,10 @@ async function scrapeTalentRecruit(page, context, listingUrl, results) {
           // Extract just the description parts (Job Description, Qualification Criteria, etc.), avoiding the header card
           const parts = document.querySelectorAll('view-jd-dialog > div.ng-star-inserted > div:not(.card-wrap):not(.mid-section)');
           if (parts.length > 0) {
-            return Array.from(parts).map(el => el.parentElement.innerHTML).join('<br><br>').trim();
+            return Array.from(parts).map(el => el.parentElement.innerText).join('\n\n').trim();
           }
           const backupEl = document.querySelector('view-jd-dialog, mat-dialog-container');
-          return backupEl ? backupEl.innerHTML.trim() : 'Not Found';
+          return backupEl ? backupEl.innerText.trim() : 'Not Found';
         });
 
         pageJobs[i].description = description;
@@ -9259,6 +9717,7 @@ async function scrapeKonecranes(page, context, listingUrl, results) {
 
       let description = job.teaser;
       let experience = 'Not Found';
+      let detailSalary = '';
 
       if (job.detailUrl) {
         const detailPage = await context.newPage();
@@ -9268,24 +9727,37 @@ async function scrapeKonecranes(page, context, listingUrl, results) {
 
           const detail = await detailPage.evaluate(() => {
             let desc = '';
+            let descHtml = '';
             try {
               const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]')?.textContent || '{}');
-              if (ld.description) desc = ld.description.replace(/<[^>]+>/g, ' ').trim();
+              if (ld.description) desc = ld.description.trim();
             } catch (_) { }
 
             if (!desc) {
-              const descEl = document.querySelector('.attrax-vacancy-details__description, [data-type="JobDescriptionWidget"], .attrax-vacancy-description');
-              desc = descEl?.innerText?.trim() || '';
+              // konecranes.careers uses div[aria-label="Job description"]
+              const descEl = document.querySelector('div[aria-label="Job description"]')
+                || document.querySelector('.attrax-vacancy-details__description')
+                || document.querySelector('[data-type="JobDescriptionWidget"]')
+                || document.querySelector('.attrax-vacancy-description');
+              if (descEl) {
+                descHtml = descEl.innerHTML.trim();
+                desc = descEl.innerText?.trim() || '';
+              }
             }
 
             const expMatch = desc.match(/(\d+\+?\s*(years|yrs|year))/i);
             const experience = expMatch ? expMatch[0] : 'Not Found';
 
-            return { description: desc.slice(0, 3000), experience };
+            // Extract salary from description text (e.g. "$22 - $48 an hour" or "$98,000")
+            const salaryMatch = desc.match(/\$[\d,]+(?:\.\d+)?(?:\s*[-–]\s*\$[\d,]+(?:\.\d+)?)?\s*(?:an?\s+hour|per\s+hour|\/\s*hr|\/\s*hour|annually|per\s+year|\/\s*year)?/i);
+            const salary = salaryMatch ? salaryMatch[0].trim() : '';
+
+            return { description: descHtml || desc, experience, salary };
           });
 
           if (detail.description) description = detail.description;
           if (detail.experience) experience = detail.experience;
+          if (detail.salary) detailSalary = detail.salary;
         } catch (err) {
           console.log(`      ⚠️ Detail page failed: ${err.message}`);
         } finally {
@@ -9303,7 +9775,7 @@ async function scrapeKonecranes(page, context, listingUrl, results) {
         experience: tidyExperience(experience, job.title),
         description: description || 'Not Found',
         applyLink: job.applyLink || job.detailUrl,
-        salary: job.salary || 'Not Available',
+        salary: detailSalary || job.salary || 'Not Available',
         jobId: job.jobId || 'Not Found',
         department: job.department || '',
         sourceUrl: listingUrl
@@ -9645,7 +10117,7 @@ async function scrapeBharatWireRopes(page, context, listingUrl, results) {
 
         if (detailData && detailData.status === 'success' && detailData.data) {
           const d = detailData.data;
-          const descText = (d.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          const descText = (d.description || '').trim();
           const eduText = (d.education || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
           fullDesc = [descText, eduText].filter(Boolean).join('\n\n');
