@@ -174,13 +174,21 @@ let currentExistingLinks = new Set();
     process.exit(0);
   }
 
+
   const browser = await chromium.launch({
-    headless: false,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled'],
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+    ],
   });
+
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    userAgent:
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   });
+
 
   let totalJobsSaved = 0;
   const allResults = [];
@@ -6591,13 +6599,13 @@ function genericJobEvaluator() {
       if (!title) {
         title = document.title?.split(/Job Details|\|/i)[0]?.trim() || 'Not Found';
       }
-      
+
       const spans = Array.from(document.querySelectorAll('span.rtltextaligneligible'))
         .map(s => s.innerText.trim())
         .filter(s => s && s.length > 1 && s.length < 40 && !s.includes('/') && s !== 'On-Site' && s !== 'Remote' && s !== 'Hybrid' && s !== title && s !== 'Quality' && !s.toLowerCase().includes('co.,'));
-        
+
       const location = [...new Set(spans)].slice(0, 2).join(', ') || 'Not Found';
-      
+
       const descEl = document.querySelector('.jobdescription, .job-description, main') || document.body;
       const desc = descEl ? descEl.innerText.trim() : fullText;
       const expMatch = desc.match(/(\d+\+?\s*(?:-\s*\d+)?\s*(?:years|yrs|year))/i);
@@ -6833,7 +6841,7 @@ function genericJobEvaluator() {
     if (window.location.href.toLowerCase().includes('peoplestrong.com')) {
       const titleEl = document.querySelector('h1.job-title, h2.job-title, .job-detail-header h1, .job-detail-header h2, .detail-head h1, h2.title, h1');
       const title = titleEl ? (titleEl.querySelector('span') ? titleEl.querySelector('span').innerText : titleEl.innerText).trim() : 'Not Found';
-      
+
       // Location extraction: try panel rows first
       let locationParts = [];
       document.querySelectorAll('.panel-row').forEach(row => {
@@ -6847,7 +6855,7 @@ function genericJobEvaluator() {
       });
       let location = locationParts.length > 0 ? [...new Set(locationParts)].join(', ') : 'Not Found';
       if (location === 'Not Found') {
-         location = document.querySelector('.job-location, .location, .city, .detail-location, [class*="location"]')?.innerText?.trim() || 'Not Found';
+        location = document.querySelector('.job-location, .location, .city, .detail-location, [class*="location"]')?.innerText?.trim() || 'Not Found';
       }
 
       // Grab full HTML of the job details component to preserve formatting and tables
@@ -6945,13 +6953,13 @@ function genericJobEvaluator() {
       const title = titleEl ? titleEl.innerText.trim() : 'Not Found';
       const locationEl = document.querySelector('.location-text, li[class*="location"], [data-id="location"]');
       const location = locationEl ? locationEl.innerText.replace(/[\r\n\t]+/g, ' ').replace(/^location\s*/i, '').trim() : 'Not Found';
-      
+
       const pd24El = document.querySelector('.PD24, .job-desc, .description, .job-description');
       const descHtml = pd24El ? pd24El.innerHTML.trim() : (document.body?.innerText || '');
-      
+
       const jobIdMatch = window.location.href.match(/job\/(\d+)/i) || document.body?.innerText?.match(/Job ID:\s*(\d+)/i);
       const jobId = jobIdMatch ? jobIdMatch[1] : 'Not Found';
-      
+
       return {
         title,
         location,
@@ -6964,7 +6972,7 @@ function genericJobEvaluator() {
         jobId
       };
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // Zoho Recruit
   try {
@@ -7572,10 +7580,10 @@ function genericJobEvaluator() {
   if (!experience) {
     const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)/i);
     if (m && parseInt(m[1], 10) < 35) {
-       // Make sure it doesn't match generic company age
-       if (!/operating.*for more than|established.*years/i.test(expText.slice(Math.max(0, m.index - 50), m.index + 50))) {
-         experience = m[0];
-       }
+      // Make sure it doesn't match generic company age
+      if (!/operating.*for more than|established.*years/i.test(expText.slice(Math.max(0, m.index - 50), m.index + 50))) {
+        experience = m[0];
+      }
     }
   }
   if (!experience) experience = getText(['.experience-range p', '[data-careersite-propertyid="experience"]', '[class*="experience"]', '[data-test="experience"]', '.job-experience', '.experience-level', '[itemprop="experienceRequirements"]', '.years-experience', '[class*="exp-level"]', '[class*="exp-years"]']);
@@ -8791,16 +8799,16 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
       return Array.from(document.querySelectorAll('a[href*="/job/"]')).map(a => {
         const title = a.innerText.trim();
         const detailUrl = a.href;
-        
+
         let location = 'India';
         const card = a.closest('li') || a.closest('div[class*="jobCard"]');
         if (card) {
-            const footerValues = Array.from(card.querySelectorAll('[class*="jobCardFooterValue"]')).map(el => el.innerText.trim());
-            if (footerValues.length > 0) {
-                location = footerValues.join(', ');
-            }
+          const footerValues = Array.from(card.querySelectorAll('[class*="jobCardFooterValue"]')).map(el => el.innerText.trim());
+          if (footerValues.length > 0) {
+            location = footerValues.join(', ');
+          }
         }
-        
+
         return { title, location, detailUrl };
       }).filter(j => j && j.detailUrl && j.title);
     });
@@ -8817,10 +8825,10 @@ async function scrapeAtlasCopco(page, context, listingUrl, results) {
 
     const isDisabled = await nextBtn.evaluate(el =>
       el.classList.contains('disabled') ||
-      el.hasAttribute('disabled') || 
+      el.hasAttribute('disabled') ||
       el.getAttribute('aria-disabled') === 'true'
     ).catch(() => false);
-    
+
     if (isDisabled) {
       console.log(`     ↳ Next page button is disabled.`);
       break;
