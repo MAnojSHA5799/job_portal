@@ -146,6 +146,17 @@ export function stripHtmlToPlainText(html?: string): string {
   return text;
 }
 
+export function cleanLocationText(loc?: string): string {
+  if (!loc || typeof loc !== 'string') return '';
+  let cleaned = loc.trim();
+  // Strip "Job Segment: ..." and anything following it
+  cleaned = cleaned.replace(/[\s,;|-]*Job Segment:[\s\S]*$/i, '').trim();
+  // Remove trailing postal / pin code if attached (e.g. ", 248001" or ", 122100")
+  cleaned = cleaned.replace(/,\s*\d{5,6}\s*$/, '').trim();
+  cleaned = cleaned.replace(/[,\s]+$/, '').trim();
+  return cleaned;
+}
+
 export function JobForm({ 
   initialData, 
   companies, 
@@ -181,7 +192,6 @@ export function JobForm({
 
   const [currentJob, setCurrentJob] = useState<Job>({
     title: '',
-    location: '',
     salary_range: '',
     job_type: 'Full-time',
     experience_level: '',
@@ -196,6 +206,7 @@ export function JobForm({
     url_slug: '',
     seo_score: 0,
     ...initialData,
+    location: cleanLocationText(initialData?.location),
     description: stripHtmlToPlainText(initialData?.description),
     date_posted: formatDateText(initialData?.date_posted) || new Date().toISOString().split('T')[0],
     valid_through: formatDateText(initialData?.valid_through) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -210,6 +221,16 @@ export function JobForm({
       }
     }
   }, [initialData?.description]);
+
+  // Keep location clean if initialData arrives or updates with Job Segment or extra noise
+  useEffect(() => {
+    if (initialData?.location) {
+      const cleanLoc = cleanLocationText(initialData.location);
+      if (/Job Segment/i.test(currentJob.location || '')) {
+        setCurrentJob(prev => ({ ...prev, location: cleanLoc }));
+      }
+    }
+  }, [initialData?.location]);
 
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFixingAll, setIsFixingAll] = useState(false);
@@ -741,8 +762,12 @@ Instructions:
                 <Input 
                   className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="e.g. Pune, Maharashtra" 
-                  value={currentJob.location || ''}
-                  onChange={e => setCurrentJob({...currentJob, location: e.target.value})}
+                  value={cleanLocationText(currentJob.location) || ''}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const cleanVal = /Job Segment/i.test(val) ? cleanLocationText(val) : val;
+                    setCurrentJob({...currentJob, location: cleanVal});
+                  }}
                 />
               </div>
             </div>
