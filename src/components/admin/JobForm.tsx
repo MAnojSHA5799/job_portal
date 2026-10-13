@@ -82,6 +82,70 @@ interface JobFormProps {
   subtitle?: string;
 }
 
+export function stripHtmlToPlainText(html?: string): string {
+  if (!html || typeof html !== 'string') return '';
+
+  let text = html;
+
+  // Unescape HTML entities like &lt;h3&gt; or &lt;div&gt; if present so tags can be handled
+  if (/&lt;[a-z]/i.test(text)) {
+    text = text.replace(/&lt;/gi, '<').replace(/&gt;/gi, '>');
+  }
+
+  const hasHtmlTags = /<[a-z][\s\S]*>/i.test(text);
+  const hasEntities = /&(?:[a-z]+|#\d+|#x[0-9a-f]+);/i.test(text);
+
+  if (!hasHtmlTags && !hasEntities) {
+    return text;
+  }
+
+  if (hasHtmlTags) {
+    // 1. Remove script and style tags completely
+    text = text.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+
+    // 2. Normalize list items that contain inner paragraphs
+    text = text.replace(/<li[^>]*>\s*<p[^>]*>/gi, '<li>');
+    text = text.replace(/<\/p>\s*<\/li>/gi, '</li>');
+
+    // 3. Convert list items to bullet points
+    text = text.replace(/<li[^>]*>/gi, '\n• ');
+    text = text.replace(/<\/li>/gi, '\n');
+    text = text.replace(/<\/(ul|ol)>/gi, '\n\n');
+
+    // 4. Line breaks
+    text = text.replace(/<br\s*[\/]?>/gi, '\n');
+
+    // 5. Block level elements to double newlines (paragraphs, headings, divs, etc.)
+    text = text.replace(/<\/(h[1-6]|p|div|section|article|header|footer|tr|table)>/gi, '\n\n');
+    text = text.replace(/<(h[1-6]|p|div|section|article|header|footer|tr|table)[^>]*>/gi, '\n\n');
+
+    // 6. Strip all remaining HTML tags
+    text = text.replace(/<[^>]+>/g, '');
+  }
+
+  // 7. Decode HTML entities
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+
+  // 8. Clean up whitespace: trim each line and limit consecutive empty lines to 2
+  text = text
+    .split('\n')
+    .map(line => line.trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return text;
+}
+
 export function JobForm({ 
   initialData, 
   companies, 
@@ -117,7 +181,6 @@ export function JobForm({
 
   const [currentJob, setCurrentJob] = useState<Job>({
     title: '',
-    description: '',
     location: '',
     salary_range: '',
     job_type: 'Full-time',
@@ -133,9 +196,20 @@ export function JobForm({
     url_slug: '',
     seo_score: 0,
     ...initialData,
+    description: stripHtmlToPlainText(initialData?.description),
     date_posted: formatDateText(initialData?.date_posted) || new Date().toISOString().split('T')[0],
     valid_through: formatDateText(initialData?.valid_through) || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
+
+  // Keep description clean if initialData arrives or updates with HTML tags
+  useEffect(() => {
+    if (initialData?.description) {
+      const cleanDesc = stripHtmlToPlainText(initialData.description);
+      if (/<[a-z][\s\S]*>/i.test(currentJob.description || '') || /&lt;[a-z]/i.test(currentJob.description || '')) {
+        setCurrentJob(prev => ({ ...prev, description: cleanDesc }));
+      }
+    }
+  }, [initialData?.description]);
 
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [isFixingAll, setIsFixingAll] = useState(false);
@@ -413,7 +487,7 @@ Instructions:
         });
         const data = await response.json();
         const updatedContent = data.choices[0].message.content.replace(/```html|```/g, '').trim();
-        setCurrentJob({ ...currentJob, description: updatedContent, content_html: updatedContent });
+        setCurrentJob({ ...currentJob, description: stripHtmlToPlainText(updatedContent), content_html: updatedContent });
       }
     } catch (error) {
       console.error('AI Fix Error:', error);
@@ -542,7 +616,7 @@ Instructions:
         seo_title: enhanced.seo_title,
         meta_description: enhanced.meta_description,
         url_slug: enhanced.url_slug,
-        description: enhanced.content_html,
+        description: stripHtmlToPlainText(enhanced.content_html),
         content_html: enhanced.content_html,
         job_type: mappedJobType,
         salary_range: enhanced.salary_display || currentJob.salary_range,
@@ -878,8 +952,29 @@ Instructions:
             <textarea 
               className="w-full min-h-[400px] rounded-[24px] border-0 bg-gray-50 p-6 text-sm font-medium leading-relaxed focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all outline-none"
               placeholder="Describe the role, responsibilities, and requirements..."
-              value={currentJob.description || ''}
-              onChange={e => setCurrentJob({...currentJob, description: e.target.value})}
+              value={stripHtmlToPlainText(currentJob.description) || ''}
+              onChange={e => {
+                const val = e.target.value;
+                const cleanVal = (/<[a-z][\s\S]*>/i.test(val) || /&lt;[a-z]/i.test(val))
+                  ? stripHtmlToPlainText(val)
+                  : val;
+                setCurrentJob(prev => ({ ...prev, description: cleanVal }));
+              }}
+              onPaste={e => {
+                const pasteHtml = e.clipboardData.getData('text/html');
+                const pasteText = e.clipboardData.getData('text/plain');
+                const content = pasteHtml || pasteText;
+                if (content && (/<[a-z][\s\S]*>/i.test(content) || /&lt;[a-z]/i.test(content))) {
+                  e.preventDefault();
+                  const cleanText = stripHtmlToPlainText(content);
+                  const textarea = e.currentTarget;
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  const oldText = currentJob.description || '';
+                  const newText = oldText.substring(0, start) + cleanText + oldText.substring(end);
+                  setCurrentJob(prev => ({ ...prev, description: newText }));
+                }
+              }}
             />
           </div>
           
