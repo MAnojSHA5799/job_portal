@@ -395,21 +395,25 @@ function cleanTitle(t = '') {
 function cleanLocation(loc = '') {
   if (!loc) return 'Not Found';
 
-  // \"Job Segment: Field Sales, ...\" jaisi garbage string — poori hata do
-  if (/^Job Segment:/i.test(loc.trim())) return 'Not Found';
+  let cleaned = loc.trim();
+  // "Job Segment: ..." and everything after it — strip it completely
+  cleaned = cleaned.replace(/[\s,;|-]*Job Segment:.*$/is, '').trim();
+  // Remove trailing postal/zip code if attached (e.g. ", 248001" or ", 122100")
+  cleaned = cleaned.replace(/,\s*\d{5,6}\s*$/, '').trim();
+  cleaned = cleaned.replace(/[,\s]+$/, '').trim();
+
+  if (!cleaned || /^Job Segment:/i.test(cleaned)) return 'Not Found';
 
   // Agar multiple lines hain, pehli meaningful line lo
-  const lines = loc.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean);
 
   for (const line of lines) {
-    // \"Job Segment:\" wali line skip karo
     if (/^Job Segment:/i.test(line)) continue;
-    // Sirf punctuation ya numbers nahi honi chahiye
     if (line.length < 2) continue;
-    return line;
+    return line.replace(/[\s,;|-]*Job Segment:.*$/i, '').replace(/,\s*\d{5,6}\s*$/, '').replace(/[,\s]+$/, '').trim();
   }
 
-  return 'Not Found';
+  return cleaned || 'Not Found';
 }
 
 function cleanSalary(s = '') {
@@ -9521,8 +9525,8 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
 // ════════════════════════════════════════════════════════════════════════════
 // 🔧  TTC PORTALS  (Parker Hannifin etc.)
 // Site: *.ttcportals.com  (e.g. parkercareers.ttcportals.com)
-// Structure: Static HTML — .job-result cards, 25/page
-//            Pagination via a[rel="next"] / numbered pages
+// Structure: Static HTML — .jobs-section__item cards, 25/page
+//            Pagination via .pagination a.next_page[rel="next"] across all pages
 // ════════════════════════════════════════════════════════════════════════════
 async function scrapeTtcPortals(page, context, listingUrl, results) {
   const subdomain = new URL(listingUrl).hostname.split('.')[0]; // e.g. 'parkercareers'
@@ -9565,10 +9569,10 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
       await activePage.waitForSelector('div.jobs-section__item, .jobs-section__item', { timeout: 30000 }).catch(() => { });
       await activePage.waitForTimeout(2000);
 
-      const { jobLinks, nextUrl } = await activePage.evaluate((origin) => {
-        const cards = [...document.querySelectorAll('div.jobs-section__item')];
+      const { jobLinks, nextUrl, viewingText } = await activePage.evaluate(({ origin, pageNum }) => {
+        const cards = [...document.querySelectorAll('div.jobs-section__item, .jobs-section__item, .job-result')];
         const jobLinks = cards.map(card => {
-          const a = card.querySelector('p a, a[href*="/jobs/"]');
+          const a = card.querySelector('p a, h2 a, .title a, a[href*="/jobs/"], a[href*="/job/"]');
           if (!a) return null;
           const title = a.innerText.trim();
           if (!title) return null;
@@ -9576,20 +9580,20 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
           if (href && !href.startsWith('http')) href = origin + href;
 
           // Location from listing card (.large-4 columns)
-          const locDiv = card.querySelector('.large-4.columns, [class*="large-4"]');
+          const locDiv = card.querySelector('.large-4.columns, [class*="large-4"], .location, .job-location');
           let location = 'Not Found';
           if (locDiv) {
             const clone = locDiv.cloneNode(true);
-            clone.querySelectorAll('.hide').forEach(el => el.remove());
+            clone.querySelectorAll('.hide, .show-for-sr').forEach(el => el.remove());
             location = clone.innerText.replace(/\s+/g, ' ').trim().replace(/,\s*$/, '') || 'Not Found';
           }
 
           // Date from listing card (.large-2 columns)
-          const dateDiv = card.querySelector('.large-2.columns, [class*="large-2"]');
+          const dateDiv = card.querySelector('.large-2.columns, [class*="large-2"], .date, .posted-date');
           let date = 'Not Found';
           if (dateDiv) {
             const clone = dateDiv.cloneNode(true);
-            clone.querySelectorAll('.hide-for-large').forEach(el => el.remove());
+            clone.querySelectorAll('.hide-for-large, .show-for-sr').forEach(el => el.remove());
             date = clone.innerText.replace(/\s+/g, ' ').trim() || 'Not Found';
           }
 
@@ -9597,22 +9601,42 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
           return { title, location, date, detailUrl: href, jobId };
         }).filter(j => j && j.detailUrl && j.title);
 
-        // Pagination: TTC portals uses jobs-section__paginate-view-more
-        const nextLink = document.querySelector('a.jobs-section__paginate-view-more, a[href*="?page="], a[rel="next"]');
-        let nextUrl = null;
-        if (nextLink) {
-          let href = nextLink.getAttribute('href') || '';
-          if (href && !href.startsWith('http')) href = origin + href;
-          nextUrl = href || null;
+        // Pagination: check viewing indicator e.g. "Viewing 1-25 of 45 results"
+        const viewingText = document.querySelector('.viewing')?.innerText?.trim() || '';
+        const viewMatch = viewingText.match(/viewing\s+(\d+)\s*[-–]\s*(\d+)\s+of\s+(\d+)/i);
+        let isLastPage = false;
+        if (viewMatch) {
+          const end = parseInt(viewMatch[2], 10);
+          const total = parseInt(viewMatch[3], 10);
+          if (end >= total) isLastPage = true;
         }
-        return { jobLinks, nextUrl };
-      }, origin);
 
-      console.log(`     ↳ Page ${pageNum}: ${jobLinks.length} jobs found`);
+        let nextUrl = null;
+        if (!isLastPage) {
+          // Look for active next page link (tag <a>, not disabled <span>)
+          const nextA = document.querySelector('a.next_page[rel="next"], .pagination a[rel="next"], a.next_page, a[rel="next"]');
+          if (nextA) {
+            let href = nextA.getAttribute('href') || '';
+            href = href.replace(/#$/, '');
+            if (href && !href.startsWith('http')) href = origin + href;
+            if (href && href !== window.location.href) nextUrl = href;
+          }
+          // Fallback if viewing text indicates more pages but next link wasn't found
+          if (!nextUrl && viewMatch) {
+            const u = new URL(window.location.href);
+            u.searchParams.set('page', String(pageNum + 1));
+            nextUrl = u.toString();
+          }
+        }
+
+        return { jobLinks, nextUrl, viewingText };
+      }, { origin, pageNum });
+
+      console.log(`     ↳ Page ${pageNum}: ${jobLinks.length} jobs found (${viewingText || 'All'})`);
       allJobLinks.push(...jobLinks);
 
       if (!nextUrl) {
-        console.log('     ↳ No more listing pages. Moving to detail scrape...');
+        console.log(`     ↳ No more listing pages. Total ${allJobLinks.length} jobs collected across pages. Moving to detail scrape...`);
         break;
       }
       console.log(`     ↳ Next listing page ${pageNum + 1}...`);
@@ -9623,7 +9647,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
     // ── PHASE 2: Visit each detail page ─────────────────────────────────────
     for (const job of allJobLinks) {
-      if (results.length >= MAX_JOBS) break;
+      if (typeof MAX_JOBS !== 'undefined' && results.length >= MAX_JOBS) break;
       console.log(`    🔎 ${job.title?.slice(0, 60)}`);
 
       try {
@@ -9700,14 +9724,16 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
         if (details.isCloudflare) {
           console.log(`    ⚠️ Cloudflare blocked — using listing data for ${job.title}`);
-          results.push({
+          const newJob = {
             source: 'ttcportals', url: job.detailUrl, title: job.title,
             location: job.location, company: companyName, date: job.date,
             experience: 'Not Available',
             description: `${job.title} at ${companyName}. Location: ${job.location}. Apply at: ${job.detailUrl}`,
             applyLink: job.detailUrl, salary: 'Not Available', jobId: job.jobId, sourceUrl: listingUrl,
             category: 'Engineering', jobType: 'Full-time'
-          });
+          };
+          results.push(newJob);
+          if (typeof saveJobsNow === 'function') saveJobsNow(results);
         } else {
           const finalTitle    = details.title    || job.title;
           const finalLocation = details.location || job.location;
@@ -9715,7 +9741,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
           const finalJobId    = details.jobId    || job.jobId;
           const finalDesc     = details.desc     || `${finalTitle} at ${companyName}. Location: ${finalLocation}.`;
           console.log(`       ✅ ${finalTitle} | ${finalLocation} | ${finalDesc.length} chars desc`);
-          results.push({
+          const newJob = {
             source: 'ttcportals', url: job.detailUrl, title: finalTitle,
             location: finalLocation, company: companyName, date: finalDate,
             experience: details.experience || 'Not Available',
@@ -9723,20 +9749,24 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
             salary: 'Not Available', jobId: finalJobId, sourceUrl: listingUrl,
             category: details.category || 'Engineering',
             jobType: details.jobType || 'Full-time'
-          });
+          };
+          results.push(newJob);
+          if (typeof saveJobsNow === 'function') saveJobsNow(results);
         }
       } catch (e) {
         console.log(`    ⚠️ Error — using listing data for ${job.title}`);
-        results.push({
+        const newJob = {
           source: 'ttcportals', url: job.detailUrl, title: job.title,
           location: job.location, company: companyName, date: job.date,
           experience: 'Not Available',
           description: `${job.title} at ${companyName}. Location: ${job.location}.`,
           applyLink: job.detailUrl, salary: 'Not Available', jobId: job.jobId, sourceUrl: listingUrl,
           category: 'Engineering', jobType: 'Full-time'
-        });
+        };
+        results.push(newJob);
+        if (typeof saveJobsNow === 'function') saveJobsNow(results);
       }
-      await delay(500);
+      await new Promise(r => setTimeout(r, 500));
     }
   } finally {
     if (dedicatedBrowser) {
