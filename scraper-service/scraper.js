@@ -9592,6 +9592,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     dedicatedBrowser = await chromium.launch({
       headless: false,
       args: [
+        '--headless=new',
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-blink-features=AutomationControlled'
@@ -9610,6 +9611,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     });
     await activeContext.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      window.chrome = window.chrome || { runtime: {} };
     });
     activePage = await activeContext.newPage();
   } catch (err) {
