@@ -9551,7 +9551,17 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     });
     activeContext = await dedicatedBrowser.newContext({
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      locale: 'en-US'
+      locale: 'en-US',
+      viewport: { width: 1920, height: 1080 },
+      extraHTTPHeaders: {
+        'accept-language': 'en-US,en;q=0.9',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+      }
+    });
+    await activeContext.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
     activePage = await activeContext.newPage();
   } catch (err) {
@@ -9566,6 +9576,14 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
     while (true) {
       await activePage.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
+      await activePage.waitForTimeout(3000);
+      if ((await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) {
+        console.log('     ⏳ Waiting for Cloudflare verification to clear on listing...');
+        for (let i = 0; i < 8; i++) {
+          await activePage.waitForTimeout(1000);
+          if (!(await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) break;
+        }
+      }
       await activePage.waitForSelector('div.jobs-section__item, .jobs-section__item', { timeout: 30000 }).catch(() => { });
       await activePage.waitForTimeout(2000);
 
@@ -9653,6 +9671,13 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
       try {
         await activePage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 40000, referer: listingUrl });
         await activePage.waitForTimeout(2500);
+        if ((await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) {
+          console.log(`     ⏳ Cloudflare challenge on detail page, waiting to clear...`);
+          for (let i = 0; i < 8; i++) {
+            await activePage.waitForTimeout(1000);
+            if (!(await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) break;
+          }
+        }
         await activePage.waitForLoadState('networkidle').catch(() => {});
 
         const details = await activePage.evaluate(() => {
