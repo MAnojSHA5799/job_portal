@@ -9522,6 +9522,54 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
 }
 
 
+async function bypassCloudflareTurnstile(page) {
+  try {
+    let title = (await page.title().catch(() => '')).toLowerCase();
+    if (!title.includes('just a moment')) return true;
+
+    console.log('     🛡️ Cloudflare challenge detected, attempting to clear...');
+
+    for (let attempt = 0; attempt < 15; attempt++) {
+      title = (await page.title().catch(() => '')).toLowerCase();
+      if (!title.includes('just a moment')) {
+        console.log('     🎉 Cloudflare challenge passed!');
+        await page.waitForTimeout(2000);
+        return true;
+      }
+
+      // Approach 1: Check iframe bounding box and click checkbox coordinates
+      const iframes = await page.$$('iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]');
+      for (const iframe of iframes) {
+        try {
+          const box = await iframe.boundingBox();
+          if (box && box.width > 0 && box.height > 0) {
+            const clickX = box.x + 30;
+            const clickY = box.y + box.height / 2;
+            console.log(`       👉 Clicking Cloudflare Turnstile checkbox at (${Math.round(clickX)}, ${Math.round(clickY)})...`);
+            await page.mouse.click(clickX, clickY);
+            await page.waitForTimeout(2500);
+          }
+        } catch (e) {}
+      }
+
+      // Approach 2: FrameLocator locator click
+      try {
+        const cfFrame = page.frameLocator('iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]');
+        const box = cfFrame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage, span.mark');
+        if (await box.count() > 0) {
+          await box.first().click({ force: true, timeout: 2000 }).catch(() => {});
+          await page.waitForTimeout(2500);
+        }
+      } catch (e) {}
+
+      await page.waitForTimeout(1000);
+    }
+  } catch (err) {
+    console.log('     ⚠️ Cloudflare solver note:', err.message);
+  }
+  return false;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // 🔧  TTC PORTALS  (Parker Hannifin etc.)
 // Site: *.ttcportals.com  (e.g. parkercareers.ttcportals.com)
@@ -9577,13 +9625,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     while (true) {
       await activePage.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
       await activePage.waitForTimeout(3000);
-      if ((await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) {
-        console.log('     ⏳ Waiting for Cloudflare verification to clear on listing...');
-        for (let i = 0; i < 8; i++) {
-          await activePage.waitForTimeout(1000);
-          if (!(await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) break;
-        }
-      }
+      await bypassCloudflareTurnstile(activePage);
       await activePage.waitForSelector('div.jobs-section__item, .jobs-section__item', { timeout: 30000 }).catch(() => { });
       await activePage.waitForTimeout(2000);
 
@@ -9671,13 +9713,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
       try {
         await activePage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 40000, referer: listingUrl });
         await activePage.waitForTimeout(2500);
-        if ((await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) {
-          console.log(`     ⏳ Cloudflare challenge on detail page, waiting to clear...`);
-          for (let i = 0; i < 8; i++) {
-            await activePage.waitForTimeout(1000);
-            if (!(await activePage.title().catch(() => '')).toLowerCase().includes('just a moment')) break;
-          }
-        }
+        await bypassCloudflareTurnstile(activePage);
         await activePage.waitForLoadState('networkidle').catch(() => {});
 
         const details = await activePage.evaluate(() => {
