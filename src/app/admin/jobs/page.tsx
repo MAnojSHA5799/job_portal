@@ -497,6 +497,24 @@ export default function JobsQueue() {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
+  const getPaginationItems = (): (number | string)[] => {
+    if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+    
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, '...-start', currentPage - 1, currentPage, currentPage + 1, '...-end', totalPages];
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
       {/* Background decoration */}
@@ -925,7 +943,7 @@ export default function JobsQueue() {
             {/* Pagination */}
             <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                Showing {Math.min(jobs.length, itemsPerPage)} of {totalCount} records
+                Showing {totalCount === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} records
               </p>
               <div className="flex items-center gap-2">
                 <Button 
@@ -938,24 +956,38 @@ export default function JobsQueue() {
                   <ChevronLeft className="h-4 w-4 mr-2" /> Previous
                 </Button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={cn(
-                        "h-10 w-10 rounded-xl text-xs font-black transition-all",
-                        currentPage === i + 1 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-white text-gray-400 hover:bg-gray-50"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {getPaginationItems().map((item, idx) => {
+                    if (typeof item === 'string') {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="h-10 w-8 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => setCurrentPage(item)}
+                        className={cn(
+                          "h-10 w-10 rounded-xl text-xs font-black transition-all",
+                          currentPage === item
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "bg-white text-gray-400 hover:bg-gray-50"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages || loading}
+                  disabled={currentPage >= totalPages || loading}
                   className="h-10 px-4 rounded-xl border-gray-200 bg-white font-bold"
                 >
                   Next <ChevronRight className="h-4 w-4 ml-2" />
