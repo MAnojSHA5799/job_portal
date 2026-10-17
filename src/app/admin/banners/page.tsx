@@ -123,17 +123,26 @@ export default function BannersManagement() {
       formData.append('bucket', 'banners');
       formData.append('folder', 'banner-media');
 
-      // Call Server Action for secure upload
-      const result = await uploadMedia(formData);
+      let result: { success: boolean; url?: string; error?: string };
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        result = await response.json();
+      } catch {
+        result = await uploadMedia(formData);
+      }
 
       if (result.success && result.url) {
         setCurrentBanner(prev => ({ 
           ...prev, 
-          media_url: result.url,
+          media_url: result.url!,
           media_type: mediaType 
         }));
       } else {
-        throw new Error(result.error);
+        throw new Error(result.error || 'Upload failed');
       }
     } catch (error: any) {
       console.error('Upload error:', error);

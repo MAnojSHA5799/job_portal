@@ -41,29 +41,43 @@ export default function NewIndustryPage() {
     }
   };
 
-  React.useEffect(() => {
-    const fetchCategories = async () => {
-      // Fetch unique industries from the companies table
-      const { data } = await supabase.from('companies').select('industry');
-      if (data) {
-        const unique = Array.from(new Set(data.map(d => d.industry).filter(Boolean)));
-        setCategories(unique as string[]);
-      }
-    };
-    fetchCategories();
-  }, []);
+  const [commonSuggestions] = useState([
+    'Automotive & EV',
+    'Aerospace & Defense',
+    'Manufacturing & Industrial',
+    'Electronics & Semiconductors',
+    'Energy & Utilities',
+    'Pharmaceutical & Healthcare',
+    'Chemicals & Petrochemicals',
+    'Construction & Engineering',
+    'Technology & IT',
+    'Metals & Mining',
+    'Consumer Goods & FMCG',
+    'Logistics & Supply Chain'
+  ]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!industryData.name) return alert('Industry Name is required');
+    const cleanName = industryData.name.trim();
+    if (!cleanName) return alert('Industry Name is required');
 
     setSaving(true);
     try {
-      const { data, error } = await supabase
+      // Check for duplicate industry name
+      const { data: existing } = await supabase
         .from('industries')
-        .insert([industryData])
-        .select()
-        .single();
+        .select('id')
+        .ilike('name', cleanName)
+        .maybeSingle();
+
+      if (existing) {
+        alert(`An industry named "${cleanName}" already exists.`);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('industries')
+        .insert([{ name: cleanName, logo_url: industryData.logo_url || null }]);
       
       if (error) throw error;
       
@@ -116,17 +130,32 @@ export default function NewIndustryPage() {
                 <label className="text-xs font-black text-gray-700 uppercase tracking-widest mb-3 block flex items-center gap-2">
                   Industry Name <span className="text-red-500">*</span>
                 </label>
-                <select 
+                <Input 
                   required
-                  className="w-full h-14 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white transition-all text-lg font-bold px-4 outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none"
+                  placeholder="e.g. Automotive & EV, Manufacturing, Energy..."
+                  className="w-full h-14 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white transition-all text-lg font-bold px-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
                   value={industryData.name}
                   onChange={e => setIndustryData({...industryData, name: e.target.value})}
-                >
-                  <option value="" disabled>Select an Industry</option>
-                  {categories.map((cat, idx) => (
-                    <option key={idx} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                />
+                <div className="mt-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Quick Suggestions:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {commonSuggestions.map((sug, idx) => (
+                      <button
+                        type="button"
+                        key={idx}
+                        onClick={() => setIndustryData({ ...industryData, name: sug })}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                          industryData.name === sug
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+                        }`}
+                      >
+                        {sug}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>

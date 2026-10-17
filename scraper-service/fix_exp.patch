@@ -1,0 +1,37 @@
+--- scraper.js	
++++ scraper.js	
+@@ -7320,32 +7320,36 @@
+   let experience = getByLabel('Experience range (Years)') || '';
+-  // Highest priority: "More than 3-5 years", "at least 5 years", "minimum 5 years", "over 8 years"
++  // Highest priority: regexes explicitly containing "experience" or "exp"
+   if (!experience) {
+-    const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)/i);
+-    if (m && parseInt(m[1], 10) < 35) experience = m[0];
++    const m = expText.match(/(\d{1,2})\s*\+?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?)\s+of(\s+relevant)?\s+experience/i);
++    if (m && parseInt(m[1], 10) < 35 && parseInt(m[2], 10) < 40) experience = m[0];
+   }
+   if (!experience) {
+-    const m = expText.match(/(\d{1,2})\s*\+?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?)(\s+of(\s+relevant)?\s+experience)?/i);
+-    if (m && parseInt(m[1], 10) < 35 && parseInt(m[2], 10) < 40) experience = m[0];
++    const m = expText.match(/(\d{1,2}\+?)\s+years?\s+of\s+(work\s+)?(experience|exp\.?)/i);
++    if (m && parseInt(m[1], 10) < 35) experience = m[0];
+   }
+   if (!experience) {
+-    const m = expText.match(/(\d{1,2}\+?)\s+years?\s+of\s+(work\s+)?(experience|exp\.?)/i);
++    const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)\s+(of\s+)?experience/i);
+     if (m && parseInt(m[1], 10) < 35) experience = m[0];
+   }
++  if (!experience) {
++    const m = expText.match(/(\d{1,2})\s*\+?\s*(?:-|\u2013|\u2014|to)\s*(\d{1,2})\s*\+?\s*(years?|yrs?)/i);
++    if (m && parseInt(m[1], 10) < 35 && parseInt(m[2], 10) < 40) experience = m[0];
++  }
++  if (!experience) {
++    const m = expText.match(/(?:more\s+than|at\s+least|minimum(?:\s+of)?|min\.?|over|greater\s+than)\s+(\d{1,2})\s*\+?\s*(?:[-\u2013\u2014to]\s*(\d{1,2})\s*\+?)?\s*(years?|yrs?)/i);
++    if (m && parseInt(m[1], 10) < 35) {
++       // Make sure it doesn't match generic company age
++       if (!/operating.*for more than|established.*years/i.test(m.input.slice(Math.max(0, m.index - 50), m.index + 50))) {
++         experience = m[0];
++       }
++    }
++  }
+   if (!experience) experience = getText(['.experience-range p', '[data-careersite-propertyid="experience"]', '[class*="experience"]', '[data-test="experience"]', '.job-experience', '.experience-level', '[itemprop="experienceRequirements"]', '.years-experience', '[class*="exp-level"]', '[class*="exp-years"]']);

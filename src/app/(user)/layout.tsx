@@ -90,6 +90,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           .from('jobs')
           .select('location, category, job_type')
           .eq('is_approved', true)
+          .eq('is_deleted', false)
           .limit(500);
 
         if (data && data.length > 0) {
@@ -148,12 +149,13 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'Nigeria': 'nigeria', 'Kenya': 'kenya', 'Egypt': 'egypt',
           };
 
-          // Words that should NEVER appear as city names
+          // Words that should NEVER appear as city names (countries, states, generic terms)
           const CITY_BLACKLIST = new Set([
             'location', 'locations', 'n/a', 'na', 'tbd', 'various', 'multiple',
             'india', 'usa', 'uk', 'uae', 'canada', 'australia', 'germany',
             'netherlands', 'france', 'singapore', 'unknown', 'other', 'pan india',
-            'anywhere', 'flexible', 'negotiable',
+            'anywhere', 'flexible', 'negotiable', 'work from office', 'work from home',
+            'united states', 'united kingdom', 'united arab emirates', 'remote'
           ]);
 
           // Indian state names — should not appear as city
@@ -166,20 +168,32 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'mizoram', 'sikkim', 'delhi', 'jammu', 'kashmir', 'ladakh',
           ]);
 
-          // Clean a raw city string — returns null if it's garbage
-          const cleanCity = (raw: string): string | null => {
-            // Normalize pipe-separated formats: "India | Pune" → take last meaningful part
-            if (raw.includes('|')) {
-              const pipeParts = raw.split('|').map(p => p.trim()).filter(Boolean);
-              // Pick the last part (most specific)
-              raw = pipeParts[pipeParts.length - 1] || raw;
-            }
+          // US & International State/Province names that shouldn't appear as city
+          const PROVINCES_AND_STATES = new Set([
+            'alabama', 'alaska', 'arizona', 'arkansas', 'california', 'colorado', 'connecticut', 'delaware',
+            'florida', 'georgia', 'hawaii', 'idaho', 'illinois', 'indiana', 'iowa', 'kansas', 'kentucky',
+            'louisiana', 'maine', 'maryland', 'massachusetts', 'michigan', 'minnesota', 'mississippi',
+            'missouri', 'montana', 'nebraska', 'nevada', 'new hampshire', 'new jersey', 'new mexico',
+            'new york', 'north carolina', 'north dakota', 'ohio', 'oklahoma', 'oregon', 'pennsylvania',
+            'rhode island', 'south carolina', 'south dakota', 'tennessee', 'texas', 'utah', 'vermont',
+            'virginia', 'washington', 'west virginia', 'wisconsin', 'wyoming',
+            'ontario', 'quebec', 'british columbia', 'alberta', 'manitoba', 'saskatchewan',
+            'new south wales', 'victoria', 'queensland', 'western australia', 'south australia', 'tasmania'
+          ]);
 
-            // Remove parenthetical content: "Bawal (rewari)" → "Bawal"
+          // Helper to test if a token is a country
+          const isCountryString = (str: string): boolean => {
+            if (!str) return false;
+            const s = str.trim().toLowerCase();
+            return !!(COUNTRY_MAPPING[s] || Object.keys(COUNTRY_MAPPING).some(k => k.length > 3 && s === k));
+          };
+
+          // Clean a raw place/city string — returns null if it's garbage or a country
+          const cleanCity = (raw: string): string | null => {
+            // Remove parenthetical content: "Bawal (rewari)" → "Bawal", "Hyderabad (Work From Office)" → "Hyderabad"
             raw = raw.replace(/\([^)]*\)/g, '').trim();
 
             // Remove trailing street address fragments (numbers + anything after):
-            // "Vadodara 73 East Ave" → "Vadodara"
             raw = raw.replace(/\s+\d+.*$/, '').trim();
 
             // Remove special chars except hyphen and space
@@ -194,8 +208,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             // Blacklist check
             if (CITY_BLACKLIST.has(lower)) return null;
 
-            // State name check
-            if (INDIAN_STATES.has(lower)) return null;
+            // Country name check
+            if (isCountryString(lower)) return null;
 
             // Must contain at least one letter
             if (!/[a-zA-Z]/.test(raw)) return null;
@@ -206,73 +220,78 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           const rawLocations = data.map(j => j.location).filter(Boolean) as string[];
 
           // Build city set and city→country map dynamically from all approved job locations
-          // Use a lowercase key map for case-insensitive deduplication
           const cityKeyMap: Record<string, string> = {}; // lowercase → canonical name
           const cityCountryMap: Record<string, string> = {};
           const countrySet = new Set<string>();
 
           rawLocations.forEach(loc => {
-            // Normalize pipe separator to comma first for uniform handling
-            const normalizedLoc = loc.replace(/\|/g, ',');
-            const parts = normalizedLoc.split(',').map(p => p.trim());
-            let rawCity = parts[0];
+            // Split multiple location entries first by semicolon or pipe (e.g. "Boston, MA; New York, NY; Austin, TX")
+            const locationEntries = loc.split(/[;|]+/).map(e => e.trim()).filter(Boolean);
 
-            if (!rawCity) return;
+            locationEntries.forEach(entry => {
+              const parts = entry.split(',').map(p => p.trim()).filter(Boolean);
+              if (parts.length === 0) return;
 
-            // ── Detect trailing country embedded in city field ──────────────
-            // e.g. "Goes Netherlands" → city="Goes", country="Netherlands"
-            let embeddedCountryName: string | null = null;
-            let embeddedCountrySlug: string | null = null;
-            const rawCityLower = rawCity.toLowerCase();
-            for (const [key, value] of Object.entries(COUNTRY_MAPPING)) {
-              if (key.length > 3 && rawCityLower.endsWith(' ' + key)) {
-                embeddedCountryName = value;
-                embeddedCountrySlug = COUNTRY_SLUG_MAP[value] || key.replace(/\s+/g, '-');
-                // Strip the country name from the city string
-                rawCity = rawCity.slice(0, rawCity.length - key.length - 1).trim();
-                break;
-              }
-            }
+              // Find country within this specific entry
+              let detectedCountryName: string | null = null;
+              let detectedCountrySlug: string | null = null;
 
-            const cleaned = cleanCity(rawCity);
-            if (!cleaned) return;
-
-            const lower = cleaned.toLowerCase();
-            // Apply alias normalization
-            const normalizedCity = CITY_ALIASES[lower] ||
-              cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-
-            // Dedup case-insensitively — first occurrence wins canonical name
-            if (!cityKeyMap[normalizedCity.toLowerCase()]) {
-              cityKeyMap[normalizedCity.toLowerCase()] = normalizedCity;
-            }
-
-            // Determine country: prefer embedded country, then scan remaining parts
-            let countrySlug = embeddedCountrySlug || 'india';
-            let countryName = embeddedCountryName || 'India';
-
-            if (!embeddedCountryName) {
-              for (let i = parts.length - 1; i >= 1; i--) {
-                const part = parts[i].trim().toLowerCase();
-                if (COUNTRY_MAPPING[part]) {
-                  countryName = COUNTRY_MAPPING[part];
-                  countrySlug = COUNTRY_SLUG_MAP[countryName] || part.replace(/\s+/g, '-');
+              for (let i = parts.length - 1; i >= 0; i--) {
+                const partLower = parts[i].toLowerCase();
+                if (COUNTRY_MAPPING[partLower]) {
+                  detectedCountryName = COUNTRY_MAPPING[partLower];
+                  detectedCountrySlug = COUNTRY_SLUG_MAP[detectedCountryName] || partLower.replace(/\s+/g, '-');
                   break;
                 }
-                const matchedKey = Object.keys(COUNTRY_MAPPING).find(k => k.length > 3 && part.includes(k));
+                const matchedKey = Object.keys(COUNTRY_MAPPING).find(k => k.length > 3 && partLower === k);
                 if (matchedKey) {
-                  countryName = COUNTRY_MAPPING[matchedKey];
-                  countrySlug = COUNTRY_SLUG_MAP[countryName] || matchedKey.replace(/\s+/g, '-');
+                  detectedCountryName = COUNTRY_MAPPING[matchedKey];
+                  detectedCountrySlug = COUNTRY_SLUG_MAP[detectedCountryName] || matchedKey.replace(/\s+/g, '-');
                   break;
                 }
               }
-            }
 
-            const canonicalCity = cityKeyMap[normalizedCity.toLowerCase()];
-            if (canonicalCity && !cityCountryMap[canonicalCity]) {
-              cityCountryMap[canonicalCity] = countrySlug;
-            }
-            countrySet.add(countryName);
+              // If entry mentions a US state (e.g. "Boston, Massachusetts"), detect as USA
+              if (!detectedCountryName && parts.some(p => PROVINCES_AND_STATES.has(p.toLowerCase()))) {
+                detectedCountryName = 'United States';
+                detectedCountrySlug = 'usa';
+              }
+
+              // If entry has no foreign indicator and is Indian city, detect as India
+              if (!detectedCountryName) {
+                detectedCountryName = 'India';
+                detectedCountrySlug = 'india';
+              }
+
+              if (detectedCountryName) {
+                countrySet.add(detectedCountryName);
+              }
+
+              // Extract pure place/city name: first part that passes cleanCity
+              for (const part of parts) {
+                const cleaned = cleanCity(part);
+                if (cleaned) {
+                  const lower = cleaned.toLowerCase();
+                  // Skip Indian state abbreviation like "AP" if full city is available
+                  if (detectedCountrySlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) {
+                    continue;
+                  }
+
+                  const normalizedCity = CITY_ALIASES[lower] ||
+                    cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+                  const normKey = normalizedCity.toLowerCase();
+                  if (!cityKeyMap[normKey]) {
+                    cityKeyMap[normKey] = normalizedCity;
+                  }
+
+                  if (!cityCountryMap[normalizedCity] && detectedCountrySlug) {
+                    cityCountryMap[normalizedCity] = detectedCountrySlug;
+                  }
+                  break; // found the city for this location segment
+                }
+              }
+            });
           });
 
           if (countrySet.size === 0) countrySet.add('India');

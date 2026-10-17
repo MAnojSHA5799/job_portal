@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Button, Card } from '@/components/ui';
 import {
   Search,
@@ -80,9 +80,31 @@ export default function HomePage() {
 
   const [industryPageIndex, setIndustryPageIndex] = useState(0);
   const industriesPerSlide = 4;
+  const industriesScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollIndustries = (direction: 'left' | 'right') => {
+    if (industriesScrollRef.current) {
+      const scrollAmount = 600;
+      industriesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const [companyPageIndex, setCompanyPageIndex] = useState(0);
   const companiesPerSlide = 4;
+  const companiesScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollCompanies = (direction: 'left' | 'right') => {
+    if (companiesScrollRef.current) {
+      const scrollAmount = 600;
+      companiesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const [blogPageIndex, setBlogPageIndex] = useState(0);
   const blogsPerSlide = 4;
@@ -193,13 +215,13 @@ export default function HomePage() {
       // Process Category & Industry Counts separately
       const catCounts: Record<string, number> = {};
       const indCounts: Record<string, number> = {};
-      
+
       data?.forEach(job => {
         // Count for job categories
         if (job.category) {
           catCounts[job.category] = (catCounts[job.category] || 0) + 1;
         }
-        
+
         // Count for company industries
         const industry = job.companies?.industry;
         if (industry) {
@@ -748,13 +770,48 @@ export default function HomePage() {
 
 
 
-            <Link href="/jobs" className="hidden md:block text-primary font-bold text-sm hover:underline">Browse All</Link>
+            <div className="flex items-center gap-3">
+              <Link href="/jobs" className="hidden md:block text-primary font-bold text-sm hover:underline mr-2">Browse All</Link>
+              {/* <div className="hidden md:flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollIndustries('left')}
+                  className="w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-primary hover:text-white hover:border-primary text-gray-700 flex items-center justify-center transition-all shadow-sm active:scale-95 group"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollIndustries('right')}
+                  className="w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-primary hover:text-white hover:border-primary text-gray-700 flex items-center justify-center transition-all shadow-sm active:scale-95 group"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </div> */}
+            </div>
           </div>
 
-          {/* Desktop View (Original horizontal scroll) */}
-          <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
-            {industries.map((industry) => (
-                <Link key={industry.id} href={`/industry/${encodeURIComponent(industry.name)}`} className="snap-start">
+          {/* Desktop View with Floating Side Arrow Buttons and Smooth Scroll */}
+          <div className="relative group/slider hidden md:block">
+            {/* Left Floating Arrow */}
+            <button
+              type="button"
+              onClick={() => scrollIndustries('left')}
+              className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-lg text-gray-700 hover:text-white hover:bg-primary hover:border-primary flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-110 active:scale-95"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Scrollable Container */}
+            <div
+              ref={industriesScrollRef}
+              className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar scroll-smooth snap-x"
+            >
+              {industries.map((industry) => (
+                <Link key={industry.id} href={`/industry/${encodeURIComponent(industry.name)}`} className="snap-start shrink-0">
                   <div className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
@@ -771,6 +828,17 @@ export default function HomePage() {
                   </div>
                 </Link>
               ))}
+            </div>
+
+            {/* Right Floating Arrow */}
+            <button
+              type="button"
+              onClick={() => scrollIndustries('right')}
+              className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-lg text-gray-700 hover:text-white hover:bg-primary hover:border-primary flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-110 active:scale-95"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
           </div>
 
           {/* Mobile View Slider (2x2 Grid) */}
@@ -838,29 +906,75 @@ export default function HomePage() {
               <h2 className="text-3xl font-black text-gray-900 tracking-tight">Popular <span className="text-primary italic">Companies</span></h2>
               <p className="text-gray-500 font-medium text-sm">Top hiring partners and industry leaders</p>
             </div>
-            <Link href="/companies" className="hidden md:block text-primary font-bold text-sm hover:underline">View All</Link>
+            {/* <div className="flex items-center gap-3">
+              <Link href="/companies" className="hidden md:block text-primary font-bold text-sm hover:underline mr-2">View All</Link>
+              <div className="hidden md:flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => scrollCompanies('left')}
+                  className="w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-primary hover:text-white hover:border-primary text-gray-700 flex items-center justify-center transition-all shadow-sm active:scale-95 group"
+                  aria-label="Scroll left"
+                >
+                  <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCompanies('right')}
+                  className="w-10 h-10 rounded-full border border-gray-200 bg-white hover:bg-primary hover:text-white hover:border-primary text-gray-700 flex items-center justify-center transition-all shadow-sm active:scale-95 group"
+                  aria-label="Scroll right"
+                >
+                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </div>
+            </div> */}
           </div>
 
-          {/* Desktop View (Original horizontal scroll) */}
-          <div className="hidden md:flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar snap-x">
-            {shuffledPopularCompanies.map((company, index) => (
-              <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank" className="snap-start">
-                <div
-                  className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
-                    {company.logo_url ? (
-                      <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-emerald-600 font-bold text-xl">{company.name[0]}</div>
-                    )}
+          {/* Desktop View with Floating Side Arrow Buttons and Smooth Scroll */}
+          <div className="relative group/slider hidden md:block">
+            {/* Left Floating Arrow */}
+            <button
+              type="button"
+              onClick={() => scrollCompanies('left')}
+              className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-lg text-gray-700 hover:text-white hover:bg-primary hover:border-primary flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-110 active:scale-95"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Scrollable Container */}
+            <div
+              ref={companiesScrollRef}
+              className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide no-scrollbar scroll-smooth snap-x"
+            >
+              {shuffledPopularCompanies.map((company, index) => (
+                <Link key={company.id} href={`/company/${company.url_slug || company.id}`} target="_blank" className="snap-start shrink-0">
+                  <div
+                    className="w-[180px] h-[200px] bg-white rounded-3xl border border-gray-100 flex flex-col items-center justify-center p-6 shadow-sm transition-all text-center relative overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mb-4 overflow-hidden p-3 relative z-10 transition-transform group-hover:scale-110">
+                      {company.logo_url ? (
+                        <img src={getProxiedImageUrl(company.logo_url)} alt={company.name} className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="text-emerald-600 font-bold text-xl">{company.name[0]}</div>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
+                    <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.filter((j: any) => j.is_approved)?.length || 0} Jobs</p>
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-1 relative z-10">{company.name}</h3>
-                  <p className="text-xs font-black text-primary/60 uppercase tracking-widest relative z-10">{company.jobs?.filter((j: any) => j.is_approved)?.length || 0} Jobs</p>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
+
+            {/* Right Floating Arrow */}
+            <button
+              type="button"
+              onClick={() => scrollCompanies('right')}
+              className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-white/95 backdrop-blur-sm border border-gray-200/80 shadow-lg text-gray-700 hover:text-white hover:bg-primary hover:border-primary flex items-center justify-center transition-all opacity-0 group-hover/slider:opacity-100 hover:scale-110 active:scale-95"
+              aria-label="Scroll right"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
           </div>
 
           {/* Mobile View Slider (2x2 Grid) */}

@@ -95,7 +95,17 @@ export default function RichTextEditor({ content, onChange, placeholder }: RichT
       formData.append('bucket', 'blogs');
       formData.append('folder', 'blog-content');
 
-      const result = await uploadMedia(formData);
+      let result: { success: boolean; url?: string; error?: string };
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        result = await response.json();
+      } catch {
+        result = await uploadMedia(formData);
+      }
 
       if (result.success && result.url) {
         editor.chain().focus().setImage({ src: result.url }).run();

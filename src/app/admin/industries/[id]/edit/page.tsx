@@ -80,13 +80,27 @@ export default function EditIndustryPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!industryData.name) return alert('Industry Name is required');
+    const cleanName = industryData.name.trim();
+    if (!cleanName) return alert('Industry Name is required');
 
     setSaving(true);
     try {
+      // Check for duplicate industry name excluding this industry
+      const { data: existing } = await supabase
+        .from('industries')
+        .select('id')
+        .ilike('name', cleanName)
+        .neq('id', params?.id as string)
+        .maybeSingle();
+
+      if (existing) {
+        alert(`An industry named "${cleanName}" already exists.`);
+        return;
+      }
+
       const { error } = await supabase
         .from('industries')
-        .update({ name: industryData.name, logo_url: industryData.logo_url })
+        .update({ name: cleanName, logo_url: industryData.logo_url || null })
         .eq('id', params?.id);
       
       if (error) throw error;
@@ -148,21 +162,13 @@ export default function EditIndustryPage() {
                 <label className="text-xs font-black text-gray-700 uppercase tracking-widest mb-3 block flex items-center gap-2">
                   Industry Name <span className="text-red-500">*</span>
                 </label>
-                <select 
+                <Input 
                   required
-                  className="w-full h-14 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white transition-all text-lg font-bold px-4 outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none"
+                  placeholder="e.g. Automotive & EV, Manufacturing, Energy..."
+                  className="w-full h-14 bg-gray-50/50 border border-gray-200 rounded-xl focus:bg-white transition-all text-lg font-bold px-4 outline-none focus:ring-2 focus:ring-indigo-500/50"
                   value={industryData.name}
                   onChange={e => setIndustryData({...industryData, name: e.target.value})}
-                >
-                  <option value="" disabled>Select an Industry</option>
-                  {categories.map((cat, idx) => (
-                    <option key={idx} value={cat}>{cat}</option>
-                  ))}
-                  {/* Fallback to show the current name if it was deleted from jobs but still an industry */}
-                  {industryData.name && !categories.includes(industryData.name) && (
-                    <option value={industryData.name}>{industryData.name}</option>
-                  )}
-                </select>
+                />
               </div>
 
               <div>

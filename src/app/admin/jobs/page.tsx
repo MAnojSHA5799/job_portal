@@ -76,11 +76,16 @@ export default function JobsQueue() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [viewingJob, setViewingJob] = useState<Job | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [isBulkEnhancing, setIsBulkEnhancing] = useState(false);
   const [enhancingJobIds, setEnhancingJobIds] = useState<Set<string>>(new Set());
   const [enhancingProgress, setEnhancingProgress] = useState({ current: 0, total: 0 });
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [companies, setCompanies] = useState<any[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(initialCompanyId);
   const initialTab = (searchParams?.get('tab') as 'all' | 'published' | 'drafts' | 'trash' | 'expired') || 'all';
@@ -115,6 +120,25 @@ export default function JobsQueue() {
     return salary;
   };
 
+  const handleCompanyChange = (companyId: string) => {
+    setSelectedCompanyId(companyId);
+    setCurrentPage(1);
+  };
+
+  const handleTabChange = (tab: 'all' | 'published' | 'drafts' | 'trash' | 'expired') => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const handleResetAllFilters = () => {
+    setSelectedCompanyId('all');
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    setDateRange({ start: '', end: '' });
+    setActiveTab('all');
+    setCurrentPage(1);
+  };
+
   const fetchJobs = async () => {
     setLoading(true);
     try {
@@ -146,12 +170,6 @@ export default function JobsQueue() {
         query = query.lt('created_at', endDate.toISOString().split('T')[0]);
       }
 
-      query = query.range(from, to);
-
-      if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,category.ilike.%${searchQuery}%`);
-      }
-
       if (activeTab === 'trash') {
         query = query.eq('is_deleted', true);
       } else if (activeTab === 'expired') {
@@ -166,14 +184,41 @@ export default function JobsQueue() {
         }
       }
 
+      const term = debouncedSearchQuery.trim();
+      if (term) {
+        const matchedCompIds = companies
+          .filter(c => c.name?.toLowerCase().includes(term.toLowerCase()))
+          .map(c => c.id);
+
+        const orClauses = [
+          `title.ilike.%${term}%`,
+          `category.ilike.%${term}%`,
+          `location.ilike.%${term}%`
+        ];
+        if (matchedCompIds.length > 0) {
+          orClauses.push(`company_id.in.(${matchedCompIds.join(',')})`);
+        }
+        query = query.or(orClauses.join(','));
+      }
+
+      query = query.range(from, to);
+
       const { data, error, count } = await query;
-      console.log('Fetched Jobs Data:', data);
-      if (error) throw error;
+      if (error) {
+        // If range was out of bounds (PGRST103), fallback safely to page 1
+        if (error.code === 'PGRST103' && currentPage > 1) {
+          setCurrentPage(1);
+          return;
+        }
+        throw error;
+      }
       
       setJobs(data || []);
       setTotalCount(count || 0);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      setJobs([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -182,6 +227,39 @@ export default function JobsQueue() {
   const fetchStats = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
+
+      let totalQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_deleted', false);
+      let publishedQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_approved', true).eq('is_deleted', false);
+      let draftsQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_approved', false).eq('is_deleted', false);
+      let expiredQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).lt('valid_through', today).eq('is_deleted', false);
+      let trashQuery = supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_deleted', true);
+
+      if (selectedCompanyId !== 'all') {
+        totalQuery = totalQuery.eq('company_id', selectedCompanyId);
+        publishedQuery = publishedQuery.eq('company_id', selectedCompanyId);
+        draftsQuery = draftsQuery.eq('company_id', selectedCompanyId);
+        expiredQuery = expiredQuery.eq('company_id', selectedCompanyId);
+        trashQuery = trashQuery.eq('company_id', selectedCompanyId);
+      }
+
+      if (dateRange.start) {
+        totalQuery = totalQuery.gte('created_at', dateRange.start);
+        publishedQuery = publishedQuery.gte('created_at', dateRange.start);
+        draftsQuery = draftsQuery.gte('created_at', dateRange.start);
+        expiredQuery = expiredQuery.gte('created_at', dateRange.start);
+        trashQuery = trashQuery.gte('created_at', dateRange.start);
+      }
+      if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setDate(endDate.getDate() + 1);
+        const endIso = endDate.toISOString().split('T')[0];
+        totalQuery = totalQuery.lt('created_at', endIso);
+        publishedQuery = publishedQuery.lt('created_at', endIso);
+        draftsQuery = draftsQuery.lt('created_at', endIso);
+        expiredQuery = expiredQuery.lt('created_at', endIso);
+        trashQuery = trashQuery.lt('created_at', endIso);
+      }
+
       const [
         { count: total },
         { count: published },
@@ -189,11 +267,11 @@ export default function JobsQueue() {
         { count: expired },
         { count: trash }
       ] = await Promise.all([
-        supabase.from('jobs').select('*', { count: 'exact', head: true }),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_approved', true),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_approved', false),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }).lt('valid_through', today),
-        supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('is_deleted', true)
+        totalQuery,
+        publishedQuery,
+        draftsQuery,
+        expiredQuery,
+        trashQuery
       ]);
 
       setStats({
@@ -216,7 +294,6 @@ export default function JobsQueue() {
         .order('name');
       if (error) throw error;
       setCompanies(data || []);
-      console.log('Fetched Companies:', data);
     } catch (error) {
       console.error('Error fetching companies:', error);
     }
@@ -224,18 +301,27 @@ export default function JobsQueue() {
 
   useEffect(() => {
     fetchJobs();
+  }, [currentPage, itemsPerPage, selectedCompanyId, activeTab, dateRange, debouncedSearchQuery]);
+
+  useEffect(() => {
     fetchStats();
-  }, [currentPage, itemsPerPage, selectedCompanyId, activeTab, dateRange]);
+  }, [selectedCompanyId, dateRange]);
+
+  // Clear selection whenever the visible list changes context
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentPage, selectedCompanyId, activeTab, dateRange, debouncedSearchQuery]);
 
   useEffect(() => {
     fetchCompanies();
   }, []);
 
+  // Debounce search query to prevent lag and race conditions
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (currentPage !== 1) setCurrentPage(1);
-      else fetchJobs();
-    }, 500);
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1);
+    }, 350);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -293,6 +379,54 @@ export default function JobsQueue() {
       fetchStats();
     } catch (e: any) {
       alert('Error deleting job: ' + e.message);
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const isAllSelected = jobs.length > 0 && jobs.every(j => selectedIds.has(j.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      if (isAllSelected) return new Set();
+      const next = new Set(prev);
+      jobs.forEach(j => next.add(j.id));
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    const permanent = activeTab === 'trash';
+    const confirmMsg = permanent
+      ? `Delete ${ids.length} job(s) PERMANENTLY? This cannot be undone.`
+      : `Move ${ids.length} job(s) to Trash?`;
+    if (!confirm(confirmMsg)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const { error } = permanent
+        ? await supabase.from('jobs').delete().in('id', ids)
+        : await supabase.from('jobs').update({ is_deleted: true }).in('id', ids);
+
+      if (error) throw error;
+
+      setSelectedIds(new Set());
+      showToast(`${ids.length} job(s) ${permanent ? 'deleted permanently' : 'moved to trash'}.`, 'success');
+      fetchJobs();
+      fetchStats();
+    } catch (e: any) {
+      showToast('Error deleting jobs: ' + e.message, 'error');
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -362,6 +496,114 @@ export default function JobsQueue() {
     }
   };
 
+  const handleDateRangeChange = (type: 'start' | 'end', val: string) => {
+    setDateRange(prev => ({ ...prev, [type]: val }));
+    setCurrentPage(1);
+  };
+
+  const handleClearDateRange = () => {
+    setDateRange({ start: '', end: '' });
+    setCurrentPage(1);
+  };
+
+  const handleBulkRestore = async () => {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    setIsBulkDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ is_deleted: false })
+        .in('id', ids);
+
+      if (error) throw error;
+
+      setSelectedIds(new Set());
+      showToast(`${ids.length} job(s) restored from trash.`, 'success');
+      fetchJobs();
+      fetchStats();
+    } catch (e: any) {
+      showToast('Error restoring jobs: ' + e.message, 'error');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleRestoreAllTrash = async () => {
+    const companyName = companies.find(c => c.id === selectedCompanyId)?.name;
+    const promptMsg = selectedCompanyId !== 'all'
+      ? `Restore all ${totalCount} trash job(s) for ${companyName || 'this company'}?`
+      : `Restore all ${totalCount} trash job(s)?`;
+    if (!confirm(promptMsg)) return;
+
+    setLoading(true);
+    try {
+      let query = supabase.from('jobs').update({ is_deleted: false }).eq('is_deleted', true);
+      if (selectedCompanyId !== 'all') {
+        query = query.eq('company_id', selectedCompanyId);
+      }
+      const { error } = await query;
+      if (error) throw error;
+
+      showToast('All trash jobs restored successfully.', 'success');
+      fetchJobs();
+      fetchStats();
+    } catch (e: any) {
+      showToast('Error restoring jobs: ' + e.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAllJobs = async () => {
+    const permanent = activeTab === 'trash';
+    setIsDeletingAll(true);
+    try {
+      let deleteQuery = supabase.from('jobs');
+      if (permanent) {
+        // Permanently delete all jobs in trash
+        let q = deleteQuery.delete().eq('is_deleted', true);
+        if (selectedCompanyId !== 'all') q = q.eq('company_id', selectedCompanyId);
+        const { error } = await q;
+        if (error) throw error;
+      } else if (activeTab === 'expired') {
+        const today = new Date().toISOString().split('T')[0];
+        let q = supabase.from('jobs').update({ is_deleted: true }).lt('valid_through', today).eq('is_deleted', false);
+        if (selectedCompanyId !== 'all') q = q.eq('company_id', selectedCompanyId);
+        const { error } = await q;
+        if (error) throw error;
+      } else if (activeTab === 'published') {
+        let q = supabase.from('jobs').update({ is_deleted: true }).eq('is_approved', true).eq('is_deleted', false);
+        if (selectedCompanyId !== 'all') q = q.eq('company_id', selectedCompanyId);
+        const { error } = await q;
+        if (error) throw error;
+      } else if (activeTab === 'drafts') {
+        let q = supabase.from('jobs').update({ is_deleted: true }).eq('is_approved', false).eq('is_deleted', false);
+        if (selectedCompanyId !== 'all') q = q.eq('company_id', selectedCompanyId);
+        const { error } = await q;
+        if (error) throw error;
+      } else {
+        // 'all' tab — soft delete all non-deleted jobs
+        let q = supabase.from('jobs').update({ is_deleted: true }).eq('is_deleted', false);
+        if (selectedCompanyId !== 'all') q = q.eq('company_id', selectedCompanyId);
+        const { error } = await q;
+        if (error) throw error;
+      }
+      setIsDeleteAllModalOpen(false);
+      setSelectedIds(new Set());
+      showToast(
+        permanent ? 'All trash jobs deleted permanently.' : 'All jobs moved to trash.',
+        'success'
+      );
+      fetchJobs();
+      fetchStats();
+    } catch (e: any) {
+      showToast('Error deleting all jobs: ' + e.message, 'error');
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       const { data, error } = await supabase
@@ -401,6 +643,24 @@ export default function JobsQueue() {
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
+  const getPaginationItems = (): (number | string)[] => {
+    if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+    
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, '...', totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, '...-start', currentPage - 1, currentPage, currentPage + 1, '...-end', totalPages];
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20">
       {/* Background decoration */}
@@ -415,7 +675,7 @@ export default function JobsQueue() {
             <h1 
               className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3"
             >
-             All Jobs <Badge className="bg-indigo-600 text-white border-0 font-bold">{totalCount}</Badge>
+              {activeTab === 'all' ? 'All Jobs' : activeTab === 'published' ? 'Published Jobs' : activeTab === 'drafts' ? 'Draft Jobs' : activeTab === 'trash' ? 'Trash' : 'Expired Jobs'} <Badge className="bg-indigo-600 text-white border-0 font-bold">{totalCount}</Badge>
             </h1>
             <p 
               className="text-gray-500 font-medium"
@@ -455,6 +715,28 @@ export default function JobsQueue() {
                 )}
               </div>
             ))}
+            {/* Restore All in Trash Button */}
+            {activeTab === 'trash' && totalCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleRestoreAllTrash}
+                disabled={loading}
+                className="h-11 px-5 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-all rounded-xl shadow-sm font-bold whitespace-nowrap flex items-center justify-center"
+              >
+                <RefreshCcw className="mr-2 h-4 w-4 shrink-0" />
+                RESTORE ALL
+              </Button>
+            )}
+            {/* Delete All Button */}
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              disabled={loading || totalCount === 0}
+              className="h-11 px-5 border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all rounded-xl shadow-sm font-bold whitespace-nowrap flex items-center justify-center"
+            >
+              <Trash2 className="mr-2 h-4 w-4 shrink-0" />
+              {activeTab === 'trash' ? 'EMPTY TRASH' : 'DELETE ALL'}
+            </Button>
           </div>
         </div>
 
@@ -470,7 +752,7 @@ export default function JobsQueue() {
             <div
               key={i}
               className="cursor-pointer"
-              onClick={() => setActiveTab(stat.type as any)}
+              onClick={() => handleTabChange(stat.type as any)}
             >
               <Card className={cn(
                 "p-6 border-0 shadow-sm rounded-3xl overflow-hidden relative group h-full transition-all",
@@ -504,7 +786,7 @@ export default function JobsQueue() {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => handleTabChange(tab.id as any)}
               className={cn(
                 "px-6 py-2.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all",
                 activeTab === tab.id 
@@ -526,10 +808,18 @@ export default function JobsQueue() {
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 group-focus-within:text-indigo-600 transition-colors" />
               <Input 
                 placeholder="Search jobs, categories, or cities..." 
-                className="w-full h-12 pl-12 bg-white border-0 shadow-sm rounded-2xl focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-bold"
+                className="w-full h-12 pl-12 pr-10 bg-white border-0 shadow-sm rounded-2xl focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-bold"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600 transition-colors p-0.5 rounded-full hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
               {/* Company Filter */}
@@ -537,7 +827,7 @@ export default function JobsQueue() {
                 <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
                 <select 
                   value={selectedCompanyId}
-                  onChange={(e) => setSelectedCompanyId(e.target.value)}
+                  onChange={(e) => handleCompanyChange(e.target.value)}
                   className="bg-transparent border-0 text-sm font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto min-w-[120px] max-w-[160px] cursor-pointer"
                 >
                   <option value="all">All Companies</option>
@@ -554,20 +844,20 @@ export default function JobsQueue() {
                   <input 
                     type="date" 
                     value={dateRange.start}
-                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    onChange={(e) => handleDateRangeChange('start', e.target.value)}
                     className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto p-0 cursor-pointer"
                   />
                   <span className="text-gray-300 text-xs font-black">-</span>
                   <input 
                     type="date" 
                     value={dateRange.end}
-                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    onChange={(e) => handleDateRangeChange('end', e.target.value)}
                     className="bg-transparent border-0 text-xs font-bold text-gray-900 focus:ring-0 outline-none w-full sm:w-auto p-0 cursor-pointer"
                   />
                 </div>
                 {(dateRange.start || dateRange.end) && (
                   <button 
-                    onClick={() => setDateRange({ start: '', end: '' })}
+                    onClick={handleClearDateRange}
                     className="ml-2 text-gray-400 hover:text-rose-500 transition-colors"
                   >
                     <X className="w-4 h-4" />
@@ -577,11 +867,54 @@ export default function JobsQueue() {
             </div>
           </div>
 
+          {/* Bulk Selection Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between gap-4 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-lg">
+              <p className="text-xs font-black uppercase tracking-widest">
+                {selectedIds.size} job{selectedIds.size > 1 ? 's' : ''} selected
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="text-xs font-bold text-gray-300 hover:text-white transition-colors px-3"
+                >
+                  Clear
+                </button>
+                {activeTab === 'trash' && (
+                  <Button
+                    onClick={handleBulkRestore}
+                    disabled={isBulkDeleting}
+                    className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl border-0 font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                    Restore Selected
+                  </Button>
+                )}
+                <Button
+                  onClick={handleBulkDelete}
+                  disabled={isBulkDeleting}
+                  className="h-10 px-5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl border-0 font-black text-xs uppercase tracking-widest flex items-center gap-2"
+                >
+                  {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {activeTab === 'trash' ? 'Delete Permanently' : 'Move to Trash'}
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white rounded-[32px] overflow-visible">
             <div className="overflow-x-auto overflow-visible pb-10">
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="px-6 py-5 w-12">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-gray-300 accent-indigo-600 cursor-pointer"
+                      />
+                    </th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Job Information</th>
                     <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Location & Pay</th>
                     {/* <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Posted Date</th> */}
@@ -593,7 +926,7 @@ export default function JobsQueue() {
                 <tbody className="divide-y divide-gray-50">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-32 text-center">
+                      <td colSpan={6} className="py-32 text-center">
                         <div className="flex flex-col items-center gap-4">
                           <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
                           <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Loading queue...</p>
@@ -602,21 +935,60 @@ export default function JobsQueue() {
                     </tr>
                   ) : jobs.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-32 text-center">
-                        <div className="flex flex-col items-center gap-4">
+                      <td colSpan={6} className="py-24 text-center">
+                        <div className="flex flex-col items-center gap-3">
                           <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
                             <Briefcase className="h-8 w-8 text-gray-300" />
                           </div>
-                          <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">No jobs found in queue</p>
+                          <p className="text-base font-black text-gray-700">No jobs found in this view</p>
+                          <p className="text-xs font-semibold text-gray-400 max-w-sm">
+                            {activeTab !== 'trash' && stats.trash > 0 && selectedCompanyId !== 'all' ? (
+                              <span>This company has {stats.trash} job{stats.trash > 1 ? 's' : ''} in the Trash tab.</span>
+                            ) : (
+                              <span>Try adjusting your company, date range, search query, or status tab.</span>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {activeTab !== 'trash' && stats.trash > 0 && selectedCompanyId !== 'all' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleTabChange('trash')}
+                                className="h-9 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold"
+                              >
+                                View {stats.trash} in Trash
+                              </Button>
+                            )}
+                            {(selectedCompanyId !== 'all' || searchQuery || dateRange.start || dateRange.end || activeTab !== 'all') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResetAllFilters}
+                                className="h-9 px-4 rounded-xl border-gray-200 text-xs font-bold"
+                              >
+                                Clear All Filters
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
                   ) : (
                     jobs.map((job) => (
-                        <tr 
-                          key={job.id} 
-                          className="hover:bg-indigo-50/30 transition-all group"
+                        <tr
+                          key={job.id}
+                          className={cn(
+                            "hover:bg-indigo-50/30 transition-all group",
+                            selectedIds.has(job.id) && "bg-indigo-50/50"
+                          )}
                         >
+                        <td className="px-6 py-6">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(job.id)}
+                            onChange={() => toggleSelectOne(job.id)}
+                            className="h-4 w-4 rounded border-gray-300 accent-indigo-600 cursor-pointer"
+                          />
+                        </td>
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-indigo-600 shadow-sm overflow-hidden shrink-0">
@@ -775,7 +1147,7 @@ export default function JobsQueue() {
             {/* Pagination */}
             <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                Showing {Math.min(jobs.length, itemsPerPage)} of {totalCount} records
+                Showing {totalCount === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} records
               </p>
               <div className="flex items-center gap-2">
                 <Button 
@@ -788,24 +1160,38 @@ export default function JobsQueue() {
                   <ChevronLeft className="h-4 w-4 mr-2" /> Previous
                 </Button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={cn(
-                        "h-10 w-10 rounded-xl text-xs font-black transition-all",
-                        currentPage === i + 1 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-white text-gray-400 hover:bg-gray-50"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {getPaginationItems().map((item, idx) => {
+                    if (typeof item === 'string') {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="h-10 w-8 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => setCurrentPage(item)}
+                        className={cn(
+                          "h-10 w-10 rounded-xl text-xs font-black transition-all",
+                          currentPage === item
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "bg-white text-gray-400 hover:bg-gray-50"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages || loading}
+                  disabled={currentPage >= totalPages || loading}
                   className="h-10 px-4 rounded-xl border-gray-200 bg-white font-bold"
                 >
                   Next <ChevronRight className="h-4 w-4 ml-2" />
@@ -891,6 +1277,65 @@ export default function JobsQueue() {
             </div>
           </div>
         )}
+
+      {/* Delete All Confirmation Modal */}
+      {isDeleteAllModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            onClick={() => !isDeletingAll && setIsDeleteAllModalOpen(false)}
+            className="absolute inset-0 bg-gray-900/70 backdrop-blur-sm"
+          />
+          <div className="relative z-10 w-full max-w-md">
+            <div className="bg-white rounded-[28px] shadow-2xl overflow-hidden">
+              {/* Danger top bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-rose-500 via-rose-400 to-orange-400" />
+              <div className="p-8">
+                {/* Icon */}
+                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-50 mx-auto mb-6">
+                  <Trash2 className="h-8 w-8 text-rose-600" />
+                </div>
+                <h2 className="text-xl font-black text-gray-900 text-center mb-2">
+                  {activeTab === 'trash' ? 'Permanently Delete All?' : 'Delete All Jobs?'}
+                </h2>
+                <p className="text-sm text-gray-500 font-medium text-center mb-2">
+                  {activeTab === 'trash'
+                    ? `This will permanently delete all ${totalCount} job(s) currently in Trash. This action cannot be undone.`
+                    : `This will move all ${totalCount} job(s) from the "${activeTab === 'all' ? 'All' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}" tab to Trash.`
+                  }
+                </p>
+                <div className="flex items-start gap-3 bg-rose-50 border border-rose-100 rounded-2xl px-4 py-3 mt-4 mb-8">
+                  <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-rose-700">
+                    {activeTab === 'trash'
+                      ? 'Warning: Permanent deletion cannot be reversed.'
+                      : 'You can recover these jobs from the Trash tab later.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsDeleteAllModalOpen(false)}
+                    disabled={isDeletingAll}
+                    className="flex-1 h-12 rounded-2xl border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 font-black text-sm transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteAllJobs}
+                    disabled={isDeletingAll}
+                    className="flex-1 h-12 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm transition-all shadow-lg shadow-rose-200 flex items-center justify-center gap-2 disabled:opacity-70"
+                  >
+                    {isDeletingAll ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Deleting...</>
+                    ) : (
+                      <><Trash2 className="h-4 w-4" /> {activeTab === 'trash' ? 'Delete Permanently' : 'Move to Trash'}</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (

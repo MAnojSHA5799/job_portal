@@ -32,12 +32,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   if (!cityParam) return { title: 'Jobs' };
   
-  const rawCitySlug = cityParam.replace(/^job-in-/, '').replace(/-/g, ' ');
-  const city = rawCitySlug.charAt(0).toUpperCase() + rawCitySlug.slice(1);
+  // Decode the city slug — may contain semicolons (%3B) for multi-city slugs
+  const decodedCity = decodeURIComponent(cityParam).replace(/^job-in-/, '');
+  const cityParts = decodedCity
+    .split(/[;]+/)
+    .map(p => p.replace(/^-+|-+$/g, '').replace(/-/g, ' ').trim())
+    .filter(Boolean);
+  const cityDisplay = cityParts
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' & ');
+
   const rawCountrySlug = countryParam.replace(/^job-in-/, '').replace(/-/g, ' ');
   const countryName = rawCountrySlug.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const title = `Manufacturing Jobs in ${city}, ${countryName} — Hiring Now | http://www.hiringstores.com`;
-  const description = `Discover top manufacturing and industrial jobs in ${city}, ${countryName}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${city}.`;
+  const title = `Manufacturing Jobs in ${cityDisplay}, ${countryName} — Hiring Now | http://www.hiringstores.com`;
+  const description = `Discover top manufacturing and industrial jobs in ${cityDisplay}, ${countryName}. Hiring now for CNC operators, engineers, and production roles. View salary ranges and top employers in ${cityDisplay}.`;
 
   return {
     title,
@@ -53,7 +61,19 @@ export default async function LocationPage({ params }: Props) {
   
   const rawCountrySlug = countrySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
   const countryName = rawCountrySlug.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-  const rawCitySlug = citySlug.replace(/^job-in-/, '').replace(/-/g, ' ');
+
+  // Decode the city slug — may contain semicolons (%3B) for multi-city slugs
+  // e.g. "job-in-massachusetts%3B-new-jersey" → ["massachusetts", "new jersey"]
+  const decodedCitySlug = decodeURIComponent(citySlug).replace(/^job-in-/, '');
+  const rawCityParts = decodedCitySlug
+    .split(/[;]+/)                          // split on semicolons
+    .map(p => p.replace(/^-+|-+$/g, ''))   // trim leading/trailing hyphens
+    .map(p => p.replace(/-/g, ' ').trim()) // hyphens → spaces
+    .filter(Boolean);
+
+  // Use first part as primary slug for backwards-compat single-city paths
+  const rawCitySlug = rawCityParts[0] || decodedCitySlug.replace(/-/g, ' ');
+
   const KNOWN_CITIES = [
     'Delhi NCR', 'Delhi', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
     'Bangalore', 'Bengaluru', 'Mumbai', 'Pune', 'Hyderabad', 'Chennai',
@@ -61,6 +81,7 @@ export default async function LocationPage({ params }: Props) {
     'Nagpur', 'Indore', 'Bhopal', 'Chandigarh', 'Coimbatore', 'Kochi',
     'Vadodara', 'Agra', 'Nashik', 'Patna', 'Ranchi', 'Bhubaneswar',
     'New York', 'New York City', 'San Francisco', 'Chicago', 'Los Angeles', 'Boston', 'Austin', 'Seattle',
+    'Massachusetts', 'New Jersey', 'Texas', 'Florida', 'Georgia', 'Ohio',
     'Dubai', 'Abu Dhabi', 'Sharjah',
     'London', 'Manchester', 'Birmingham',
     'Toronto', 'Vancouver', 'Montreal',
@@ -79,11 +100,23 @@ export default async function LocationPage({ params }: Props) {
     'remote': ['Remote', 'Work From Home', 'WFH'],
   };
 
-  const canonicalCity = KNOWN_CITIES.find(c => c.toLowerCase() === rawCitySlug.toLowerCase());
-  const cityName = canonicalCity || rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  // Build display name for all city parts
+  const cityDisplayNames = rawCityParts.map(part => {
+    const canonical = KNOWN_CITIES.find(c => c.toLowerCase() === part.toLowerCase());
+    return canonical || part.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  });
+  const cityName = cityDisplayNames.length > 1
+    ? cityDisplayNames.join(' & ')
+    : (cityDisplayNames[0] || rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
 
-  const searchTerms = CITY_ALIASES[rawCitySlug.toLowerCase()] || [rawCitySlug];
-  const orQuery = searchTerms.map(term => `location.ilike.%${term}%`).join(',');
+  // Build OR query covering ALL city parts + their aliases
+  const allSearchTerms = rawCityParts.flatMap(part => {
+    const lower = part.toLowerCase();
+    return CITY_ALIASES[lower] || [part];
+  });
+  // Deduplicate
+  const uniqueSearchTerms = Array.from(new Set(allSearchTerms));
+  const orQuery = uniqueSearchTerms.map(term => `location.ilike.%${term}%`).join(',');
 
   // Fetch jobs in this city
   const { data: jobs } = await supabase
@@ -94,12 +127,22 @@ export default async function LocationPage({ params }: Props) {
     .order('created_at', { ascending: false });
 
   // Fetch city content override
+  const cleanCitySlug = citySlug.replace(/^job-in-/, '').replace(/-/g, ' ').toLowerCase();
+  const candidateNames = Array.from(new Set([
+    cleanCitySlug,
+    rawCitySlug.toLowerCase(),
+    citySlug.toLowerCase(),
+    ...(CITY_ALIASES[cleanCitySlug] || []).map(a => a.toLowerCase())
+  ]));
+  
+  const cityOrFilter = candidateNames.map(name => `city_name.ilike.%${name}%`).join(',');
   const { data: cityContent } = await supabase
     .from('city_content')
     .select('*')
-    .ilike('city_name', citySlug)
+    .or(cityOrFilter)
     .eq('is_active', true)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   // Fetch unique categories (roles) in this city for sidebar
   const { data: cityRoles } = await supabase

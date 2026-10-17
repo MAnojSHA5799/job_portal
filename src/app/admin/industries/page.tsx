@@ -96,24 +96,37 @@ export default function IndustriesManagement() {
 
       if (industriesError) throw industriesError;
 
-      const { data: jobCounts, error: jobsError } = await supabase
+      // Fetch companies with industry
+      const { data: companiesData } = await supabase
+        .from('companies')
+        .select('id, industry')
+        .not('industry', 'is', null);
+
+      // Fetch active jobs (only approved & not deleted)
+      const { data: activeJobsData } = await supabase
         .from('jobs')
-        .select('category, companies(industry)');
+        .select('company_id')
+        .eq('is_approved', true)
+        .eq('is_deleted', false);
 
-      if (jobsError) throw jobsError;
-
-      const countsMap: Record<string, number> = {};
-      jobCounts?.forEach(job => {
-        const industry = (job.companies as any)?.industry || job.category;
-        if (industry) {
-            const cleanInd = industry.trim();
-            countsMap[cleanInd] = (countsMap[cleanInd] || 0) + 1;
+      const compToIndustry: Record<string, string> = {};
+      companiesData?.forEach(c => {
+        if (c.industry) {
+          compToIndustry[c.id] = c.industry.trim().toLowerCase();
         }
       });
 
-      const processedIndustries = industriesData.map(ind => ({
+      const countsMap: Record<string, number> = {};
+      activeJobsData?.forEach(job => {
+        const indName = compToIndustry[job.company_id];
+        if (indName) {
+          countsMap[indName] = (countsMap[indName] || 0) + 1;
+        }
+      });
+
+      const processedIndustries = (industriesData || []).map(ind => ({
         ...ind,
-        active_jobs: countsMap[ind.name.trim()] || 0
+        active_jobs: countsMap[ind.name.trim().toLowerCase()] || 0
       }));
 
       setIndustries(processedIndustries);

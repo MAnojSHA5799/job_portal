@@ -330,13 +330,23 @@ export function BlogForm({ initialData, onSave, onCancel, loading }: BlogFormPro
       formData.append('bucket', 'blogs');
       formData.append('folder', 'blog-images');
 
-      const result = await uploadMedia(formData);
+      let result: { success: boolean; url?: string; error?: string };
+
+      try {
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        result = await response.json();
+      } catch {
+        result = await uploadMedia(formData);
+      }
 
       if (result.success && result.url) {
         if (blockId) {
           updateBlockContent(blockId, result.url);
         } else {
-          setCurrentBlog({ ...currentBlog, image_url: result.url });
+          setCurrentBlog(prev => ({ ...prev, image_url: result.url! }));
         }
       } else {
         throw new Error(result.error || 'Upload failed');
