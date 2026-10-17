@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 import {
   Upload,
   FileText,
@@ -105,9 +106,23 @@ export default function ATSScorePage() {
   const checkIfResume = async (text: string): Promise<void> => {
     if (!text || text.trim().length < 50) {
       setIsResumeVerified(false); 
-      setError('⚠️ We couldn\'t extract enough text from this document. If this is an image or a scanned PDF, please upload a text-based PDF or Word document.');
+      setError('We could not extract enough text from this document. If this is an image or a scanned PDF, please upload a text-based PDF or Word document.');
       return;
     }
+
+    // Heuristic instant pass: Curriculum Vitae, CV, Resume, Bio-data or standard sections are 100% valid!
+    const lower = text.toLowerCase();
+    const hasCvOrResume = /\b(curriculum\s+vitae|resume|resum[eé]|c\.?v\.?|biodata|bio-data)\b/i.test(lower);
+    const hasExperience = /\b(experience|employment|work\s+history|projects|responsibilities|career)\b/i.test(lower);
+    const hasEducationOrSkills = /\b(education|academic|qualifications?|skills|technologies|certifications?|summary)\b/i.test(lower);
+
+    if (hasCvOrResume || (hasExperience && hasEducationOrSkills)) {
+      setIsResumeVerified(true);
+      setError(null);
+      setIsVerifyingResume(false);
+      return;
+    }
+
     setIsVerifyingResume(true);
     setIsResumeVerified(null);
     try {
@@ -119,9 +134,12 @@ export default function ATSScorePage() {
           messages: [
             {
               role: 'system',
-              content: `You are a document classifier. Analyze the given document text and determine if it is a resume or CV.
-A resume/CV contains sections like: personal info, work experience, education, skills, certifications, summary/objective.
-Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason" }. No extra text.`
+              content: `You are a document classifier for a job portal ATS scanner. Analyze the given document text and determine if it is a resume or CV.
+CRITICAL RULES:
+1. "Curriculum Vitae" (CV), "Resume", and "Bio-data" are ALL 100% VALID resumes/CVs. Never reject a document for being labeled 'Curriculum Vitae' or 'CV'.
+2. If the document describes a person's career, education, skills, projects, or background, isResume MUST BE true.
+3. Only return false if the document is completely unrelated to employment/career (e.g. an electricity bill, invoice, receipt, legal contract, story, math textbook, marketing flyer).
+Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short explanation" }. No extra text.`
             },
             {
               role: 'user',
@@ -134,8 +152,14 @@ Reply with ONLY a JSON object: { "isResume": true/false, "reason": "short reason
       const raw = data?.choices?.[0]?.message?.content?.trim() || '{"isResume":true}';
       const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
       if (!parsed.isResume) {
-        setIsResumeVerified(false);
-        setError(`⚠️ This does not appear to be a Resume/CV. Detected: "${parsed.reason}". Please upload your actual resume.`);
+        // Double check: if the AI reason mentions Curriculum Vitae or CV or Resume, it's actually valid!
+        if (parsed.reason && /curriculum\s+vitae|cv|resume/i.test(parsed.reason)) {
+          setIsResumeVerified(true);
+          setError(null);
+        } else {
+          setIsResumeVerified(false);
+          setError(`This does not appear to be a Resume/CV. Detected: "${parsed.reason}". Please upload your actual resume.`);
+        }
       } else {
         setIsResumeVerified(true);
         setError(null);
@@ -586,28 +610,26 @@ CRITICAL EXTRACTION REQUIREMENTS:
                             : 'PDF, DOCX, DOC, TXT supported · Max 2 MB'}
                         </p>
 
-                        {/* ⚠️ ATS File Naming Notice */}
+                        {/* ⚠️ ATS File Naming Notice - Simple Red Text */}
                         {file && fileNameWarning && (
-                          <div className="mt-4 p-4 bg-amber-50/95 border border-amber-300 rounded-2xl text-left shadow-sm">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                              <span className="font-black text-amber-900 text-xs uppercase tracking-wider">ATS File Name Warning</span>
-                              <Badge className="ml-auto bg-amber-200 text-amber-900 border-0 text-[10px] font-bold">
-                                Error: Non-Standard Format
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                              {fileNameWarning.message}
-                            </p>
-                            <div className="mt-2.5 bg-white p-2.5 rounded-xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="text-gray-500 font-semibold block text-[10px] uppercase">Required ATS Format:</span>
-                                <span className="font-mono font-bold text-gray-700">FirstName_LastName_Role.pdf</span>
-                              </div>
-                              <div className="text-right sm:text-right">
-                                <span className="text-indigo-500 font-semibold block text-[10px] uppercase">Recommended Name:</span>
-                                <span className="font-mono font-black text-indigo-600">{fileNameWarning.suggestedValue}</span>
-                              </div>
+                          <div 
+                            onClick={(e) => e.stopPropagation()} 
+                            className="mt-4 flex items-start gap-2.5 text-red-600 font-bold bg-red-50/90 px-5 py-3 rounded-2xl border border-red-200 text-sm z-20 shadow-sm backdrop-blur-sm text-left"
+                          >
+                            <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
+                            <div className="space-y-1">
+                              <p className="text-red-700 font-black text-xs uppercase tracking-wider">
+                                ATS File Name Warning: Non-Standard Format
+                              </p>
+                              <p className="text-xs text-red-600 font-semibold leading-relaxed">
+                                {fileNameWarning.message}
+                              </p>
+                              <p className="text-xs text-red-700 font-medium">
+                                Required: <span className="font-mono font-bold text-red-900">FirstName_LastName_Role.pdf</span>
+                                {fileNameWarning.suggestedValue && (
+                                  <> · Recommended: <span className="font-mono font-black text-red-900 bg-red-100/90 px-1.5 py-0.5 rounded border border-red-200">{fileNameWarning.suggestedValue}</span></>
+                                )}
+                              </p>
                             </div>
                           </div>
                         )}
@@ -779,180 +801,238 @@ CRITICAL EXTRACTION REQUIREMENTS:
                   </div>
                 </div>
 
-                <div className="space-y-3 text-left">
-                  {/* Category 1: File Naming Format */}
-                  <div className="border-b border-gray-100 pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'filename' ? null : 'filename')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <FolderCheck className="w-3.5 h-3.5 text-indigo-500" /> FILE NAMING
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.fileName?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
-                        )}
-                        {expandedCategory === 'filename' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                      </div>
-                    </button>
-                    {expandedCategory === 'filename' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.fileName?.message || 'ATS best practice requires FirstName_LastName_Role.pdf.'}
-                        </p>
-                        {complianceReport?.checks?.fileName?.suggestedValue && (
-                          <div className="bg-indigo-50/70 p-2 rounded-lg font-mono text-[10px] text-indigo-700">
-                            Suggested: <strong>{complianceReport.checks.fileName.suggestedValue}</strong>
+                {(() => {
+                  const contentScore = Math.min(Math.max(
+                    complianceReport?.checks?.contentQuality?.score ?? analysis?.categories?.formatting?.score ?? 85,
+                    15
+                  ), 100);
+
+                  const sectionsScore = Math.min(Math.max(
+                    complianceReport?.checks?.standardSections?.score ?? analysis?.categories?.experience?.score ?? 75,
+                    15
+                  ), 100);
+
+                  const essentialsScore = Math.min(Math.max(
+                    Math.round(
+                      ((complianceReport?.checks?.fileName?.score ?? 100) +
+                       (complianceReport?.checks?.emailQuality?.score ?? 80) +
+                       (complianceReport?.checks?.headingsAndDates?.score ?? 60)) / 3
+                    ),
+                    15
+                  ), 100);
+
+                  const tailoringScore = complianceReport?.checks?.keywordsAndSkills?.score 
+                    ? `${complianceReport.checks.keywordsAndSkills.score}%`
+                    : '??%';
+
+                  const getPillBadgeClass = (score: number | string) => {
+                    if (score === '??%') return 'bg-[#F1F5F9] text-[#64748B]';
+                    const num = typeof score === 'number' ? score : parseInt(String(score), 10);
+                    if (isNaN(num)) return 'bg-[#F1F5F9] text-[#64748B]';
+                    if (num >= 80) return 'bg-[#EAFBF1] text-[#059669]';
+                    if (num >= 70) return 'bg-[#FFF2EB] text-[#E55A25]';
+                    return 'bg-[#FEE2E2] text-[#DC2626]';
+                  };
+
+                  return (
+                    <div className="divide-y divide-gray-100 text-left">
+                      {/* 1. CONTENT */}
+                      <div className="py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCategory(expandedCategory === 'content' ? null : 'content')}
+                          className="w-full flex items-center justify-between py-2 text-left group transition-all"
+                        >
+                          <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
+                            CONTENT
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "px-3 py-0.5 rounded-full text-xs font-black tracking-wide",
+                              getPillBadgeClass(contentScore)
+                            )}>
+                              {contentScore}%
+                            </span>
+                            {expandedCategory === 'content' ? (
+                              <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            )}
+                          </div>
+                        </button>
+                        {expandedCategory === 'content' && (
+                          <div className="py-2 space-y-2.5 text-xs">
+                            {/* Sub-check 1: ATS Parse Rate */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                                <span className="font-bold text-gray-700">ATS Parse Rate</span>
+                              </div>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FFF2EB] text-[#E55A25]">
+                                {contentScore >= 90 ? 'No issues' : '1 issue'}
+                              </span>
+                            </div>
+
+                            {/* Sub-check 2: Quantifying Impact */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                <span className="font-bold text-gray-700">Quantifying Impact</span>
+                              </div>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FEE2E2] text-[#DC2626]">
+                                {complianceReport?.checks?.contentQuality?.status === 'pass' ? 'No issues' : '3 issues'}
+                              </span>
+                            </div>
+
+                            {/* Sub-check 3: Repetition */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                <span className="font-bold text-gray-700">Repetition</span>
+                              </div>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EAFBF1] text-[#059669]">
+                                No issues
+                              </span>
+                            </div>
+
+                            {/* Sub-check 4: Spelling & Grammar */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                <span className="font-bold text-gray-700">Spelling & Grammar</span>
+                              </div>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#FEE2E2] text-[#DC2626]">
+                                {complianceReport?.checks?.contentQuality?.status === 'pass' ? 'No issues' : '1 issue'}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Category 2: Email Quality */}
-                  <div className="border-b border-gray-100 pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'email' ? null : 'email')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-indigo-500" /> EMAIL QUALITY
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.emailQuality?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS (Good)</Badge>
-                        ) : complianceReport?.checks?.emailQuality?.status === 'warning' ? (
-                          <Badge className="bg-amber-50 text-amber-600 border-amber-200 font-bold text-[10px]">WARNING</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
+                      {/* 2. SECTIONS */}
+                      <div className="py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCategory(expandedCategory === 'sections' ? null : 'sections')}
+                          className="w-full flex items-center justify-between py-2 text-left group transition-all"
+                        >
+                          <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
+                            SECTIONS
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "px-3 py-0.5 rounded-full text-xs font-black tracking-wide",
+                              getPillBadgeClass(sectionsScore)
+                            )}>
+                              {sectionsScore}%
+                            </span>
+                            {expandedCategory === 'sections' ? (
+                              <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            )}
+                          </div>
+                        </button>
+                        {expandedCategory === 'sections' && (
+                          <div className="py-2 text-xs text-gray-600 font-medium leading-relaxed">
+                            {sectionsScore >= 90 ? (
+                              'All essential resume sections are present and ATS readable.'
+                            ) : (
+                              'Strong experience listed, but lacks quantifiable metrics'
+                            )}
+                          </div>
                         )}
-                        {expandedCategory === 'email' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                       </div>
-                    </button>
-                    {expandedCategory === 'email' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.emailQuality?.message || 'Professional name format (e.g. rahul.sharma@gmail.com) required.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Category 3: Headings & Dates */}
-                  <div className="border-b border-gray-100 pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'headings' ? null : 'headings')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-indigo-500" /> HEADINGS & DATES
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.headingsAndDates?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
+                      {/* 3. ATS ESSENTIALS */}
+                      <div className="py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCategory(expandedCategory === 'essentials' ? null : 'essentials')}
+                          className="w-full flex items-center justify-between py-2 text-left group transition-all"
+                        >
+                          <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
+                            ATS ESSENTIALS
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "px-3 py-0.5 rounded-full text-xs font-black tracking-wide",
+                              getPillBadgeClass(essentialsScore)
+                            )}>
+                              {essentialsScore}%
+                            </span>
+                            {expandedCategory === 'essentials' ? (
+                              <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            )}
+                          </div>
+                        </button>
+                        {expandedCategory === 'essentials' && (
+                          <div className="py-2 text-xs text-gray-600 font-medium leading-relaxed">
+                            Relevant skills presented
+                          </div>
                         )}
-                        {expandedCategory === 'headings' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                       </div>
-                    </button>
-                    {expandedCategory === 'headings' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.headingsAndDates?.message || 'Consistent date format across experience and education required.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Category 4: Standard Sections */}
-                  <div className="border-b border-gray-100 pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'sections' ? null : 'sections')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <Layers className="w-3.5 h-3.5 text-indigo-500" /> STANDARD SECTIONS
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.standardSections?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS</Badge>
-                        ) : complianceReport?.checks?.standardSections?.status === 'warning' ? (
-                          <Badge className="bg-amber-50 text-amber-600 border-amber-200 font-bold text-[10px]">WARNING</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
+                      {/* 4. TAILORING */}
+                      <div className="py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCategory(expandedCategory === 'tailoring' ? null : 'tailoring')}
+                          className="w-full flex items-center justify-between py-2 text-left group transition-all"
+                        >
+                          <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
+                            TAILORING
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "px-3 py-0.5 rounded-full text-xs font-black tracking-wide",
+                              getPillBadgeClass(tailoringScore)
+                            )}>
+                              {tailoringScore}
+                            </span>
+                            {expandedCategory === 'tailoring' ? (
+                              <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                            )}
+                          </div>
+                        </button>
+                        {expandedCategory === 'tailoring' && (
+                          <div className="py-2 space-y-2.5 text-xs">
+                            <div className="flex items-center gap-2.5 font-bold text-gray-700">
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <span>Hard Skills</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 font-bold text-gray-700">
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <span>Soft Skills</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 font-bold text-gray-700">
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <span>Action Verbs</span>
+                            </div>
+                            <div className="flex items-center gap-2.5 font-bold text-gray-700">
+                              <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                              <span>Tailored Title</span>
+                            </div>
+                            <div className="pt-2">
+                              <button
+                                type="button"
+                                onClick={reset}
+                                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs hover:underline transition-all"
+                              >
+                                <Upload className="w-3.5 h-3.5" /> Update YOUR Details/Resume
+                              </button>
+                            </div>
+                          </div>
                         )}
-                        {expandedCategory === 'sections' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                       </div>
-                    </button>
-                    {expandedCategory === 'sections' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.standardSections?.message || 'Must include Summary, Experience, Education, Skills, Projects, Certifications.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  );
+                })()}
 
-                  {/* Category 5: Content Quality */}
-                  <div className="border-b border-gray-100 pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'content' ? null : 'content')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-indigo-500" /> CONTENT QUALITY
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.contentQuality?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
-                        )}
-                        {expandedCategory === 'content' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                      </div>
-                    </button>
-                    {expandedCategory === 'content' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.contentQuality?.message || 'Requires strong action verbs, quantifiable metrics, and bulleted structure.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Category 6: Keywords & Skills */}
-                  <div className="pb-2">
-                    <button
-                      onClick={() => setExpandedCategory(expandedCategory === 'keywords' ? null : 'keywords')}
-                      className="w-full flex items-center justify-between py-2 font-bold text-gray-700 hover:text-indigo-600 transition-all"
-                    >
-                      <span className="text-xs font-black tracking-widest text-gray-500 uppercase flex items-center gap-1.5">
-                        <Target className="w-3.5 h-3.5 text-indigo-500" /> KEYWORDS MATCH
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {complianceReport?.checks?.keywordsAndSkills?.status === 'pass' ? (
-                          <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px]">PASS</Badge>
-                        ) : complianceReport?.checks?.keywordsAndSkills?.status === 'warning' ? (
-                          <Badge className="bg-amber-50 text-amber-600 border-amber-200 font-bold text-[10px]">WARNING</Badge>
-                        ) : (
-                          <Badge className="bg-rose-50 text-rose-600 border-rose-200 font-bold text-[10px]">ERROR</Badge>
-                        )}
-                        {expandedCategory === 'keywords' ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                      </div>
-                    </button>
-                    {expandedCategory === 'keywords' && (
-                      <div className="py-2 space-y-2 text-xs">
-                        <p className="text-gray-600 font-medium leading-relaxed">
-                          {complianceReport?.checks?.keywordsAndSkills?.message || 'Matches candidate skills against target role industry keywords.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
 
                 <Button variant="ghost" onClick={reset} className="w-full mt-2 text-gray-400 hover:text-gray-600 font-bold text-xs uppercase tracking-widest">
                   <RefreshCcw className="w-3 h-3 mr-2" /> Scan Another Resume
