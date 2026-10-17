@@ -9522,6 +9522,54 @@ async function scrapePeopleStrong(page, context, listingUrl, results) {
 }
 
 
+async function bypassCloudflareTurnstile(page) {
+  try {
+    let title = (await page.title().catch(() => '')).toLowerCase();
+    if (!title.includes('just a moment')) return true;
+
+    console.log('     🛡️ Cloudflare challenge detected, attempting to clear...');
+
+    for (let attempt = 0; attempt < 15; attempt++) {
+      title = (await page.title().catch(() => '')).toLowerCase();
+      if (!title.includes('just a moment')) {
+        console.log('     🎉 Cloudflare challenge passed!');
+        await page.waitForTimeout(2000);
+        return true;
+      }
+
+      // Approach 1: Check iframe bounding box and click checkbox coordinates
+      const iframes = await page.$$('iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]');
+      for (const iframe of iframes) {
+        try {
+          const box = await iframe.boundingBox();
+          if (box && box.width > 0 && box.height > 0) {
+            const clickX = box.x + 30;
+            const clickY = box.y + box.height / 2;
+            console.log(`       👉 Clicking Cloudflare Turnstile checkbox at (${Math.round(clickX)}, ${Math.round(clickY)})...`);
+            await page.mouse.click(clickX, clickY);
+            await page.waitForTimeout(2500);
+          }
+        } catch (e) { }
+      }
+
+      // Approach 2: FrameLocator locator click
+      try {
+        const cfFrame = page.frameLocator('iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]');
+        const box = cfFrame.locator('input[type="checkbox"], .ctp-checkbox-label, #challenge-stage, span.mark');
+        if (await box.count() > 0) {
+          await box.first().click({ force: true, timeout: 2000 }).catch(() => { });
+          await page.waitForTimeout(2500);
+        }
+      } catch (e) { }
+
+      await page.waitForTimeout(1000);
+    }
+  } catch (err) {
+    console.log('     ⚠️ Cloudflare solver note:', err.message);
+  }
+  return false;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // 🔧  TTC PORTALS  (Parker Hannifin etc.)
 // Site: *.ttcportals.com  (e.g. parkercareers.ttcportals.com)
@@ -9544,6 +9592,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     dedicatedBrowser = await chromium.launch({
       headless: false,
       args: [
+        '--headless=new',
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-blink-features=AutomationControlled'
@@ -9551,7 +9600,18 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     });
     activeContext = await dedicatedBrowser.newContext({
       userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      locale: 'en-US'
+      locale: 'en-US',
+      viewport: { width: 1920, height: 1080 },
+      extraHTTPHeaders: {
+        'accept-language': 'en-US,en;q=0.9',
+        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+      }
+    });
+    await activeContext.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      window.chrome = window.chrome || { runtime: {} };
     });
     activePage = await activeContext.newPage();
   } catch (err) {
@@ -9566,6 +9626,8 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
 
     while (true) {
       await activePage.goto(currentUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { });
+      await activePage.waitForTimeout(3000);
+      await bypassCloudflareTurnstile(activePage);
       await activePage.waitForSelector('div.jobs-section__item, .jobs-section__item', { timeout: 30000 }).catch(() => { });
       await activePage.waitForTimeout(2000);
 
@@ -9653,7 +9715,8 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
       try {
         await activePage.goto(job.detailUrl, { waitUntil: 'domcontentloaded', timeout: 40000, referer: listingUrl });
         await activePage.waitForTimeout(2500);
-        await activePage.waitForLoadState('networkidle').catch(() => {});
+        await bypassCloudflareTurnstile(activePage);
+        await activePage.waitForLoadState('networkidle').catch(() => { });
 
         const details = await activePage.evaluate(() => {
           const bodyText = document.body?.innerText || '';
@@ -9735,11 +9798,11 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
           results.push(newJob);
           if (typeof saveJobsNow === 'function') saveJobsNow(results);
         } else {
-          const finalTitle    = details.title    || job.title;
+          const finalTitle = details.title || job.title;
           const finalLocation = details.location || job.location;
-          const finalDate     = details.date     || job.date;
-          const finalJobId    = details.jobId    || job.jobId;
-          const finalDesc     = details.desc     || `${finalTitle} at ${companyName}. Location: ${finalLocation}.`;
+          const finalDate = details.date || job.date;
+          const finalJobId = details.jobId || job.jobId;
+          const finalDesc = details.desc || `${finalTitle} at ${companyName}. Location: ${finalLocation}.`;
           console.log(`       ✅ ${finalTitle} | ${finalLocation} | ${finalDesc.length} chars desc`);
           const newJob = {
             source: 'ttcportals', url: job.detailUrl, title: finalTitle,
@@ -9770,7 +9833,7 @@ async function scrapeTtcPortals(page, context, listingUrl, results) {
     }
   } finally {
     if (dedicatedBrowser) {
-      await dedicatedBrowser.close().catch(() => {});
+      await dedicatedBrowser.close().catch(() => { });
     }
   }
 }
