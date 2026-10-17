@@ -29,6 +29,7 @@ import { Banner } from '@/components/Banner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getProxiedImageUrl } from '@/lib/utils';
+import { SearchableSelect } from '@/components/SearchableSelect';
 
 const BRANDS = [
   { name: 'Teleperformance', logo: 'https://logo.clearbit.com/teleperformance.com' },
@@ -247,7 +248,34 @@ export default function HomePage() {
       const matchesLocation = job.location?.toLowerCase().includes(locationQuery.toLowerCase());
       const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
       const matchesType = selectedType ? job.job_type === selectedType : true;
-      const matchesExperience = selectedExperience ? job.experience_level === selectedExperience : true;
+      const matchesExperience = !selectedExperience || (() => {
+        const expStr = (job.experience_level || job.experience || '').toLowerCase();
+        if (expStr === selectedExperience.toLowerCase()) return true;
+
+        if (selectedExperience === 'Fresher') {
+          return expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern') || expStr === '0' || expStr.includes('0 year');
+        }
+
+        const selectedNum = parseInt(selectedExperience, 10);
+        if (!isNaN(selectedNum)) {
+          const nums = expStr.match(/\d+/g);
+          if (nums && nums.length > 0) {
+            const parsedNums = nums.map((n: string) => parseInt(n, 10));
+            if (selectedExperience.includes('+')) {
+              return Math.max(...parsedNums) >= selectedNum;
+            }
+            if (parsedNums.length === 1) {
+              return parsedNums[0] === selectedNum;
+            }
+            const min = Math.min(...parsedNums);
+            const max = Math.max(...parsedNums);
+            return selectedNum >= min && selectedNum <= max;
+          }
+          return expStr.includes(`${selectedNum}`);
+        }
+
+        return expStr.includes(selectedExperience.toLowerCase());
+      })();
 
       // Salary filter logic (basic string check for now)
       const matchesSalary = selectedSalary ? (job.salary_range || '').includes(selectedSalary) : true;
@@ -286,10 +314,49 @@ export default function HomePage() {
     return [...baseTypes, ...dbCats].sort((a, b) => b.count - a.count).slice(0, 6);
   }, [categoryCounts, jobs]);
 
+  const categoryOptions = useMemo(() => {
+    return Object.keys(categoryCounts)
+      .sort()
+      .map(cat => ({
+        value: cat,
+        label: cat,
+        count: categoryCounts[cat]
+      }));
+  }, [categoryCounts]);
+
+  const locationOptions = useMemo(() => {
+    const popular = [
+      { value: 'Delhi', label: 'Delhi NCR' },
+      { value: 'Bangalore', label: 'Bangalore' },
+      { value: 'Mumbai', label: 'Mumbai' },
+      { value: 'Hyderabad', label: 'Hyderabad' },
+      { value: 'Pune', label: 'Pune' },
+      { value: 'Chennai', label: 'Chennai' },
+      { value: 'Noida', label: 'Noida' },
+      { value: 'Gurgaon', label: 'Gurgaon' },
+      { value: 'Kolkata', label: 'Kolkata' },
+      { value: 'Ahmedabad', label: 'Ahmedabad' },
+      { value: 'Remote', label: 'Work From Home' },
+    ];
+    const dynamicLocs = new Set<string>();
+    jobs.forEach(j => {
+      if (j.location && typeof j.location === 'string') {
+        const primary = j.location.split(',')[0].trim();
+        if (primary && !popular.some(p => p.value.toLowerCase() === primary.toLowerCase())) {
+          dynamicLocs.add(primary);
+        }
+      }
+    });
+    return [
+      ...popular,
+      ...Array.from(dynamicLocs).sort().map(loc => ({ value: loc, label: loc }))
+    ];
+  }, [jobs]);
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section */}
-      <section className="relative pt-16 pb-0 bg-[#F8F9FE] overflow-hidden">
+      <section className="relative pt-16 pb-12 bg-[#F8F9FE] z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
             <div
@@ -313,7 +380,7 @@ export default function HomePage() {
 
               {/* Search UI matching image */}
               <div
-                className="w-full space-y-6"
+                className="w-full space-y-6 relative z-30"
               >
                 <div className="relative group max-w-4xl">
                   <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
@@ -376,41 +443,28 @@ export default function HomePage() {
 
                 {/* Filter Pills Grid */}
                 <div
-                  className="grid grid-cols-2 md:flex md:flex-wrap gap-3 max-w-5xl"
+                  className="grid grid-cols-2 md:flex md:flex-wrap gap-3 max-w-5xl relative z-30"
                 >
-                  {/* Job Category */}
-                  <div className="relative group">
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedCategory ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
-                    >
-                      <option value="">📂 Job Category</option>
-                      {Object.keys(categoryCounts).sort().map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
-                  </div>
+                  {/* Job Category - Search & Select */}
+                  <SearchableSelect
+                    value={selectedCategory}
+                    onChange={setSelectedCategory}
+                    options={categoryOptions}
+                    placeholder="📂 Job Category"
+                    emptyLabel="📂 All Categories"
+                    className="min-w-[160px] md:min-w-[185px]"
+                  />
 
-                  {/* Location */}
-                  <div className="relative group">
-                    <select
-                      value={locationQuery}
-                      onChange={(e) => setLocationQuery(e.target.value)}
-                      className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${locationQuery ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
-                    >
-                      <option value="">🌍 Your Location</option>
-                      <option value="Delhi">Delhi NCR</option>
-                      <option value="Bangalore">Bangalore</option>
-                      <option value="Mumbai">Mumbai</option>
-                      <option value="Hyderabad">Hyderabad</option>
-                      <option value="Pune">Pune</option>
-                      <option value="Chennai">Chennai</option>
-                      <option value="Remote">Work From Home</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
-                  </div>
+                  {/* Location - Search & Select */}
+                  <SearchableSelect
+                    value={locationQuery}
+                    onChange={setLocationQuery}
+                    options={locationOptions}
+                    placeholder="🌍 Your Location"
+                    emptyLabel="🌍 All Locations"
+                    allowCustom={true}
+                    className="min-w-[160px] md:min-w-[185px]"
+                  />
 
                   {/* Experience */}
                   <div className="relative group">
@@ -421,9 +475,22 @@ export default function HomePage() {
                     >
                       <option value="">⭐ Experience</option>
                       <option value="Fresher">Fresher</option>
-                      <option value="1-3 Years">1-3 Years</option>
-                      <option value="3-5 Years">3-5 Years</option>
-                      <option value="5+ Years">5+ Years</option>
+                      <option value="1 yr">1 yr</option>
+                      <option value="2 yrs">2 yrs</option>
+                      <option value="3 yrs">3 yrs</option>
+                      <option value="4 yrs">4 yrs</option>
+                      <option value="5 yrs">5 yrs</option>
+                      <option value="6 yrs">6 yrs</option>
+                      <option value="7 yrs">7 yrs</option>
+                      <option value="8 yrs">8 yrs</option>
+                      <option value="9 yrs">9 yrs</option>
+                      <option value="10 yrs">10 yrs</option>
+                      <option value="11 yrs">11 yrs</option>
+                      <option value="12 yrs">12 yrs</option>
+                      <option value="13 yrs">13 yrs</option>
+                      <option value="14 yrs">14 yrs</option>
+                      <option value="15 yrs">15 yrs</option>
+                      <option value="15+ yrs">15+ yrs</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
                   </div>
@@ -507,7 +574,7 @@ export default function HomePage() {
               </div>
 
               <div
-                className="space-y-6"
+                className="space-y-6 relative z-10"
               >
                 <div>
                   <p className="text-[10px] mt-3 font-bold text-gray-400 uppercase tracking-widest mb-3">Trusted by 1000+ enterprises and 7 lakh+ MSMEs for hiring</p>
@@ -551,7 +618,7 @@ export default function HomePage() {
       </section>
 
       {/* ATS Score Section - Compact Version */}
-      <section className="bg-gray-50/50 py-8">
+      <section className="bg-gray-50/50 py-8 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg shadow-gray-100 border border-gray-100">
             <div className="flex-1 text-center md:text-left">

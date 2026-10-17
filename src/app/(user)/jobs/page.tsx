@@ -27,7 +27,8 @@ import {
   Loader2,
   Zap,
   Building2,
-  X
+  X,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -74,6 +75,83 @@ const defaultFilters = [
   { id: 'experience_level', name: 'Experience Level', options: ['Fresher', '1-3 Years', '3-5 Years', '5+ Years', '5 to 8 years', '8 to 10', '10 to 15', '16+'] },
 ];
 
+const EXPERIENCE_OPTIONS = [
+  'Fresher',
+  '1 yr',
+  '2 yrs',
+  '3 yrs',
+  '4 yrs',
+  '5 yrs',
+  '6 yrs',
+  '7 yrs',
+  '8 yrs',
+  '9 yrs',
+  '10 yrs',
+  '11 yrs',
+  '12 yrs',
+  '13 yrs',
+  '14 yrs',
+  '15 yrs',
+  '15+ yrs'
+];
+
+const FRESHNESS_OPTIONS = [
+  'Last 30 days',
+  'Last 15 days',
+  'Last 7 days',
+  'Last 3 days',
+  'Last 1 days'
+];
+
+const checkExperienceMatch = (job: any, selectedExp: string): boolean => {
+  if (!selectedExp) return true;
+  const expStr = (job.experience_level || job.experience || '').toLowerCase();
+  if (expStr === selectedExp.toLowerCase()) return true;
+
+  if (selectedExp === 'Fresher') {
+    return expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern') || expStr === '0' || expStr.includes('0 year');
+  }
+
+  const selectedNum = parseInt(selectedExp, 10);
+  if (!isNaN(selectedNum)) {
+    const nums = expStr.match(/\d+/g);
+    if (nums && nums.length > 0) {
+      const parsedNums = nums.map((n: string) => parseInt(n, 10));
+      if (selectedExp.includes('+')) {
+        return Math.max(...parsedNums) >= selectedNum;
+      }
+      if (parsedNums.length === 1) {
+        return parsedNums[0] === selectedNum;
+      }
+      const min = Math.min(...parsedNums);
+      const max = Math.max(...parsedNums);
+      return selectedNum >= min && selectedNum <= max;
+    }
+    return expStr.includes(`${selectedNum}`);
+  }
+
+  if (selectedExp === '1-3 Years') return expStr.includes('junior') || expStr.includes('associate');
+  if (selectedExp === '3-5 Years') return expStr.includes('mid');
+  if (selectedExp === '5+ Years') return expStr.includes('senior') || expStr.includes('lead');
+
+  return expStr.includes(selectedExp.toLowerCase());
+};
+
+const checkFreshnessMatch = (job: any, selectedFreshness: string): boolean => {
+  if (!selectedFreshness) return true;
+  if (!job.created_at) return false;
+  const jobTime = new Date(job.created_at).getTime();
+  if (isNaN(jobTime)) return false;
+  const now = new Date().getTime();
+  const diffDays = (now - jobTime) / (1000 * 60 * 60 * 24);
+  const match = selectedFreshness.match(/\d+/);
+  if (match) {
+    const maxDays = parseInt(match[0], 10);
+    return diffDays <= maxDays;
+  }
+  return true;
+};
+
 function JobListingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -89,7 +167,12 @@ function JobListingContent() {
   const [selectedSkills, setSelectedSkills] = useState(searchParams.get('skills') || '');
   const [selectedSalary, setSelectedSalary] = useState(searchParams.get('salary') || '');
   const [selectedLanguage, setSelectedLanguage] = useState(searchParams.get('language') || '');
+  const [selectedFreshness, setSelectedFreshness] = useState(searchParams.get('freshness') || '');
+  const [selectedCompany, setSelectedCompany] = useState(searchParams.get('company') || '');
   const [sortBy, setSortBy] = useState<'newest' | 'highest_salary' | 'relevant'>('newest');
+
+  const [locationFilterSearch, setLocationFilterSearch] = useState('');
+  const [companyFilterSearch, setCompanyFilterSearch] = useState('');
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
@@ -220,11 +303,52 @@ function JobListingContent() {
     setSelectedSkills(searchParams.get('skills') || '');
     setSelectedSalary(searchParams.get('salary') || '');
     setSelectedLanguage(searchParams.get('language') || '');
+    setSelectedFreshness(searchParams.get('freshness') || '');
+    setSelectedCompany(searchParams.get('company') || '');
   }, [searchParams]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage]);
+  }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, selectedFreshness, selectedCompany]);
+
+  // Dynamic filter counts
+  const experienceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    EXPERIENCE_OPTIONS.forEach(opt => {
+      counts[opt] = jobs.filter(job => checkExperienceMatch(job, opt)).length;
+    });
+    return counts;
+  }, [jobs]);
+
+  const freshnessCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    FRESHNESS_OPTIONS.forEach(opt => {
+      counts[opt] = jobs.filter(job => checkFreshnessMatch(job, opt)).length;
+    });
+    return counts;
+  }, [jobs]);
+
+  const locationCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach((job: any) => {
+      if (job.location) {
+        const loc = job.location.trim();
+        counts[loc] = (counts[loc] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [jobs]);
+
+  const companyCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach((job: any) => {
+      const cName = job.companies?.name?.trim();
+      if (cName) {
+        counts[cName] = (counts[cName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [jobs]);
 
   // Real-time frontend filtering
   const filteredJobs = useMemo(() => {
@@ -240,30 +364,7 @@ function JobListingContent() {
 
       const matchesCategory = !selectedCategory || job.category === selectedCategory;
 
-      const matchesExperience = !selectedExperience || (() => {
-        const expStr = (job.experience_level || '').toLowerCase();
-        if (expStr === selectedExperience.toLowerCase()) return true;
-
-        const nums = expStr.match(/\d+(\.\d+)?/g);
-        let minExp = -1;
-
-        if (nums && nums.length > 0) {
-          minExp = parseFloat(nums[0]);
-        } else {
-          if (selectedExperience === 'Fresher') return expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern');
-          if (selectedExperience === '1-3 Years') return expStr.includes('junior') || expStr.includes('associate');
-          if (selectedExperience === '3-5 Years') return expStr.includes('mid');
-          if (selectedExperience === '5+ Years') return expStr.includes('senior') || expStr.includes('lead');
-          return false;
-        }
-
-        if (selectedExperience === 'Fresher') return minExp === 0;
-        if (selectedExperience === '1-3 Years') return minExp >= 1 && minExp <= 3;
-        if (selectedExperience === '3-5 Years') return minExp >= 3 && minExp <= 5;
-        if (selectedExperience === '5+ Years') return minExp >= 5;
-
-        return false;
-      })();
+      const matchesExperience = !selectedExperience || checkExperienceMatch(job, selectedExperience);
 
       const matchesType = !selectedType || job.job_type === selectedType;
 
@@ -291,7 +392,7 @@ function JobListingContent() {
 
         const nums = clean.match(/\d+/g);
         if (nums) {
-          const vals = nums.map(n => parseInt(n, 10));
+          const vals = nums.map((n: string) => parseInt(n, 10));
           return Math.max(...vals) >= minRequired;
         }
         return false;
@@ -304,9 +405,37 @@ function JobListingContent() {
       const matchesLanguage = !selectedLanguage ||
         (job.description && job.description.toLowerCase().includes(selectedLanguage.toLowerCase()));
 
-      return matchesSearch && matchesLocation && matchesCategory && matchesExperience && matchesType && matchesSalary && matchesSkills && matchesLanguage;
+      const matchesFreshness = !selectedFreshness || checkFreshnessMatch(job, selectedFreshness);
+
+      const matchesCompany = !selectedCompany ||
+        (companyName.toLowerCase() === selectedCompany.toLowerCase());
+
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesCategory &&
+        matchesExperience &&
+        matchesType &&
+        matchesSalary &&
+        matchesSkills &&
+        matchesLanguage &&
+        matchesFreshness &&
+        matchesCompany
+      );
     });
-  }, [jobs, searchQuery, locationQuery, selectedCategory, selectedExperience, selectedType, selectedSalary, selectedSkills, selectedLanguage]);
+  }, [
+    jobs,
+    searchQuery,
+    locationQuery,
+    selectedCategory,
+    selectedExperience,
+    selectedType,
+    selectedSalary,
+    selectedSkills,
+    selectedLanguage,
+    selectedFreshness,
+    selectedCompany
+  ]);
 
   // Real-time sorting
   const sortedJobs = useMemo(() => {
@@ -351,7 +480,40 @@ function JobListingContent() {
     if (selectedCategory) params.set('category', selectedCategory);
     if (selectedType) params.set('job_type', selectedType);
     if (selectedExperience) params.set('experience_level', selectedExperience);
+    if (selectedFreshness) params.set('freshness', selectedFreshness);
+    if (selectedCompany) params.set('company', selectedCompany);
+    if (selectedSalary) params.set('salary', selectedSalary);
+    if (selectedSkills) params.set('skills', selectedSkills);
     router.push(`/jobs?${params.toString()}`);
+  };
+
+  const hasActiveFilters = Boolean(
+    selectedCategory ||
+    selectedExperience ||
+    selectedType ||
+    selectedSalary ||
+    selectedSkills ||
+    selectedLanguage ||
+    selectedFreshness ||
+    selectedCompany ||
+    searchQuery ||
+    locationQuery
+  );
+
+  const handleClearAll = () => {
+    setSelectedCategory('');
+    setSelectedExperience('');
+    setSelectedType('');
+    setSelectedSalary('');
+    setSelectedSkills('');
+    setSelectedLanguage('');
+    setSelectedFreshness('');
+    setSelectedCompany('');
+    setSearchQuery('');
+    setLocationQuery('');
+    setLocationFilterSearch('');
+    setCompanyFilterSearch('');
+    router.push('/jobs');
   };
 
   const renderFiltersContent = () => (
@@ -361,19 +523,9 @@ function JobListingContent() {
         <h2 className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
           <Filter className="w-4 h-4 text-primary" /> Filter Jobs
         </h2>
-        {(selectedCategory || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage || searchQuery || locationQuery) && (
+        {hasActiveFilters && (
           <button
-            onClick={() => {
-              setSelectedCategory('');
-              setSelectedExperience('');
-              setSelectedType('');
-              setSelectedSalary('');
-              setSelectedSkills('');
-              setSelectedLanguage('');
-              setSearchQuery('');
-              setLocationQuery('');
-              router.push('/jobs');
-            }}
+            onClick={handleClearAll}
             className="text-[10px] font-black text-red-500 hover:text-red-600 transition-colors uppercase tracking-wider"
           >
             Clear All
@@ -383,9 +535,22 @@ function JobListingContent() {
 
       {/* Category Section */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-          <Building2 className="w-3.5 h-3.5 text-indigo-500" /> Category
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <LayoutGrid className="w-3.5 h-3.5 text-indigo-500" /> Category
+          </h3>
+          {selectedCategory && (
+            <button
+              onClick={() => {
+                setSelectedCategory('');
+                handleDropdownChange('category', '');
+              }}
+              className="text-[10px] font-bold text-indigo-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
         <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
           <button
             onClick={() => {
@@ -434,9 +599,22 @@ function JobListingContent() {
 
       {/* Job Type Section */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 text-emerald-500" /> Job Type
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-emerald-500" /> Job Type
+          </h3>
+          {selectedType && (
+            <button
+              onClick={() => {
+                setSelectedType('');
+                handleDropdownChange('job_type', '');
+              }}
+              className="text-[10px] font-bold text-emerald-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
         <div className="space-y-1">
           {['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'].map((type) => {
             const isSelected = selectedType === type;
@@ -468,14 +646,46 @@ function JobListingContent() {
         </div>
       </div>
 
-      {/* Experience Level */}
+      {/* Experience (yrs) Section */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-          <Briefcase className="w-3.5 h-3.5 text-amber-500" /> Experience
-        </h3>
-        <div className="space-y-1">
-          {['Fresher', '1-3 Years', '3-5 Years', '5+ Years'].map((exp) => {
-            const isSelected = selectedExperience === exp;
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Briefcase className="w-3.5 h-3.5 text-amber-500" /> Experience (yrs)
+          </h3>
+          {selectedExperience && (
+            <button
+              onClick={() => {
+                setSelectedExperience('');
+                handleDropdownChange('experience_level', '');
+              }}
+              className="text-[10px] font-bold text-amber-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <button
+            onClick={() => {
+              setSelectedExperience('');
+              handleDropdownChange('experience_level', '');
+            }}
+            className={cn(
+              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+              !selectedExperience
+                ? "bg-amber-50 text-amber-800 font-extrabold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <span>All Experience</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-black",
+              !selectedExperience ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+            )}>{jobs.length}</span>
+          </button>
+          {EXPERIENCE_OPTIONS.map((exp) => {
+            const isSelected = selectedExperience.toLowerCase() === exp.toLowerCase();
+            const count = experienceCounts[exp] || 0;
             return (
               <button
                 key={exp}
@@ -485,22 +695,244 @@ function JobListingContent() {
                   handleDropdownChange('experience_level', newVal);
                 }}
                 className={cn(
-                  "w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 border border-transparent",
+                  "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
                   isSelected
-                    ? "bg-amber-50/60 text-amber-700 border-amber-100/50"
+                    ? "bg-amber-50 text-amber-800 font-extrabold"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
               >
-                <div className={cn(
-                  "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-                  isSelected ? "border-amber-500 bg-amber-500" : "border-gray-300 bg-white"
-                )}>
-                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                <div className="flex items-center gap-2.5">
+                  <div className={cn(
+                    "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "border-amber-500 bg-amber-500" : "border-gray-300 bg-white"
+                  )}>
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span className="truncate">{exp}</span>
                 </div>
-                <span>{exp}</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black shrink-0",
+                  isSelected ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                )}>{count}</span>
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Location Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-blue-500" /> Location
+          </h3>
+          {locationQuery && (
+            <button
+              onClick={() => {
+                setLocationQuery('');
+                handleDropdownChange('location', '');
+              }}
+              className="text-[10px] font-bold text-blue-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        {Object.keys(locationCounts).length > 5 && (
+          <div className="relative">
+            <Search className="w-3 h-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Filter locations..."
+              value={locationFilterSearch}
+              onChange={(e) => setLocationFilterSearch(e.target.value)}
+              className="w-full pl-7 pr-2 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary/20"
+            />
+          </div>
+        )}
+        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <button
+            onClick={() => {
+              setLocationQuery('');
+              handleDropdownChange('location', '');
+            }}
+            className={cn(
+              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+              !locationQuery
+                ? "bg-blue-50 text-blue-700 font-extrabold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <span>All Locations</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-black",
+              !locationQuery ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+            )}>{jobs.length}</span>
+          </button>
+          {Object.entries(locationCounts)
+            .filter(([loc]) => !locationFilterSearch || loc.toLowerCase().includes(locationFilterSearch.toLowerCase()))
+            .sort((a, b) => b[1] - a[1])
+            .map(([loc, count]) => {
+              const isSelected = locationQuery.toLowerCase() === loc.toLowerCase();
+              return (
+                <button
+                  key={loc}
+                  onClick={() => {
+                    const newVal = isSelected ? '' : loc;
+                    setLocationQuery(newVal);
+                    handleDropdownChange('location', newVal);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+                    isSelected
+                      ? "bg-blue-50 text-blue-700 font-extrabold"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <span className="truncate pr-2">{loc}</span>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black shrink-0",
+                    isSelected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                  )}>{count}</span>
+                </button>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Job Freshness Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-cyan-500" /> Job Freshness
+          </h3>
+          {selectedFreshness && (
+            <button
+              onClick={() => {
+                setSelectedFreshness('');
+                handleDropdownChange('freshness', '');
+              }}
+              className="text-[10px] font-bold text-cyan-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        <div className="space-y-1">
+          {FRESHNESS_OPTIONS.map((freshness) => {
+            const isSelected = selectedFreshness === freshness;
+            const count = freshnessCounts[freshness] || 0;
+            return (
+              <button
+                key={freshness}
+                onClick={() => {
+                  const newVal = isSelected ? '' : freshness;
+                  setSelectedFreshness(newVal);
+                  handleDropdownChange('freshness', newVal);
+                }}
+                className={cn(
+                  "w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between border border-transparent group",
+                  isSelected
+                    ? "bg-cyan-50/70 text-cyan-800 border-cyan-100/60 font-extrabold"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all",
+                    isSelected ? "border-cyan-500 bg-cyan-500" : "border-gray-300 bg-white"
+                  )}>
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <span>{freshness}</span>
+                </div>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black shrink-0",
+                  isSelected ? "bg-cyan-100 text-cyan-800" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                )}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Company Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-purple-500" /> Company
+          </h3>
+          {selectedCompany && (
+            <button
+              onClick={() => {
+                setSelectedCompany('');
+                handleDropdownChange('company', '');
+              }}
+              className="text-[10px] font-bold text-purple-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        {Object.keys(companyCounts).length > 5 && (
+          <div className="relative">
+            <Search className="w-3 h-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Filter companies..."
+              value={companyFilterSearch}
+              onChange={(e) => setCompanyFilterSearch(e.target.value)}
+              className="w-full pl-7 pr-2 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary/20"
+            />
+          </div>
+        )}
+        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <button
+            onClick={() => {
+              setSelectedCompany('');
+              handleDropdownChange('company', '');
+            }}
+            className={cn(
+              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+              !selectedCompany
+                ? "bg-purple-50 text-purple-700 font-extrabold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <span>All Companies</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-black",
+              !selectedCompany ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+            )}>{jobs.length}</span>
+          </button>
+          {Object.entries(companyCounts)
+            .filter(([cName]) => !companyFilterSearch || cName.toLowerCase().includes(companyFilterSearch.toLowerCase()))
+            .sort((a, b) => b[1] - a[1])
+            .map(([cName, count]) => {
+              const isSelected = selectedCompany.toLowerCase() === cName.toLowerCase();
+              return (
+                <button
+                  key={cName}
+                  onClick={() => {
+                    const newVal = isSelected ? '' : cName;
+                    setSelectedCompany(newVal);
+                    handleDropdownChange('company', newVal);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+                    isSelected
+                      ? "bg-purple-50 text-purple-700 font-extrabold"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <span className="truncate pr-2">{cName}</span>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black shrink-0",
+                    isSelected ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                  )}>{count}</span>
+                </button>
+              );
+            })}
         </div>
       </div>
 
@@ -575,22 +1007,10 @@ function JobListingContent() {
         </div>
       </div>
 
-
-
       {/* Clear all bottom button */}
-      {(selectedCategory || selectedExperience || selectedType || selectedSalary || selectedSkills || selectedLanguage || searchQuery || locationQuery) && (
+      {hasActiveFilters && (
         <button
-          onClick={() => {
-            setSelectedCategory('');
-            setSelectedExperience('');
-            setSelectedType('');
-            setSelectedSalary('');
-            setSelectedSkills('');
-            setSelectedLanguage('');
-            setSearchQuery('');
-            setLocationQuery('');
-            router.push('/jobs');
-          }}
+          onClick={handleClearAll}
           className="w-full py-2.5 border border-red-200 text-red-500 hover:bg-red-50 rounded-xl text-xs font-bold transition-all uppercase tracking-wider text-center flex items-center justify-center gap-1.5"
         >
           <span>Clear All Filters</span>
@@ -727,7 +1147,7 @@ function JobListingContent() {
                 >
                   <Filter className="w-3.5 h-3.5 text-primary" />
                   <span>Filters</span>
-                  {Object.values({ selectedCategory, selectedExperience, selectedType, selectedSalary, selectedSkills, selectedLanguage }).filter(Boolean).length > 0 && (
+                  {hasActiveFilters && (
                     <span className="w-2.5 h-2.5 rounded-full bg-primary" />
                   )}
                 </button>
