@@ -973,7 +973,7 @@ export default function JobsQueue() {
                       </td>
                     </tr>
                   ) : (
-                    jobs.map((job) => (
+                    jobs.map((job, index) => (
                         <tr
                           key={job.id}
                           className={cn(
@@ -1089,7 +1089,10 @@ export default function JobsQueue() {
                                     <>
                                       <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
                                       <div 
-                                        className="absolute right-0 top-12 z-50 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 overflow-hidden"
+                                        className={cn(
+                                          "absolute z-50 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 overflow-hidden right-full mr-2",
+                                          (jobs.length > 2 ? index >= jobs.length - 2 : index > 0) ? "bottom-0" : "top-0"
+                                        )}
                                       >
                                         <button 
                                           onClick={() => { handleStatusUpdate(job.id, !job.is_approved); setOpenDropdownId(null); }}
