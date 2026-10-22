@@ -27,7 +27,7 @@ interface Company {
   location: string;
   logo_url: string;
   rating?: number;
-  jobs: { id: string }[];
+  jobs: { id: string; location?: string }[];
   team_size?: string;
 }
 
@@ -46,16 +46,42 @@ export default function CompaniesDirectory() {
 
   const fetchFilters = async () => {
     try {
-      const { data } = await supabase.from('companies').select('industry, location, team_size');
-      if (data) {
-        const uniqueIndustries = Array.from(new Set(data.map(c => c.industry).filter(Boolean)));
-        const uniqueLocations = Array.from(new Set(data.map(c => c.location).filter(Boolean)));
-        const uniqueTeamSizes = Array.from(new Set(data.map(c => c.team_size).filter(Boolean)));
-        
-        setIndustries(uniqueIndustries);
-        setLocations(uniqueLocations);
-        setTeamSizes(uniqueTeamSizes);
-      }
+      const [industriesRes, companiesRes, jobsRes] = await Promise.all([
+        supabase.from('industries').select('name').order('name', { ascending: true }),
+        supabase.from('companies').select('industry, location, team_size'),
+        supabase.from('jobs').select('location').eq('is_approved', true).not('location', 'is', null)
+      ]);
+
+      const indFromTable = (industriesRes.data || []).map((i: any) => i.name).filter(Boolean);
+      const indFromCompanies = (companiesRes.data || []).map((c: any) => c.industry).filter(Boolean);
+      const uniqueIndustries = Array.from(new Set([...indFromTable, ...indFromCompanies])).sort((a, b) => a.localeCompare(b));
+
+      // Extract clean locations from companies & active jobs
+      const compLocs = (companiesRes.data || []).map((c: any) => c.location).filter(Boolean);
+      const rawJobLocs = (jobsRes.data || []).map((j: any) => j.location).filter(Boolean);
+      
+      const cleanCityName = (loc: string): string | null => {
+        if (!loc) return null;
+        let c = loc.split(/[;,|]+/)[0].split(',')[0];
+        c = c.replace(/\([^)]*\)/g, '').trim();
+        c = c.replace(/(\s+[A-Z]{2,3})+$/, '').trim();
+        c = c.replace(/\s+\d+.*$/, '').trim();
+        if (!c || c.length < 2 || ['Other', 'N/A', 'Location', 'Remote', 'Locations'].includes(c)) return null;
+        if (c.toLowerCase() === 'bengaluru') return 'Bangalore';
+        return c;
+      };
+
+      const jobCities = rawJobLocs.map(cleanCityName).filter((c): c is string => Boolean(c));
+      const uniqueLocations = Array.from(new Set([...compLocs, ...jobCities])).sort((a, b) => a.localeCompare(b));
+
+      // Standard team sizes combined with DB values
+      const standardTeamSizes = ['1-50', '51-200', '201-500', '501-1000', '1001-5000', '5001-10000', '10000+'];
+      const compTeamSizes = (companiesRes.data || []).map((c: any) => c.team_size).filter(Boolean);
+      const uniqueTeamSizes = Array.from(new Set([...standardTeamSizes, ...compTeamSizes]));
+      
+      setIndustries(uniqueIndustries);
+      setLocations(uniqueLocations);
+      setTeamSizes(uniqueTeamSizes);
     } catch (err) {
       console.error('Error fetching filters:', err);
     }
@@ -68,18 +94,30 @@ export default function CompaniesDirectory() {
         .from('companies')
         .select(`
           *,
-          jobs(id)
+          jobs(id, location)
         `)
         .eq('jobs.is_approved', true);
 
       if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
       if (industryQuery) query = query.ilike('industry', `%${industryQuery}%`);
-      if (locationQuery) query = query.ilike('location', `%${locationQuery}%`);
       if (teamSizeQuery) query = query.eq('team_size', teamSizeQuery);
 
       const { data, error } = await query;
       if (error) throw error;
-      setCompanies((data as any) || []);
+      
+      let list = (data as any) || [];
+
+      // If locationQuery is selected, match company location OR any of its active jobs' location
+      if (locationQuery) {
+        const locLower = locationQuery.toLowerCase();
+        list = list.filter((company: any) => {
+          const compLocMatches = company.location && company.location.toLowerCase().includes(locLower);
+          const jobLocMatches = company.jobs && company.jobs.some((j: any) => j.location && j.location.toLowerCase().includes(locLower));
+          return compLocMatches || jobLocMatches;
+        });
+      }
+
+      setCompanies(list);
     } catch (error) {
       error && console.error('Error fetching companies:', error);
     } finally {
@@ -89,8 +127,11 @@ export default function CompaniesDirectory() {
 
   useEffect(() => {
     fetchFilters();
-    fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [industryQuery, locationQuery, teamSizeQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +272,13 @@ export default function CompaniesDirectory() {
                                           <Briefcase className="w-4 h-4 text-gray-300" /> {company.industry}
                                       </span>
                                       <span className="flex items-center gap-2">
-                                          <MapPin className="w-4 h-4 text-gray-300" /> {company.location || 'Remote'}
+                                          <MapPin className="w-4 h-4 text-gray-300" /> {
+                                            company.location || (
+                                              company.jobs && company.jobs.length > 0 && company.jobs[0].location
+                                                ? company.jobs[0].location.split(',')[0].replace(/\([^)]*\)/g, '').replace(/(\s+[A-Z]{2,3})+$/, '').trim()
+                                                : 'Multiple Locations'
+                                            )
+                                          }
                                       </span>
                                       {company.team_size && (
                                           <span className="flex items-center gap-2">

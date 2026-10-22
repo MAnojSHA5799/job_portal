@@ -169,10 +169,13 @@ function JobListingContent() {
   const [selectedLanguage, setSelectedLanguage] = useState(searchParams.get('language') || '');
   const [selectedFreshness, setSelectedFreshness] = useState(searchParams.get('freshness') || '');
   const [selectedCompany, setSelectedCompany] = useState(searchParams.get('company') || '');
+  const [selectedIndustry, setSelectedIndustry] = useState(searchParams.get('industry') || '');
   const [sortBy, setSortBy] = useState<'newest' | 'highest_salary' | 'relevant'>('newest');
 
   const [locationFilterSearch, setLocationFilterSearch] = useState('');
   const [companyFilterSearch, setCompanyFilterSearch] = useState('');
+  const [industryFilterSearch, setIndustryFilterSearch] = useState('');
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
@@ -208,6 +211,22 @@ function JobListingContent() {
     }
   };
 
+  const fetchIndustries = async () => {
+    try {
+      const [industriesRes, companiesRes] = await Promise.all([
+        supabase.from('industries').select('name').order('name', { ascending: true }),
+        supabase.from('companies').select('industry').not('industry', 'is', null)
+      ]);
+
+      const indFromTable = (industriesRes.data || []).map((i: any) => i.name).filter(Boolean);
+      const indFromCompanies = (companiesRes.data || []).map((c: any) => c.industry).filter(Boolean);
+      const uniqueIndustries = Array.from(new Set([...indFromTable, ...indFromCompanies])).sort((a, b) => a.localeCompare(b));
+      setIndustryOptions(uniqueIndustries);
+    } catch (error) {
+      console.error('Error fetching industries:', error);
+    }
+  };
+
   const fetchJobs = async () => {
     setLoading(true);
     try {
@@ -219,7 +238,8 @@ function JobListingContent() {
             id,
             name,
             logo_url,
-            url_slug
+            url_slug,
+            industry
           )
         `)
         .eq('is_approved', true)
@@ -277,6 +297,7 @@ function JobListingContent() {
 
   useEffect(() => {
     fetchCompanyNames();
+    fetchIndustries();
     fetchJobs();
     // Fetch AdSense settings from admin
     fetch('/api/admin/site-settings')
@@ -305,11 +326,12 @@ function JobListingContent() {
     setSelectedLanguage(searchParams.get('language') || '');
     setSelectedFreshness(searchParams.get('freshness') || '');
     setSelectedCompany(searchParams.get('company') || '');
+    setSelectedIndustry(searchParams.get('industry') || '');
   }, [searchParams]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, selectedFreshness, selectedCompany]);
+  }, [searchQuery, locationQuery, selectedCategory, selectedType, selectedExperience, selectedSalary, selectedSkills, selectedLanguage, selectedFreshness, selectedCompany, selectedIndustry]);
 
   // Dynamic filter counts
   const experienceCounts = useMemo(() => {
@@ -345,6 +367,17 @@ function JobListingContent() {
       const cName = job.companies?.name?.trim();
       if (cName) {
         counts[cName] = (counts[cName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [jobs]);
+
+  const industryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    jobs.forEach((job: any) => {
+      const ind = job.companies?.industry?.trim();
+      if (ind) {
+        counts[ind] = (counts[ind] || 0) + 1;
       }
     });
     return counts;
@@ -410,6 +443,9 @@ function JobListingContent() {
       const matchesCompany = !selectedCompany ||
         (companyName.toLowerCase() === selectedCompany.toLowerCase());
 
+      const matchesIndustry = !selectedIndustry ||
+        ((job as any).companies?.industry?.toLowerCase() === selectedIndustry.toLowerCase());
+
       return (
         matchesSearch &&
         matchesLocation &&
@@ -420,7 +456,8 @@ function JobListingContent() {
         matchesSkills &&
         matchesLanguage &&
         matchesFreshness &&
-        matchesCompany
+        matchesCompany &&
+        matchesIndustry
       );
     });
   }, [
@@ -434,7 +471,8 @@ function JobListingContent() {
     selectedSkills,
     selectedLanguage,
     selectedFreshness,
-    selectedCompany
+    selectedCompany,
+    selectedIndustry
   ]);
 
   // Real-time sorting
@@ -496,6 +534,7 @@ function JobListingContent() {
     selectedLanguage ||
     selectedFreshness ||
     selectedCompany ||
+    selectedIndustry ||
     searchQuery ||
     locationQuery
   );
@@ -509,10 +548,12 @@ function JobListingContent() {
     setSelectedLanguage('');
     setSelectedFreshness('');
     setSelectedCompany('');
+    setSelectedIndustry('');
     setSearchQuery('');
     setLocationQuery('');
     setLocationFilterSearch('');
     setCompanyFilterSearch('');
+    setIndustryFilterSearch('');
     router.push('/jobs');
   };
 
@@ -936,6 +977,86 @@ function JobListingContent() {
         </div>
       </div>
 
+      {/* Industry Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Building2 className="w-3.5 h-3.5 text-teal-500" /> Industry
+          </h3>
+          {selectedIndustry && (
+            <button
+              onClick={() => {
+                setSelectedIndustry('');
+                handleDropdownChange('industry', '');
+              }}
+              className="text-[10px] font-bold text-teal-600 hover:underline"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+        {industryOptions.length > 5 && (
+          <div className="relative">
+            <Search className="w-3 h-3 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Filter industries..."
+              value={industryFilterSearch}
+              onChange={(e) => setIndustryFilterSearch(e.target.value)}
+              className="w-full pl-7 pr-2 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary/20"
+            />
+          </div>
+        )}
+        <div className="space-y-1 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+          <button
+            onClick={() => {
+              setSelectedIndustry('');
+              handleDropdownChange('industry', '');
+            }}
+            className={cn(
+              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+              !selectedIndustry
+                ? "bg-teal-50 text-teal-700 font-extrabold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <span>All Industries</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-black",
+              !selectedIndustry ? "bg-teal-100 text-teal-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+            )}>{jobs.length}</span>
+          </button>
+          {industryOptions
+            .filter((ind) => !industryFilterSearch || ind.toLowerCase().includes(industryFilterSearch.toLowerCase()))
+            .map((ind) => {
+              const count = industryCounts[ind] || 0;
+              const isSelected = selectedIndustry.toLowerCase() === ind.toLowerCase();
+              return (
+                <button
+                  key={ind}
+                  onClick={() => {
+                    const newVal = isSelected ? '' : ind;
+                    setSelectedIndustry(newVal);
+                    handleDropdownChange('industry', newVal);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+                    isSelected
+                      ? "bg-teal-50 text-teal-700 font-extrabold"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <span className="truncate pr-2">{ind}</span>
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black shrink-0",
+                    isSelected ? "bg-teal-100 text-teal-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+                  )}>{count}</span>
+                </button>
+              );
+            })}
+        </div>
+      </div>
+
       {/* Min Salary */}
       <div className="space-y-2.5">
         <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -984,7 +1105,23 @@ function JobListingContent() {
             { label: 'Design', value: 'Design' },
             { label: 'Production', value: 'Production' },
             { label: 'Quality', value: 'Quality' },
-            { label: 'Maintenance', value: 'Maintenance' }
+            { label: 'Maintenance', value: 'Maintenance' },
+            { label: 'Store', value: 'Store' },
+            { label: 'HR', value: 'HR' },
+            { label: 'Accountant', value: 'Accountant' },
+            { label: 'Welding', value: 'Welding' },
+            { label: 'Electrical', value: 'Electrical' },
+            { label: 'Mechanical', value: 'Mechanical' },
+            { label: 'ITI', value: 'ITI' },
+            { label: 'Diploma', value: 'Diploma' },
+            { label: 'Operator', value: 'Operator' },
+            { label: 'Supervisor', value: 'Supervisor' },
+            { label: 'Safety', value: 'Safety' },
+            { label: 'Logistics', value: 'Logistics' },
+            { label: 'Packaging', value: 'Packaging' },
+            { label: 'Finance', value: 'Finance' },
+            { label: 'Admin', value: 'Admin' },
+            { label: 'Data Entry', value: 'Data Entry' },
           ].map((skill) => {
             const isSelected = selectedSkills === skill.value;
             return (

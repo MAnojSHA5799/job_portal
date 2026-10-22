@@ -40,6 +40,30 @@ interface Company {
   url_slug?: string | null;
 }
 
+const DEFAULT_JOB_CATEGORIES = [
+  'Production',
+  'Quality',
+  'Maintenance',
+  'Engineering',
+  'Manufacturing',
+  'Store',
+  'Purchase',
+  'Supply Chain',
+  'Logistics',
+  'Operations',
+  'HR',
+  'Finance',
+  'Accountant',
+  'Sales',
+  'Marketing',
+  'Design',
+  'R&D',
+  'Safety / EHS',
+  'Administration',
+  'IT & Software',
+  'General',
+];
+
 interface Job {
   id?: string;
   title: string;
@@ -269,6 +293,48 @@ export function JobForm({
   } : null);
 
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(!!initialData?.url_slug);
+
+  // Category autocomplete suggestions state
+  const [availableCategories, setAvailableCategories] = useState<string[]>(DEFAULT_JOB_CATEGORIES);
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
+  const categoryInputContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch all existing categories from database to enrich suggestions
+  useEffect(() => {
+    async function loadDBCategories() {
+      try {
+        const { data } = await supabase
+          .from('jobs')
+          .select('category')
+          .not('category', 'is', null);
+
+        if (data && data.length > 0) {
+          const dbCats = data
+            .map(j => j.category?.trim())
+            .filter((c): c is string => Boolean(c && c.length > 1));
+
+          setAvailableCategories(Array.from(new Set([...DEFAULT_JOB_CATEGORIES, ...dbCats])));
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    }
+    loadDBCategories();
+  }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        categoryInputContainerRef.current &&
+        !categoryInputContainerRef.current.contains(e.target as Node)
+      ) {
+        setShowCategorySuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!isSlugManuallyEdited) {
@@ -888,7 +954,7 @@ Instructions:
             </div>
 
             {/* Row 4: Category & Apply Link */}
-            <div className="space-y-2">
+            <div className="space-y-2" ref={categoryInputContainerRef}>
               <div className="flex items-center justify-between h-6 mb-2">
                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Job Category</label>
                 <Button 
@@ -898,7 +964,12 @@ Instructions:
                   onClick={() => {
                     const newCat = prompt("Enter new category name:");
                     if (newCat) {
-                      setCurrentJob({...currentJob, category: newCat});
+                      const trimmed = newCat.trim();
+                      setCurrentJob({...currentJob, category: trimmed});
+                      if (!availableCategories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+                        setAvailableCategories(prev => [trimmed, ...prev]);
+                      }
+                      setShowCategorySuggestions(false);
                     }
                   }}
                   className="h-7 px-2 rounded-lg text-[9px] font-black text-primary hover:bg-primary/5 uppercase tracking-widest border border-primary/20"
@@ -908,14 +979,112 @@ Instructions:
               </div>
               <div className="relative group">
                 <Input 
-                  className="h-12 pl-12 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
+                  className="h-12 pl-12 pr-10 border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-bold"
                   placeholder="e.g. Production, Quality" 
                   value={currentJob.category || ''}
-                  onChange={e => setCurrentJob({...currentJob, category: e.target.value})}
+                  onFocus={() => setShowCategorySuggestions(true)}
+                  onChange={e => {
+                    setCurrentJob({...currentJob, category: e.target.value});
+                    setShowCategorySuggestions(true);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      setShowCategorySuggestions(false);
+                    }
+                  }}
                 />
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors">
                   <Zap className="h-4 w-4" />
                 </div>
+                {currentJob.category && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentJob({ ...currentJob, category: '' });
+                      setShowCategorySuggestions(true);
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 rounded-md transition-colors"
+                    title="Clear category"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
+                {/* Autocomplete Category Suggestions Dropdown */}
+                {showCategorySuggestions && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-100 p-1.5 space-y-0.5">
+                    <div className="px-3 py-1.5 text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center justify-between border-b border-gray-50 mb-1">
+                      <span>Suggested Categories</span>
+                      <span>
+                        {
+                          availableCategories.filter(cat => 
+                            !currentJob.category || cat.toLowerCase().includes(currentJob.category.toLowerCase())
+                          ).length
+                        } found
+                      </span>
+                    </div>
+                    {(() => {
+                      const query = (currentJob.category || '').toLowerCase().trim();
+                      const filtered = availableCategories.filter(cat =>
+                        !query || cat.toLowerCase().includes(query)
+                      );
+
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="px-3 py-3 text-center">
+                            <p className="text-xs font-bold text-gray-500 mb-2">No matching category</p>
+                            {query && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const trimmed = currentJob.category.trim();
+                                  setAvailableCategories(prev => [trimmed, ...prev]);
+                                  setShowCategorySuggestions(false);
+                                }}
+                                className="inline-flex items-center gap-1.5 text-xs font-black text-primary hover:underline"
+                              >
+                                <Plus className="w-3.5 h-3.5" /> Use &quot;{currentJob.category}&quot;
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return filtered.map((cat) => {
+                        const isSelected = (currentJob.category || '').toLowerCase() === cat.toLowerCase();
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onMouseDown={(e) => {
+                              // onMouseDown prevents blur before click fires
+                              e.preventDefault();
+                              setCurrentJob({ ...currentJob, category: cat });
+                              setShowCategorySuggestions(false);
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between",
+                              isSelected
+                                ? "bg-primary/10 text-primary font-black"
+                                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className={cn(
+                                "w-1.5 h-1.5 rounded-full transition-colors",
+                                isSelected ? "bg-primary" : "bg-gray-300"
+                              )} />
+                              {cat}
+                            </span>
+                            {isSelected && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                            )}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
               </div>
             </div>
             <div className="space-y-2">

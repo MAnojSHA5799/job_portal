@@ -72,6 +72,18 @@ export default function ATSScorePage() {
   const [showPreview, setShowPreview] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const complianceSectionRef = useRef<HTMLDivElement>(null);
+
+  const scrollToCompliance = (filter: 'all' | 'error' | 'warning' | 'pass', cardId?: string) => {
+    setSelectedComplianceFilter(filter);
+    setTimeout(() => {
+      if (cardId) {
+        const el = document.getElementById(cardId);
+        if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      }
+      complianceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
   const [activeTab, setActiveTab] = useState<'original' | 'enhancv'>('enhancv');
   const [expandedCategory, setExpandedCategory] = useState<string | null>('compliance');
   const [isParsing, setIsParsing] = useState(false);
@@ -612,26 +624,12 @@ CRITICAL EXTRACTION REQUIREMENTS:
 
                         {/* ⚠️ ATS File Naming Notice - Simple Red Text */}
                         {file && fileNameWarning && (
-                          <div 
-                            onClick={(e) => e.stopPropagation()} 
-                            className="mt-4 flex items-start gap-2.5 text-red-600 font-bold bg-red-50/90 px-5 py-3 rounded-2xl border border-red-200 text-sm z-20 shadow-sm backdrop-blur-sm text-left"
+                          <p
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-3 text-xs text-red-600 font-semibold text-left z-20"
                           >
-                            <AlertCircle className="w-5 h-5 shrink-0 text-red-600 mt-0.5" />
-                            <div className="space-y-1">
-                              <p className="text-red-700 font-black text-xs uppercase tracking-wider">
-                                ATS File Name Warning: Non-Standard Format
-                              </p>
-                              <p className="text-xs text-red-600 font-semibold leading-relaxed">
-                                {fileNameWarning.message}
-                              </p>
-                              <p className="text-xs text-red-700 font-medium">
-                                Required: <span className="font-mono font-bold text-red-900">FirstName_LastName_Role.pdf</span>
-                                {fileNameWarning.suggestedValue && (
-                                  <> · Recommended: <span className="font-mono font-black text-red-900 bg-red-100/90 px-1.5 py-0.5 rounded border border-red-200">{fileNameWarning.suggestedValue}</span></>
-                                )}
-                              </p>
-                            </div>
-                          </div>
+                             ATS File Name Warning: Non-Standard Format. {fileNameWarning.message} Required: <span className="font-mono">FirstName_LastName_Role.pdf</span>{fileNameWarning.suggestedValue ? ` · Recommended: ${fileNameWarning.suggestedValue}` : ''}
+                          </p>
                         )}
                       </div>
                     ) : (
@@ -840,7 +838,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                       <div className="py-2.5">
                         <button
                           type="button"
-                          onClick={() => setExpandedCategory(expandedCategory === 'content' ? null : 'content')}
+                          onClick={() => { setExpandedCategory(expandedCategory === 'content' ? null : 'content'); scrollToCompliance(contentScore < 70 ? 'error' : 'all', 'compliance-content'); }}
                           className="w-full flex items-center justify-between py-2 text-left group transition-all"
                         >
                           <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
@@ -913,7 +911,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                       <div className="py-2.5">
                         <button
                           type="button"
-                          onClick={() => setExpandedCategory(expandedCategory === 'sections' ? null : 'sections')}
+                          onClick={() => { setExpandedCategory(expandedCategory === 'sections' ? null : 'sections'); scrollToCompliance(sectionsScore < 90 ? 'warning' : 'all', 'compliance-sections'); }}
                           className="w-full flex items-center justify-between py-2 text-left group transition-all"
                         >
                           <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
@@ -948,7 +946,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                       <div className="py-2.5">
                         <button
                           type="button"
-                          onClick={() => setExpandedCategory(expandedCategory === 'essentials' ? null : 'essentials')}
+                          onClick={() => { setExpandedCategory(expandedCategory === 'essentials' ? null : 'essentials'); scrollToCompliance('all', 'compliance-email'); }}
                           className="w-full flex items-center justify-between py-2 text-left group transition-all"
                         >
                           <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
@@ -979,7 +977,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                       <div className="py-2.5">
                         <button
                           type="button"
-                          onClick={() => setExpandedCategory(expandedCategory === 'tailoring' ? null : 'tailoring')}
+                          onClick={() => { setExpandedCategory(expandedCategory === 'tailoring' ? null : 'tailoring'); scrollToCompliance('error', 'compliance-keywords'); }}
                           className="w-full flex items-center justify-between py-2 text-left group transition-all"
                         >
                           <span className="text-xs font-black tracking-[0.16em] text-gray-500 uppercase">
@@ -1536,10 +1534,11 @@ CRITICAL EXTRACTION REQUIREMENTS:
           {/* ===== ATS SCORING MODEL & COMPLIANCE CHECKLIST ===== */}
           {complianceReport && (
             <motion.div
+              ref={complianceSectionRef}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="space-y-6"
+              className="space-y-6 scroll-mt-8"
             >
               <Card className="overflow-hidden border-0 shadow-2xl rounded-[36px] bg-white">
                 {/* ── HEADER BANNER ── */}
@@ -1548,19 +1547,20 @@ CRITICAL EXTRACTION REQUIREMENTS:
                   <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
                   <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
 
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center shrink-0 border border-white/20">
-                        <ShieldCheck className="w-7 h-7 text-white" />
+                  <div className="relative z-10 flex flex-col gap-5">
+                    {/* Title row */}
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center shrink-0 border border-white/20">
+                        <ShieldCheck className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-black text-white tracking-tight">ATS Scoring Model</h2>
-                        <p className="text-indigo-300 text-sm font-medium mt-0.5">6-pillar compliance audit · File · Email · Headings · Sections · Content · Keywords</p>
+                        <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">ATS Scoring Model</h2>
+                        <p className="text-indigo-300 text-xs sm:text-sm font-medium mt-0.5 leading-relaxed">6-pillar compliance audit · File · Email · Headings · Sections · Content · Keywords</p>
                       </div>
                     </div>
 
-                    {/* Score Pills */}
-                    <div className="flex flex-wrap gap-2 shrink-0">
+                    {/* Score Pills — full-width wrapping row */}
+                    <div className="flex flex-wrap gap-2">
                       {[
                         { label: 'All Checks', count: 6, color: 'bg-white/10 text-white border-white/20', filter: 'all' },
                         { label: 'Critical', count: complianceReport.actionItems.highPriority.length, color: 'bg-rose-500/20 text-rose-300 border-rose-500/30', filter: 'error' },
@@ -1570,7 +1570,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                         <button
                           key={pill.filter}
                           onClick={() => setSelectedComplianceFilter(pill.filter as any)}
-                          className={`px-4 py-2 rounded-2xl border text-xs font-bold transition-all ${pill.color} ${selectedComplianceFilter === pill.filter ? 'ring-2 ring-white/40 scale-105' : 'opacity-70 hover:opacity-100'}`}
+                          className={`flex-1 min-w-[100px] sm:flex-none px-4 py-2 rounded-2xl border text-xs font-bold transition-all text-center ${pill.color} ${selectedComplianceFilter === pill.filter ? 'ring-2 ring-white/40 scale-105' : 'opacity-70 hover:opacity-100'}`}
                         >
                           {pill.label} <span className="ml-1 font-black">{pill.count}</span>
                         </button>
@@ -1580,7 +1580,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                 </div>
 
                 {/* ── 6 COMPLIANCE CARDS ── */}
-                <div className="p-8 md:p-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                <div className="p-4 sm:p-6 md:p-10 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
 
                   {/* Helper: status style */}
                   {(() => {
@@ -1622,7 +1622,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                         {(selectedComplianceFilter === 'all' || selectedComplianceFilter === complianceReport.checks.emailQuality.status) && (() => {
                           const st = statusStyle(complianceReport.checks.emailQuality.status);
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-email" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="Email Quality Audit" status={complianceReport.checks.emailQuality.status} icon={Mail} />
                               <div className="p-5 flex-1 space-y-4">
                                 {/* Detected email */}
@@ -1679,7 +1679,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                         {(selectedComplianceFilter === 'all' || selectedComplianceFilter === complianceReport.checks.fileName.status) && (() => {
                           const st = statusStyle(complianceReport.checks.fileName.status);
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-file" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="File Name Convention" status={complianceReport.checks.fileName.status} icon={FolderCheck} />
                               <div className="p-5 flex-1 space-y-4">
                                 <div className="bg-gray-50 rounded-2xl px-4 py-3">
@@ -1741,7 +1741,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                         {(selectedComplianceFilter === 'all' || selectedComplianceFilter === complianceReport.checks.headingsAndDates.status) && (() => {
                           const st = statusStyle(complianceReport.checks.headingsAndDates.status);
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-headings" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="Headings & Date Consistency" status={complianceReport.checks.headingsAndDates.status} icon={Calendar} />
                               <div className="p-5 flex-1 space-y-4">
                                 <div>
@@ -1794,7 +1794,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                           ];
                           const passCount = sections.filter(s => s.found).length;
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-sections" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="Standard Sections Completeness" status={complianceReport.checks.standardSections.status} icon={Layers} />
                               <div className="p-5 flex-1 space-y-4">
                                 {/* Progress bar */}
@@ -1840,7 +1840,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                             { icon: AlertTriangle, color: 'amber', title: 'Excessive Bullets & Dense Text', desc: 'Infosiya has 16 bullets (4–6 recommended). Summary is a 7-line paragraph — break into concise bullets.' },
                           ];
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-content" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="Content Quality & Impact" status={complianceReport.checks.contentQuality.status} icon={Zap} />
                               <div className="p-5 flex-1 space-y-3">
                                 {issues.map((issue, i) => (
@@ -1875,7 +1875,7 @@ CRITICAL EXTRACTION REQUIREMENTS:
                           const total = matched.length + missing.length;
                           const pct = Math.round((matched.length / total) * 100);
                           return (
-                            <div className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden`}>
+                            <div id="compliance-keywords" className={`rounded-3xl border-l-4 ${st.border} border border-gray-100 bg-white hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden scroll-mt-6`}>
                               <CardHeader title="Keywords & Skills Match" status={complianceReport.checks.keywordsAndSkills.status} icon={Target} />
                               <div className="p-5 flex-1 space-y-4">
                                 {/* Match score gauge */}

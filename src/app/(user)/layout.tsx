@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -103,6 +103,17 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'delhi': 'Delhi NCR',
             'new delhi': 'Delhi NCR',
             'delhi ncr': 'Delhi NCR',
+            'mumbai': 'Mumbai',
+            'bombay': 'Mumbai',
+            'kolkata': 'Kolkata',
+            'calcutta': 'Kolkata',
+            'chennai': 'Chennai',
+            'madras': 'Chennai',
+            'hyderabad': 'Hyderabad',
+            'secunderabad': 'Hyderabad',
+            'new york': 'New York',
+            'new york city': 'New York',
+            'nyc': 'New York',
             'remote': 'Remote',
             'work from home': 'Remote',
             'wfh': 'Remote',
@@ -111,8 +122,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
           // Country name normalization map
           const COUNTRY_MAPPING: Record<string, string> = {
             'us': 'United States', 'usa': 'United States', 'united states': 'United States',
-            'uk': 'United Kingdom', 'united kingdom': 'United Kingdom',
-            'in': 'India', 'india': 'India',
+            'united states of america': 'United States',
+            'uk': 'United Kingdom', 'united kingdom': 'United Kingdom', 'great britain': 'United Kingdom',
+            'gb': 'United Kingdom', 'gbr': 'United Kingdom', 'england': 'United Kingdom',
+            'scotland': 'United Kingdom', 'wales': 'United Kingdom',
+            'in': 'India', 'india': 'India', 'ind': 'India',
             'uae': 'United Arab Emirates', 'united arab emirates': 'United Arab Emirates',
             'canada': 'Canada', 'australia': 'Australia', 'germany': 'Germany',
             'singapore': 'Singapore', 'netherlands': 'Netherlands', 'france': 'France',
@@ -155,7 +169,9 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             'india', 'usa', 'uk', 'uae', 'canada', 'australia', 'germany',
             'netherlands', 'france', 'singapore', 'unknown', 'other', 'pan india',
             'anywhere', 'flexible', 'negotiable', 'work from office', 'work from home',
-            'united states', 'united kingdom', 'united arab emirates', 'remote'
+            'united states', 'united kingdom', 'united arab emirates', 'remote',
+            'unspecified', 'alternate', 'home', 'ssir', 'angkor west', 'bsh-sakinaka',
+            'home remote alternate', 'england', 'scotland', 'wales'
           ]);
 
           // Indian state names — should not appear as city
@@ -199,13 +215,17 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             // Remove special chars except hyphen and space
             raw = raw.replace(/[|_/\\@#]+/g, ' ').replace(/\s+/g, ' ').trim();
 
+            // Strip trailing 2-3 letter uppercase country/state codes repeatedly
+            // e.g. "Chennai IN" → "Chennai", "Noida UP IN" → "Noida", "Stafford ENG GB" → "Stafford"
+            raw = raw.replace(/(\s+[A-Z]{2,3})+$/, '').trim();
+
             // Basic validity checks
             if (!raw || raw.length < 2 || raw.length > 40) return null;
             if (/^\d/.test(raw)) return null; // starts with number
 
             const lower = raw.toLowerCase();
 
-            // Blacklist check
+            // Blacklist check (now "Other" properly caught after stripping "GJ IN")
             if (CITY_BLACKLIST.has(lower)) return null;
 
             // Country name check
@@ -249,6 +269,16 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                   detectedCountrySlug = COUNTRY_SLUG_MAP[detectedCountryName] || matchedKey.replace(/\s+/g, '-');
                   break;
                 }
+                // Check individual words in the part (e.g. "Stafford ENG GB" or "London England")
+                const words = partLower.split(/\s+/);
+                for (const w of words) {
+                  if (COUNTRY_MAPPING[w] && COUNTRY_MAPPING[w] !== 'India') {
+                    detectedCountryName = COUNTRY_MAPPING[w];
+                    detectedCountrySlug = COUNTRY_SLUG_MAP[detectedCountryName] || w.replace(/\s+/g, '-');
+                    break;
+                  }
+                }
+                if (detectedCountryName) break;
               }
 
               // If entry mentions a US state (e.g. "Boston, Massachusetts"), detect as USA
@@ -272,19 +302,34 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 const cleaned = cleanCity(part);
                 if (cleaned) {
                   const lower = cleaned.toLowerCase();
+                  // Skip states and provinces so state pages are not added under Jobs by City
+                  if (INDIAN_STATES.has(lower) && lower !== 'delhi' && lower !== 'delhi ncr') {
+                    continue;
+                  }
+                  if (PROVINCES_AND_STATES.has(lower) && lower !== 'new york') {
+                    continue;
+                  }
                   // Skip Indian state abbreviation like "AP" if full city is available
                   if (detectedCountrySlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) {
+                    continue;
+                  }
+                  // Skip 2-letter uppercase state/province abbreviations (TN, UP, GJ, MH, MP, etc.)
+                  if (/^[A-Z]{2}$/.test(cleaned.trim()) && parts.length > 1) {
                     continue;
                   }
 
                   const normalizedCity = CITY_ALIASES[lower] ||
                     cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
-                  const normKey = normalizedCity.toLowerCase();
+                  const cleanNormCity = normalizedCity.split(',')[0].trim();
+                  const normKey = cleanNormCity.toLowerCase().replace(/\s+/g, '-');
                   if (!cityKeyMap[normKey]) {
-                    cityKeyMap[normKey] = normalizedCity;
+                    cityKeyMap[normKey] = cleanNormCity;
                   }
 
+                  if (!cityCountryMap[cleanNormCity] && detectedCountrySlug) {
+                    cityCountryMap[cleanNormCity] = detectedCountrySlug;
+                  }
                   if (!cityCountryMap[normalizedCity] && detectedCountrySlug) {
                     cityCountryMap[normalizedCity] = detectedCountrySlug;
                   }
@@ -338,6 +383,59 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     // Redirect to home so profile page data is not visible after logout
     window.location.href = '/';
   };
+
+  // Deduplicate and sanitize cities so no duplicate city pages/links are shown
+  const uniqueCities = useMemo(() => {
+    const seenPages = new Set<string>();
+    const seenNames = new Set<string>();
+    const result: { displayCity: string; href: string }[] = [];
+
+    for (const city of navData.cities) {
+      if (!city) continue;
+      // Strip any extra segment after comma
+      const displayCity = city.split(',')[0].trim();
+      const base = displayCity.toLowerCase();
+
+      // Hide generic/garbage/placeholder names
+      if (!base || ['other', 'n/a', 'na', 'tbd', 'various', 'multiple', 'unknown', 'anywhere', 'location', 'locations'].includes(base)) {
+        continue;
+      }
+
+      const urlCity = displayCity.toLowerCase().replace(/\s+/g, '-');
+      const countrySlug = navData.cityCountryMap[city] || navData.cityCountryMap[displayCity] || getCountryForCity(displayCity);
+      const href = `/job-in-${countrySlug}/job-in-${encodeURIComponent(urlCity)}`;
+
+      // Strictly ensure no duplicate city page / URL and no duplicate display name
+      if (seenPages.has(href) || seenNames.has(base)) {
+        continue;
+      }
+      seenPages.add(href);
+      seenNames.add(base);
+
+      result.push({
+        displayCity,
+        href,
+      });
+    }
+
+    return result;
+  }, [navData.cities, navData.cityCountryMap]);
+
+  // Deduplicate countries
+  const uniqueCountries = useMemo(() => {
+    const seenSlugs = new Set<string>();
+    const result: { country: string; slug: string }[] = [];
+
+    for (const country of navData.countries) {
+      if (!country) continue;
+      const slug = getCountrySlug(country);
+      if (!slug || seenSlugs.has(slug)) continue;
+      seenSlugs.add(slug);
+      result.push({ country, slug });
+    }
+
+    return result;
+  }, [navData.countries]);
 
   const navigation = [
     { name: 'Home', href: '/', },
@@ -567,25 +665,25 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Jobs by City</h4>
                     <ul className="space-y-4 text-sm font-medium">
-                        {(showAllCities ? navData.cities : navData.cities.slice(0, 6)).map(city => (
-                          <li key={city}>
+                        {(showAllCities ? uniqueCities : uniqueCities.slice(0, 6)).map(({ displayCity, href }) => (
+                          <li key={href}>
                             <Link
-                              href={`/job-in-${navData.cityCountryMap[city] || getCountryForCity(city)}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
+                              href={href}
                               className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
                             >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
-                              Jobs in {city}
+                              Jobs in {displayCity}
                             </Link>
                           </li>
                         ))}
-                        {navData.cities.length > 6 && (
+                        {uniqueCities.length > 6 && (
                           <li>
                             <button
                               onClick={() => setShowAllCities(prev => !prev)}
                               className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
                             >
                               <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
-                              {showAllCities ? 'Show Less ↑' : `See More (${navData.cities.length - 6}+) →`}
+                              {showAllCities ? 'Show Less ↑' : `See More (${uniqueCities.length - 6}+) →`}
                             </button>
                           </li>
                         )}
@@ -595,10 +693,10 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 <div className="col-span-1 md:col-span-1 lg:col-span-2 xl:col-span-2">
                     <h4 className="font-black text-white mb-8 text-xs uppercase tracking-widest">Jobs by Country</h4>
                     <ul className="space-y-4 text-sm font-medium">
-                        {(showAllCountries ? navData.countries : navData.countries.slice(0, 6)).map(country => (
-                          <li key={country}>
+                        {(showAllCountries ? uniqueCountries : uniqueCountries.slice(0, 6)).map(({ country, slug }) => (
+                          <li key={slug}>
                             <Link
-                              href={`/job-in-${getCountrySlug(country)}`}
+                              href={`/job-in-${slug}`}
                               className="text-slate-400 hover:text-primary transition-all flex items-center gap-2 group"
                             >
                               <span className="w-1 h-1 rounded-full bg-slate-700 group-hover:bg-primary transition-all" />
@@ -606,14 +704,14 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                             </Link>
                           </li>
                         ))}
-                        {navData.countries.length > 6 && (
+                        {uniqueCountries.length > 6 && (
                           <li>
                             <button
                               onClick={() => setShowAllCountries(prev => !prev)}
                               className="text-primary/70 hover:text-primary transition-all flex items-center gap-2 group font-black text-xs uppercase tracking-widest mt-2 cursor-pointer"
                             >
                               <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-all" />
-                              {showAllCountries ? 'Show Less ↑' : `See More (${navData.countries.length - 6}+) →`}
+                              {showAllCountries ? 'Show Less ↑' : `See More (${uniqueCountries.length - 6}+) →`}
                             </button>
                           </li>
                         )}

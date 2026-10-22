@@ -35,14 +35,14 @@ export default async function CountryPage({ params }: Props) {
   const normalizedSlug = rawCountrySlug.toLowerCase();
 
   const COUNTRY_KEYWORDS_MAP: Record<string, string[]> = {
-    'usa': ['united states', 'usa', 'united states of america'],
-    'uk': ['united kingdom', 'uk'],
-    'uae': ['united arab emirates', 'uae', 'dubai', 'abu dhabi'],
-    'india': ['india'],
-    'canada': ['canada'],
-    'australia': ['australia'],
-    'germany': ['germany'],
-    'singapore': ['singapore'],
+    'usa': ['united states', 'usa', 'united states of america', 'us'],
+    'uk': ['united kingdom', 'uk', 'great britain', 'gb', 'gbr', 'england', 'scotland', 'wales'],
+    'uae': ['united arab emirates', 'uae'],
+    'india': ['india', 'in', 'ind'],
+    'canada': ['canada', 'ca', 'can'],
+    'australia': ['australia', 'au', 'aus'],
+    'germany': ['germany', 'de', 'deu'],
+    'singapore': ['singapore', 'sg', 'sgp'],
   };
 
   const US_STATES = new Set([
@@ -57,22 +57,42 @@ export default async function CountryPage({ params }: Props) {
 
   const INDIAN_STATES = new Set([
     'andhra pradesh', 'ap', 'arunachal pradesh', 'assam', 'bihar', 'chhattisgarh',
-    'goa', 'gujarat', 'haryana', 'himachal pradesh', 'jharkhand', 'karnataka',
-    'kerala', 'madhya pradesh', 'mp', 'maharashtra', 'manipur', 'meghalaya',
+    'goa', 'gujarat', 'gj', 'haryana', 'himachal pradesh', 'jharkhand', 'karnataka',
+    'kerala', 'madhya pradesh', 'mp', 'maharashtra', 'mh', 'manipur', 'meghalaya',
     'mizoram', 'nagaland', 'odisha', 'punjab', 'rajasthan', 'sikkim',
-    'tamil nadu', 'tn', 'telangana', 'tripura', 'uttar pradesh', 'up',
+    'tamil nadu', 'tn', 'telangana', 'ts', 'tripura', 'uttar pradesh', 'up',
     'uttarakhand', 'west bengal', 'wb', 'delhi', 'delhi ncr', 'jammu', 'kashmir', 'ladakh'
   ]);
 
-  const ALL_COUNTRY_KEYWORDS = new Set([
-    'india', 'usa', 'us', 'uk', 'uae', 'canada', 'australia', 'germany',
-    'netherlands', 'france', 'singapore', 'united states', 'united kingdom',
-    'united arab emirates', 'malaysia', 'japan', 'china', 'south korea',
-    'ireland', 'new zealand', 'south africa', 'brazil', 'mexico', 'spain',
-    'italy', 'switzerland', 'sweden', 'norway', 'denmark', 'finland',
-    'poland', 'belgium', 'portugal', 'greece', 'turkey', 'philippines',
-    'indonesia', 'thailand', 'vietnam', 'taiwan', 'saudi arabia', 'qatar',
-    'oman', 'kuwait', 'bahrain',
+  const COUNTRY_MAPPING: Record<string, string> = {
+    'us': 'usa', 'usa': 'usa', 'united states': 'usa', 'united states of america': 'usa',
+    'uk': 'uk', 'united kingdom': 'uk', 'great britain': 'uk', 'gb': 'uk', 'gbr': 'uk', 'england': 'uk', 'scotland': 'uk', 'wales': 'uk',
+    'in': 'india', 'india': 'india', 'ind': 'india',
+    'uae': 'uae', 'united arab emirates': 'uae',
+    'canada': 'canada', 'australia': 'australia', 'germany': 'germany',
+    'singapore': 'singapore', 'netherlands': 'netherlands', 'france': 'france',
+    'saudi arabia': 'saudi-arabia', 'qatar': 'qatar', 'oman': 'oman',
+    'kuwait': 'kuwait', 'bahrain': 'bahrain', 'malaysia': 'malaysia',
+    'japan': 'japan', 'china': 'china', 'south korea': 'south-korea',
+    'ireland': 'ireland', 'new zealand': 'new-zealand', 'south africa': 'south-africa',
+    'brazil': 'brazil', 'mexico': 'mexico', 'spain': 'spain', 'italy': 'italy',
+    'switzerland': 'switzerland', 'sweden': 'sweden', 'norway': 'norway',
+    'denmark': 'denmark', 'finland': 'finland', 'poland': 'poland',
+    'belgium': 'belgium', 'portugal': 'portugal', 'greece': 'greece',
+    'turkey': 'turkey', 'philippines': 'philippines', 'indonesia': 'indonesia',
+    'thailand': 'thailand', 'vietnam': 'vietnam', 'taiwan': 'taiwan',
+    'argentina': 'argentina', 'chile': 'chile', 'colombia': 'colombia',
+    'nigeria': 'nigeria', 'kenya': 'kenya', 'egypt': 'egypt',
+  };
+
+  const CITY_BLACKLIST = new Set([
+    'location', 'locations', 'n/a', 'na', 'tbd', 'various', 'multiple',
+    'india', 'usa', 'uk', 'uae', 'canada', 'australia', 'germany',
+    'netherlands', 'france', 'singapore', 'unknown', 'other', 'pan india',
+    'anywhere', 'flexible', 'negotiable', 'work from office', 'work from home',
+    'united states', 'united kingdom', 'united arab emirates', 'remote',
+    'unspecified', 'alternate', 'home', 'ssir', 'angkor west', 'bsh-sakinaka',
+    'home remote alternate', 'england', 'scotland', 'wales'
   ]);
 
   // City alias mapping for canonical city names
@@ -86,7 +106,22 @@ export default async function CountryPage({ params }: Props) {
     'delhi ncr': 'Delhi NCR',
   };
 
-  const targetCountryTerms = COUNTRY_KEYWORDS_MAP[normalizedSlug] || [normalizedSlug];
+  const cleanCity = (raw: string): string | null => {
+    raw = raw.replace(/\([^)]*\)/g, '').trim();
+    raw = raw.replace(/\s+\d+.*$/, '').trim();
+    raw = raw.replace(/[|_/\\@#]+/g, ' ').replace(/\s+/g, ' ').trim();
+    raw = raw.replace(/(\s+[A-Z]{2,3})+$/, '').trim();
+
+    if (!raw || raw.length < 2 || raw.length > 40) return null;
+    if (/^\d/.test(raw)) return null;
+
+    const lower = raw.toLowerCase();
+    if (CITY_BLACKLIST.has(lower)) return null;
+    if (COUNTRY_MAPPING[lower]) return null;
+    if (!/[a-zA-Z]/.test(raw)) return null;
+
+    return raw;
+  };
 
   // Fetch approved, active jobs
   const { data: jobs } = await supabase
@@ -108,66 +143,45 @@ export default async function CountryPage({ params }: Props) {
         const parts = entry.split(',').map(p => p.trim()).filter(Boolean);
         if (parts.length === 0) return;
 
-        // Check if THIS SPECIFIC ENTRY belongs to the selected country
-        let belongsToCountry = false;
+        // Detect country for this specific entry
+        let entryCountrySlug: string | null = null;
 
-        if (normalizedSlug === 'india') {
-          // Exclude entries that explicitly mention a foreign country or a US state
-          const hasForeignCountry = parts.some(p => {
-            const l = p.toLowerCase().replace(/\([^)]*\)/g, '').trim();
-            return (ALL_COUNTRY_KEYWORDS.has(l) && l !== 'india') || US_STATES.has(l);
-          });
-
-          if (!hasForeignCountry) {
-            // Accept if: explicit India keyword, Indian state, OR no country context at all (default to India)
-            belongsToCountry = true;
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const p = parts[i].toLowerCase();
+          if (COUNTRY_MAPPING[p]) {
+            entryCountrySlug = COUNTRY_MAPPING[p];
+            break;
           }
-        } else if (normalizedSlug === 'usa') {
-          const hasUSAKeyword = parts.some(p => {
-            const l = p.toLowerCase();
-            return targetCountryTerms.some(term => l === term || l.endsWith(' ' + term));
-          });
-          const hasUSState = parts.some(p => US_STATES.has(p.toLowerCase()));
-          const hasForeignCountry = parts.some(p => {
-            const l = p.toLowerCase();
-            return ALL_COUNTRY_KEYWORDS.has(l) && !targetCountryTerms.includes(l) && l !== 'united states' && l !== 'usa';
-          });
-
-          if ((hasUSAKeyword || hasUSState) && !hasForeignCountry) {
-            belongsToCountry = true;
+          const words = p.split(/\s+/);
+          for (const w of words) {
+            if (COUNTRY_MAPPING[w] && COUNTRY_MAPPING[w] !== 'india') {
+              entryCountrySlug = COUNTRY_MAPPING[w];
+              break;
+            }
           }
-        } else {
-          belongsToCountry = parts.some(p => {
-            const l = p.toLowerCase();
-            return targetCountryTerms.some(term => l === term || l.includes(term));
-          });
+          if (entryCountrySlug) break;
         }
 
-        if (!belongsToCountry) return;
+        if (!entryCountrySlug && parts.some(p => US_STATES.has(p.toLowerCase()))) {
+          entryCountrySlug = 'usa';
+        }
 
-        // Extract the city / place name from this entry.
-        // For USA: use the first part even if it's a state name (e.g. "New Jersey, United States" → "New Jersey").
-        // For India: skip Indian state abbreviations when a city is also present.
+        // Default to India only if no foreign indicator found
+        if (!entryCountrySlug) {
+          entryCountrySlug = 'india';
+        }
+
+        if (entryCountrySlug !== normalizedSlug) return;
+
+        // Extract pure place/city name from this entry
         for (const part of parts) {
-          const cleaned = part
-            .replace(/\([^)]*\)/g, '')
-            .replace(/[|_/\\@#]+/g, ' ')
-            .replace(/\s+\d+.*$/, '')
-            .trim();
-
-          if (!cleaned || cleaned.length < 2 || cleaned.length > 60) continue;
-          if (/^\d/.test(cleaned)) continue;
+          const cleaned = cleanCity(part);
+          if (!cleaned) continue;
 
           const lower = cleaned.toLowerCase();
-
-          // Never add a bare country keyword as a city
-          if (ALL_COUNTRY_KEYWORDS.has(lower)) continue;
-          if (['work from office', 'work from home', 'remote', 'multiple locations', 'pan india'].includes(lower)) continue;
-
-          // For India only: skip state abbreviations/names when a more specific city part exists
-          if (normalizedSlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) {
-            continue;
-          }
+          if (normalizedSlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) continue;
+          if (/^[A-Z]{2,4}$/.test(cleaned.trim()) && parts.length > 1) continue;
+          if (normalizedSlug === 'usa' && US_STATES.has(lower) && parts.length > 1) continue;
 
           const canonicalCity = CITY_ALIASES[lower] ||
             cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
