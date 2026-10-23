@@ -174,20 +174,35 @@ export default async function CountryPage({ params }: Props) {
         if (entryCountrySlug !== normalizedSlug) return;
 
         // Extract pure place/city name from this entry
+        let foundCity: string | null = null;
+        const fallbackStates: string[] = [];
+
         for (const part of parts) {
           const cleaned = cleanCity(part);
           if (!cleaned) continue;
 
           const lower = cleaned.toLowerCase();
-          if (normalizedSlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) continue;
-          if (/^[A-Z]{2,4}$/.test(cleaned.trim()) && parts.length > 1) continue;
-          if (normalizedSlug === 'usa' && US_STATES.has(lower) && parts.length > 1) continue;
+          const isState = (normalizedSlug === 'india' && INDIAN_STATES.has(lower) && lower !== 'delhi' && lower !== 'delhi ncr') ||
+                          (normalizedSlug === 'usa' && US_STATES.has(lower) && lower !== 'new york');
 
+          if (isState) {
+            fallbackStates.push(cleaned);
+            continue;
+          }
+
+          if (/^[A-Z]{2,4}$/.test(cleaned.trim()) && parts.length > 1) continue;
+
+          foundCity = cleaned;
+          break; // First valid place token in this entry is the city
+        }
+
+        const placesToAdd = foundCity ? [foundCity] : fallbackStates;
+        for (const place of placesToAdd) {
+          const lower = place.toLowerCase();
           const canonicalCity = CITY_ALIASES[lower] ||
-            cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            place.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
           citySet.add(canonicalCity);
-          break; // First valid place token in this entry is the city
         }
       });
     });
@@ -215,7 +230,7 @@ export default async function CountryPage({ params }: Props) {
               cities.map(city => (
                   <Link 
                       key={city} 
-                      href={`/job-in-${countrySlug.replace(/^job-in-/, '')}/job-in-${encodeURIComponent(city.toLowerCase().replace(/\s+/g, '-'))}`}
+                      href={`/job-in-${countrySlug.replace(/^job-in-/, '')}/job-in-${encodeURIComponent(city.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, '-').replace(/-+/g, '-'))}`}
                       className="block group"
                   >
                       <Card className="p-8 border border-gray-100 hover:border-indigo-100 shadow-sm hover:shadow-xl hover:shadow-indigo-50/50 transition-all bg-white rounded-3xl flex items-center gap-4">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { supabase } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { Card, Badge, Button } from '@/components/ui';
 import { 
   MapPin, 
@@ -36,10 +37,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const decodedCity = decodeURIComponent(cityParam).replace(/^job-in-/, '');
   const cityParts = decodedCity
     .split(/[;]+/)
-    .map(p => p.replace(/^-+|-+$/g, '').replace(/-/g, ' ').trim())
+    .map(p => p.replace(/^-+|-+$/g, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(Boolean);
   const cityDisplay = cityParts
-    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .map(p => p.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '))
     .join(' & ');
 
   const rawCountrySlug = countryParam.replace(/^job-in-/, '').replace(/-/g, ' ');
@@ -68,11 +69,11 @@ export default async function LocationPage({ params }: Props) {
   const rawCityParts = decodedCitySlug
     .split(/[;]+/)                          // split on semicolons
     .map(p => p.replace(/^-+|-+$/g, ''))   // trim leading/trailing hyphens
-    .map(p => p.replace(/-/g, ' ').trim()) // hyphens → spaces
+    .map(p => p.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()) // hyphens & underscores → single spaces
     .filter(Boolean);
 
   // Use first part as primary slug for backwards-compat single-city paths
-  const rawCitySlug = rawCityParts[0] || decodedCitySlug.replace(/-/g, ' ');
+  const rawCitySlug = rawCityParts[0] || decodedCitySlug.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
 
   const KNOWN_CITIES = [
     'Delhi NCR', 'Delhi', 'Noida', 'Gurugram', 'Gurgaon', 'Faridabad', 'Ghaziabad',
@@ -103,16 +104,25 @@ export default async function LocationPage({ params }: Props) {
   // Build display name for all city parts
   const cityDisplayNames = rawCityParts.map(part => {
     const canonical = KNOWN_CITIES.find(c => c.toLowerCase() === part.toLowerCase());
-    return canonical || part.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return canonical || part.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   });
   const cityName = cityDisplayNames.length > 1
     ? cityDisplayNames.join(' & ')
-    : (cityDisplayNames[0] || rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+    : (cityDisplayNames[0] || rawCitySlug.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '));
 
-  // Build OR query covering ALL city parts + their aliases
+  // Build OR query covering ALL city parts + their aliases + inter-word wildcards
   const allSearchTerms = rawCityParts.flatMap(part => {
     const lower = part.toLowerCase();
-    return CITY_ALIASES[lower] || [part];
+    const aliases = CITY_ALIASES[lower] || [part];
+    const words = lower.split(' ').filter(w => w.length > 1);
+    const wildcardTerms: string[] = [];
+    if (words.length > 1) {
+      wildcardTerms.push(words.join('%'));
+      if (words.length > 2) {
+        wildcardTerms.push(`${words[0]}%${words[words.length - 1]}`);
+      }
+    }
+    return [...aliases, ...wildcardTerms];
   });
   // Deduplicate
   const uniqueSearchTerms = Array.from(new Set(allSearchTerms));

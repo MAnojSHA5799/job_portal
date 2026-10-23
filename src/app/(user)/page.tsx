@@ -279,7 +279,9 @@ export default function HomePage() {
 
       // Salary filter logic (basic string check for now)
       const matchesSalary = selectedSalary ? (job.salary_range || '').includes(selectedSalary) : true;
-      const matchesSkills = selectedSkills ? (job.description || '').toLowerCase().includes(selectedSkills.toLowerCase()) : true;
+      const matchesSkills = selectedSkills 
+        ? ((job.description || '').toLowerCase().includes(selectedSkills.toLowerCase()) || (job.title || '').toLowerCase().includes(selectedSkills.toLowerCase()))
+        : true;
       const matchesLanguage = selectedLanguage ? (job.description || '').toLowerCase().includes(selectedLanguage.toLowerCase()) : true;
 
       return matchesSearch && matchesLocation && matchesCategory && matchesType && matchesExperience && matchesSalary && matchesSkills && matchesLanguage;
@@ -519,12 +521,15 @@ export default function HomePage() {
                       className={`w-full appearance-none pl-6 pr-10 py-3 bg-white border rounded-full text-gray-700 font-bold text-sm hover:border-primary/20 hover:bg-gray-50/50 transition-all cursor-pointer focus:outline-none ${selectedSkills ? 'border-primary/40 bg-primary/5 text-primary' : 'border-gray-100'}`}
                     >
                       <option value="">🛠️ Skills</option>
-                      <option value="React">React / Frontend</option>
-                      <option value="Node">Node / Backend</option>
-                      <option value="Python">Python / AI</option>
-                      <option value="Sales">Sales / Business</option>
-                      <option value="Marketing">Marketing / SEO</option>
-                      <option value="Design">UI / UX Design</option>
+                      {[
+                        'React', 'Node', 'Python', 'Sales', 'Marketing', 'Design',
+                        'Production', 'Quality', 'Maintenance', 'Store', 'HR',
+                        'Accountant', 'Welding', 'Electrical', 'Mechanical',
+                        'ITI', 'Diploma', 'Operator', 'Supervisor', 'Safety',
+                        'Logistics', 'Packaging', 'Finance', 'Admin', 'Data Entry'
+                      ].map((skill) => (
+                        <option key={skill} value={skill}>{skill}</option>
+                      ))}
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▾</div>
                   </div>

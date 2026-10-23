@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getProxiedImageUrl } from '@/lib/utils';
 import { Card, Badge, Button, Input } from '@/components/ui';
@@ -15,7 +15,8 @@ import {
   ArrowRight,
   TrendingUp,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -43,6 +44,19 @@ export default function CompaniesDirectory() {
   const [industries, setIndustries] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [teamSizes, setTeamSizes] = useState<string[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const locationRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowLocationSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchFilters = async () => {
     try {
@@ -62,17 +76,33 @@ export default function CompaniesDirectory() {
       
       const cleanCityName = (loc: string): string | null => {
         if (!loc) return null;
-        let c = loc.split(/[;,|]+/)[0].split(',')[0];
-        c = c.replace(/\([^)]*\)/g, '').trim();
+        let c = loc.replace(/\([^)]*\)/g, '').trim();
         c = c.replace(/(\s+[A-Z]{2,3})+$/, '').trim();
         c = c.replace(/\s+\d+.*$/, '').trim();
-        if (!c || c.length < 2 || ['Other', 'N/A', 'Location', 'Remote', 'Locations'].includes(c)) return null;
+        if (/^\d/.test(c)) return null;
+        if (/^[A-Z]{2}$/.test(c)) return null;
+        if (!c || c.length < 3 || ['Other', 'N/A', 'Location', 'Remote', 'Locations', 'Unspecified', 'Multiple'].includes(c)) return null;
         if (c.toLowerCase() === 'bengaluru') return 'Bangalore';
         return c;
       };
 
-      const jobCities = rawJobLocs.map(cleanCityName).filter((c): c is string => Boolean(c));
-      const uniqueLocations = Array.from(new Set([...compLocs, ...jobCities])).sort((a, b) => a.localeCompare(b));
+      const allTokens: string[] = [];
+      compLocs.forEach((l: string) => {
+        l.split(/[;,|]+/).forEach((segment: string) => {
+          const cleaned = cleanCityName(segment);
+          if (cleaned) allTokens.push(cleaned);
+        });
+      });
+      rawJobLocs.forEach((l: string) => {
+        l.split(/[;,|]+/).forEach((segment: string) => {
+          segment.split(',').forEach((p: string) => {
+            const cleaned = cleanCityName(p);
+            if (cleaned) allTokens.push(cleaned);
+          });
+        });
+      });
+
+      const uniqueLocations = Array.from(new Set(allTokens)).sort((a, b) => a.localeCompare(b));
 
       // Standard team sizes combined with DB values
       const standardTeamSizes = ['1-50', '51-200', '201-500', '501-1000', '1001-5000', '5001-10000', '10000+'];
@@ -130,7 +160,10 @@ export default function CompaniesDirectory() {
   }, []);
 
   useEffect(() => {
-    fetchCompanies();
+    const timer = setTimeout(() => {
+      fetchCompanies();
+    }, 250);
+    return () => clearTimeout(timer);
   }, [industryQuery, locationQuery, teamSizeQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -141,8 +174,8 @@ export default function CompaniesDirectory() {
   return (
     <div className="bg-white min-h-screen pb-24">
       {/* Header */}
-      <section className="bg-gray-50 border-b border-gray-100 py-24 overflow-hidden relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <section className="bg-gray-50 border-b border-gray-100 py-24 overflow-visible relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-[200]">
             <div
                 className="max-w-5xl"
             >
@@ -155,7 +188,7 @@ export default function CompaniesDirectory() {
                 
                 <form 
                   onSubmit={handleSearch} 
-                  className="bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col lg:flex-row items-stretch gap-2"
+                  className="bg-white p-2 rounded-2xl shadow-2xl shadow-gray-200 border border-gray-100 flex flex-col lg:flex-row items-stretch gap-2 overflow-visible"
                 >
                     <div className="relative flex-[1.2] min-w-0">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
@@ -184,17 +217,78 @@ export default function CompaniesDirectory() {
                     
                     <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
 
-                    <div className="relative flex-1 min-w-0">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black" />
-                        <select 
-                            className="w-full border-0 bg-transparent pl-12 pr-10 h-12 focus-visible:ring-0 font-bold text-sm text-gray-600 appearance-none cursor-pointer outline-none"
+                    <div className="relative flex-1 min-w-0" ref={locationRef}>
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 font-black z-10" />
+                        <Input 
+                            placeholder="Location (e.g. Noida, Mumbai)" 
+                            className="border-0 shadow-none pl-12 pr-10 h-12 focus-visible:ring-0 font-bold text-sm text-gray-700 w-full bg-transparent" 
                             value={locationQuery}
-                            onChange={(e) => setLocationQuery(e.target.value)}
-                        >
-                            <option value="">All Locations</option>
-                            {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-                        </select>
-                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                            onChange={(e) => {
+                                setLocationQuery(e.target.value);
+                                setShowLocationSuggestions(true);
+                            }}
+                            onFocus={() => setShowLocationSuggestions(true)}
+                        />
+                        {locationQuery && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLocationQuery('');
+                                    setShowLocationSuggestions(false);
+                                }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10 p-1"
+                                title="Clear location"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+
+                        {showLocationSuggestions && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-gray-100 shadow-2xl z-[100] max-h-60 overflow-y-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setLocationQuery('');
+                                        setShowLocationSuggestions(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left hover:bg-gray-50 text-xs font-bold text-gray-400 border-b border-gray-50 flex items-center gap-2"
+                                >
+                                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                                    All Locations
+                                </button>
+                                {locations
+                                    .filter(loc => !locationQuery || loc.toLowerCase().includes(locationQuery.toLowerCase()))
+                                    .slice(0, 20)
+                                    .map((loc) => (
+                                        <button
+                                            key={loc}
+                                            type="button"
+                                            onClick={() => {
+                                                setLocationQuery(loc);
+                                                setShowLocationSuggestions(false);
+                                            }}
+                                            className={`w-full px-4 py-3 text-left hover:bg-primary/5 text-sm font-bold transition-colors border-b border-gray-50 last:border-0 flex items-center justify-between ${
+                                                locationQuery.toLowerCase() === loc.toLowerCase() 
+                                                    ? 'text-primary bg-primary/5' 
+                                                    : 'text-gray-700 hover:text-primary'
+                                            }`}
+                                        >
+                                            <span className="flex items-center gap-2 truncate">
+                                                <MapPin className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                                                {loc}
+                                            </span>
+                                            {locationQuery.toLowerCase() === loc.toLowerCase() && (
+                                                <span className="text-primary text-xs font-black">✓</span>
+                                            )}
+                                        </button>
+                                    ))}
+                                {locations.filter(loc => !locationQuery || loc.toLowerCase().includes(locationQuery.toLowerCase())).length === 0 && (
+                                    <div className="px-4 py-4 text-xs font-bold text-gray-400 text-center">
+                                        Press Search to look for "{locationQuery}"
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="hidden lg:block w-px bg-gray-100 my-2"></div>
@@ -219,7 +313,7 @@ export default function CompaniesDirectory() {
         <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[500px] bg-primary/5 blur-[100px] rounded-full pointer-events-none"></div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 z-20 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 z-10 relative">
         <h2 className="sr-only">Company Directory</h2>
         {loading ? (
           <div className="flex items-center justify-center py-40">

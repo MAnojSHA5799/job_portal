@@ -298,19 +298,24 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               }
 
               // Extract pure place/city name: first part that passes cleanCity
+              let foundCity: string | null = null;
+              const fallbackStates: string[] = [];
+
               for (const part of parts) {
                 const cleaned = cleanCity(part);
                 if (cleaned) {
                   const lower = cleaned.toLowerCase();
-                  // Skip states and provinces so state pages are not added under Jobs by City
-                  if (INDIAN_STATES.has(lower) && lower !== 'delhi' && lower !== 'delhi ncr') {
-                    continue;
-                  }
-                  if (PROVINCES_AND_STATES.has(lower) && lower !== 'new york') {
+                  // Skip states and provinces from being primary city, but save as fallback if no real city is found
+                  const isState = (INDIAN_STATES.has(lower) && lower !== 'delhi' && lower !== 'delhi ncr') ||
+                                  (PROVINCES_AND_STATES.has(lower) && lower !== 'new york');
+
+                  if (isState) {
+                    fallbackStates.push(cleaned);
                     continue;
                   }
                   // Skip Indian state abbreviation like "AP" if full city is available
                   if (detectedCountrySlug === 'india' && INDIAN_STATES.has(lower) && parts.length > 1) {
+                    fallbackStates.push(cleaned);
                     continue;
                   }
                   // Skip 2-letter uppercase state/province abbreviations (TN, UP, GJ, MH, MP, etc.)
@@ -318,22 +323,30 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                     continue;
                   }
 
-                  const normalizedCity = CITY_ALIASES[lower] ||
-                    cleaned.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-
-                  const cleanNormCity = normalizedCity.split(',')[0].trim();
-                  const normKey = cleanNormCity.toLowerCase().replace(/\s+/g, '-');
-                  if (!cityKeyMap[normKey]) {
-                    cityKeyMap[normKey] = cleanNormCity;
-                  }
-
-                  if (!cityCountryMap[cleanNormCity] && detectedCountrySlug) {
-                    cityCountryMap[cleanNormCity] = detectedCountrySlug;
-                  }
-                  if (!cityCountryMap[normalizedCity] && detectedCountrySlug) {
-                    cityCountryMap[normalizedCity] = detectedCountrySlug;
-                  }
+                  foundCity = cleaned;
                   break; // found the city for this location segment
+                }
+              }
+
+              // Fallback to state if no specific city was found in this location segment
+              const placesToAdd = foundCity ? [foundCity] : fallbackStates;
+
+              for (const place of placesToAdd) {
+                const lower = place.toLowerCase();
+                const normalizedCity = CITY_ALIASES[lower] ||
+                  place.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+                const cleanNormCity = normalizedCity.split(',')[0].trim();
+                const normKey = cleanNormCity.toLowerCase().replace(/\s+/g, '-');
+                if (!cityKeyMap[normKey]) {
+                  cityKeyMap[normKey] = cleanNormCity;
+                }
+
+                if (!cityCountryMap[cleanNormCity] && detectedCountrySlug) {
+                  cityCountryMap[cleanNormCity] = detectedCountrySlug;
+                }
+                if (!cityCountryMap[normalizedCity] && detectedCountrySlug) {
+                  cityCountryMap[normalizedCity] = detectedCountrySlug;
                 }
               }
             });
@@ -401,7 +414,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         continue;
       }
 
-      const urlCity = displayCity.toLowerCase().replace(/\s+/g, '-');
+      const urlCity = displayCity.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, '-').replace(/-+/g, '-');
       const countrySlug = navData.cityCountryMap[city] || navData.cityCountryMap[displayCity] || getCountryForCity(displayCity);
       const href = `/job-in-${countrySlug}/job-in-${encodeURIComponent(urlCity)}`;
 
