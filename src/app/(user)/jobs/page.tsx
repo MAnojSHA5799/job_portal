@@ -437,6 +437,17 @@ function JobListingContent() {
     return counts;
   }, [jobs]);
 
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
+    JOB_TYPES.forEach(type => {
+      counts[type] = jobs.filter((job: any) =>
+        (job.job_type || '').trim().toLowerCase() === type.toLowerCase()
+      ).length;
+    });
+    return counts;
+  }, [jobs]);
+
   const freshnessCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     // Only count approved, non-deleted jobs that have a valid date_posted
@@ -501,7 +512,7 @@ function JobListingContent() {
 
       const matchesExperience = !selectedExperience || checkExperienceMatch(job, selectedExperience);
 
-      const matchesType = !selectedType || job.job_type === selectedType;
+      const matchesType = !selectedType || (job.job_type || '').trim().toLowerCase() === selectedType.toLowerCase();
 
       const matchesSalary = !selectedSalary || (() => {
         const minRequired = parseInt(selectedSalary, 10);
@@ -761,6 +772,7 @@ function JobListingContent() {
         <div className="space-y-1">
           {['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'].map((type) => {
             const isSelected = selectedType === type;
+            const count = typeCounts[type] || 0;
             return (
               <button
                 key={type}
@@ -773,16 +785,23 @@ function JobListingContent() {
                   "w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-3 border border-transparent",
                   isSelected
                     ? "bg-emerald-50/60 text-emerald-700 border-emerald-100/50"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : count === 0
+                      ? "text-gray-300 cursor-default"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
+                disabled={count === 0 && !isSelected}
               >
                 <div className={cn(
                   "w-4 h-4 rounded-md border flex items-center justify-center transition-all",
-                  isSelected ? "border-emerald-500 bg-emerald-500 text-white" : "border-gray-300 bg-white"
+                  isSelected ? "border-emerald-500 bg-emerald-500 text-white" : count === 0 ? "border-gray-200 bg-gray-50" : "border-gray-300 bg-white"
                 )}>
                   {isSelected && <span className="text-[10px] leading-none font-bold">✓</span>}
                 </div>
-                <span>{type}</span>
+                <span className="flex-1">{type}</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black",
+                  isSelected ? "bg-emerald-100 text-emerald-700" : count === 0 ? "bg-gray-50 text-gray-300" : "bg-gray-100 text-gray-500"
+                )}>{count}</span>
               </button>
             );
           })}
