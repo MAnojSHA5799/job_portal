@@ -227,6 +227,137 @@ const parseJobPostedDate = (job: any): number => {
   return anchorTime;
 };
 
+const KNOWN_SKIP = new Set([
+  'india', 'in', 'ind', 'united states', 'united states of america', 'usa', 'us',
+  'united arab emirates', 'uae', 'united kingdom', 'uk', 'germany', 'france', 'australia',
+  'canada', 'japan', 'singapore',
+  'andhra pradesh', 'ap', 'telangana', 'ts', 'karnataka', 'ka', 'tamil nadu', 'tn',
+  'maharashtra', 'mh', 'gujarat', 'gj', 'uttar pradesh', 'up', 'rajasthan', 'rj',
+  'madhya pradesh', 'mp', 'bihar', 'jharkhand', 'odisha', 'west bengal', 'wb',
+  'punjab', 'haryana', 'himachal pradesh', 'hp', 'uttarakhand',
+  'delhi', 'ncr', 'goa', 'assam', 'kerala', 'kl', 'chhattisgarh', 'cg',
+  'massachusetts', 'texas', 'georgia', 'pennsylvania', 'new jersey', 'new york',
+  'ohio', 'north carolina', 'connecticut', 'ct', 'nj', 'ny', 'pa', 'tx', 'ga', 'ma', 'me',
+  'wa', 'ca', 'on', 'bc',
+  'not available', 'not found', 'locations', 'unspecified', 'alternate', 'remote',
+  'home', 'office', 'work from office', 'work from home', 'other', 'site'
+]);
+
+const KNOWN_CITIES = [
+  'Noida', 'Bhuj', 'Anantapur', 'Hyderabad', 'Chittoor', 'Bhopal', 'Chennai',
+  'Raipur', 'Pune', 'Ahmedabad', 'Ranipet', 'Jamnagar', 'Dubai', 'Dallas',
+  'Haridwar', 'Stamford', 'Bridgewater', 'Philadelphia', 'Boston', 'Portland',
+  'Bengaluru', 'Bangalore', 'Mumbai', 'Andheri', 'Sakinaka', 'Bhavnagar',
+  'Hubli', 'Indore', 'Ghaziabad', 'Sewagram', 'Surat', 'Jamshedpur', 'Joda',
+  'Meramandali', 'West Bokaro', 'Khopoli', 'Jajpur', 'Noamundi', 'Delhi',
+  'Gurgaon', 'Gurugram', 'Kolkata', 'Jaipur', 'Lucknow', 'Chandigarh', 'Kochi'
+];
+
+const ADDRESS_WORDS = /\b(road|street|estate|sector|park|tower|towers|floor|plot|building|plaza|avenue|bldg|opp|near|lane|nagar|industrial|scw|rmc|block|phase|suite)\b/i;
+
+const CITY_ALIASES: Record<string, string> = {
+  'bangalore': 'Bengaluru',
+  'gurgaon': 'Gurugram',
+  'calcutta': 'Kolkata',
+  'bombay': 'Mumbai',
+  'madras': 'Chennai'
+};
+
+const toTitleCase = (str: string): string => {
+  return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()).trim();
+};
+
+const normalizeCity = (city: string): string => {
+  if (!city) return '';
+  const low = city.toLowerCase();
+  if (CITY_ALIASES[low]) return CITY_ALIASES[low];
+  return toTitleCase(city);
+};
+
+const cleanLocationSegment = (seg: string): string => {
+  let s = seg.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  s = s.replace(/\s*\([^)]*\)/g, '').replace(/\.+$/, '').trim();
+  s = s.replace(/^\d+\s+locations?\s*(available)?/i, '').trim();
+  s = s.replace(/^,\s*/, '').trim();
+  return s;
+};
+
+const extractOneCity = (segment: string): string | null => {
+  const s = cleanLocationSegment(segment);
+  if (!s) return null;
+
+  // Ignore remote / work from home as locations
+  if (/\b(remote|work from home|home\/remote)\b/i.test(s) && !KNOWN_CITIES.some(c => new RegExp(`(^|[^a-zA-Z])${c}([^a-zA-Z]|$)`, 'i').test(s))) {
+    return null;
+  }
+
+  // 1. Fast match against known cities
+  for (const city of KNOWN_CITIES) {
+    const reg = new RegExp(`(^|[^a-zA-Z])${city}([^a-zA-Z]|$)`, 'i');
+    if (reg.test(s)) {
+      return normalizeCity(city);
+    }
+  }
+
+  // 2. Generic dynamic extractor for any new city anywhere in the world
+  const parts = s.split(/[,\/]/).map(p => p.trim()).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    let p = parts[i].replace(/[^a-zA-Z\s\-]/g, '').trim();
+    if (p.includes('-')) {
+      const sub = p.split('-').map(x => x.trim()).filter(Boolean);
+      for (let j = sub.length - 1; j >= 0; j--) {
+        const candidate = sub[j].replace(/\s+[A-Z]{2,3}\s*$/, '').trim();
+        const cLow = candidate.toLowerCase();
+        if (candidate && !KNOWN_SKIP.has(cLow) && candidate.length > 2 && !/^[A-Z]{2,3}$/.test(candidate) && !ADDRESS_WORDS.test(candidate)) {
+          return normalizeCity(candidate);
+        }
+      }
+    }
+    p = p.replace(/\s+[A-Z]{2,3}\s*$/, '').replace(/\s+[A-Z]{2,3}\s+[A-Z]{2,3}$/, '').trim();
+    const pLow = p.toLowerCase();
+    if (p && !KNOWN_SKIP.has(pLow) && p.length > 2 && !/^[A-Z]{2,3}$/.test(p) && !ADDRESS_WORDS.test(p)) {
+      return normalizeCity(p);
+    }
+  }
+
+  // If Texas or state is present as standalone fallback
+  if (/\btexas\b/i.test(s)) return 'Texas';
+
+  return null;
+};
+
+// Extracts all city names from a raw location string (handles multi-location strings with |, ;, /, commas)
+const extractCityNames = (location: string): string[] => {
+  if (!location) return [];
+
+  // Split multi-location separators: | or ; or " / " (spaced slash)
+  const segments = location.split(/[|;]|\s+\/\s+/).map(s => s.trim()).filter(Boolean);
+  const result = new Set<string>();
+
+  for (const seg of segments) {
+    // Check if seg is a comma-separated list of pure city names (like "Jamshedpur, Joda, Meramandali...")
+    const parts = seg.split(',').map(p => p.trim()).filter(Boolean);
+    const looksLikePureCityList = parts.length >= 3 && parts.every(p => !ADDRESS_WORDS.test(p) && !KNOWN_SKIP.has(p.toLowerCase()));
+
+    if (looksLikePureCityList) {
+      parts.forEach(p => {
+        const c = extractOneCity(p);
+        if (c && c.toLowerCase() !== 'remote') result.add(c);
+      });
+    } else {
+      const c = extractOneCity(seg);
+      if (c && c.toLowerCase() !== 'remote') result.add(c);
+    }
+  }
+
+  return [...result].filter(c => c && c.toLowerCase() !== 'remote');
+};
+
+// Backward-compat single-city extract (returns first city)
+const extractCityName = (location: string): string => extractCityNames(location)[0] || '';
+
+
+
 const checkFreshnessMatch = (job: any, selectedFreshness: string): boolean => {
   if (!selectedFreshness) return true;
   // Freshness applies to approved jobs
@@ -358,7 +489,7 @@ function JobListingContent() {
       setCategoryCounts(counts);
 
       // Extract unique locations for suggestions
-      const uniqueLocations = Array.from(new Set(fetchedJobs.map((j: any) => j.location).filter(Boolean)));
+      const uniqueLocations = Array.from(new Set(fetchedJobs.flatMap((j: any) => extractCityNames(j.location || '')))).filter(Boolean).sort();
       setLocationSuggestions(uniqueLocations as string[]);
 
     } catch (error) {
@@ -437,13 +568,30 @@ function JobListingContent() {
     return counts;
   }, [jobs]);
 
+  // Returns true only if a job is truly an internship (no experience required)
+  const isInternshipJob = (job: any): boolean => {
+    const jobType = (job.job_type || '').trim().toLowerCase();
+    if (jobType !== 'internship') return false;
+    const exp = (job.experience_level || '').trim().toLowerCase();
+    // Allow only: empty, 'not available', 'not found', 'fresher', '0', '0 years', or starts with 0
+    if (!exp || exp === 'not available' || exp === 'not found' || exp === 'fresher' || exp === '0' || exp === '0 years') return true;
+    // Extract first number from experience string — if it's 0 it's ok, otherwise reject
+    const firstNum = exp.match(/(\d+)/);
+    if (firstNum && parseInt(firstNum[1], 10) === 0) return true;
+    return false;
+  };
+
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Remote', 'Internship'];
     JOB_TYPES.forEach(type => {
-      counts[type] = jobs.filter((job: any) =>
-        (job.job_type || '').trim().toLowerCase() === type.toLowerCase()
-      ).length;
+      if (type === 'Internship') {
+        counts[type] = jobs.filter((job: any) => isInternshipJob(job)).length;
+      } else {
+        counts[type] = jobs.filter((job: any) =>
+          (job.job_type || '').trim().toLowerCase() === type.toLowerCase()
+        ).length;
+      }
     });
     return counts;
   }, [jobs]);
@@ -467,8 +615,14 @@ function JobListingContent() {
     const counts: Record<string, number> = {};
     jobs.forEach((job: any) => {
       if (job.location) {
-        const loc = job.location.trim();
-        counts[loc] = (counts[loc] || 0) + 1;
+        const cities = extractCityNames(job.location);
+        cities.forEach(city => {
+          if (city && city.toLowerCase() !== 'remote') {
+            const existingKey = Object.keys(counts).find(k => k.toLowerCase() === city.toLowerCase());
+            const key = existingKey || city;
+            counts[key] = (counts[key] || 0) + 1;
+          }
+        });
       }
     });
     return counts;
@@ -505,14 +659,28 @@ function JobListingContent() {
         companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (job.category && job.category.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      const matchesLocation = !locationQuery ||
-        (job.location && job.location.toLowerCase().includes(locationQuery.toLowerCase()));
+      const matchesLocation = !locationQuery || (() => {
+        if (!job.location) return false;
+        const qLow = locationQuery.toLowerCase();
+        const cities = extractCityNames(job.location);
+        const matchesCity = cities.some(c => {
+          const cLow = c.toLowerCase();
+          if (cLow === qLow || cLow.includes(qLow) || qLow.includes(cLow)) return true;
+          if ((cLow === 'bangalore' || cLow === 'bengaluru') && (qLow === 'bangalore' || qLow === 'bengaluru')) return true;
+          return false;
+        });
+        return matchesCity || job.location.toLowerCase().includes(qLow);
+      })();
 
       const matchesCategory = !selectedCategory || job.category === selectedCategory;
 
       const matchesExperience = !selectedExperience || checkExperienceMatch(job, selectedExperience);
 
-      const matchesType = !selectedType || (job.job_type || '').trim().toLowerCase() === selectedType.toLowerCase();
+      const matchesType = !selectedType || (
+        selectedType.toLowerCase() === 'internship'
+          ? isInternshipJob(job)
+          : (job.job_type || '').trim().toLowerCase() === selectedType.toLowerCase()
+      );
 
       const matchesSalary = !selectedSalary || (() => {
         const minRequired = parseInt(selectedSalary, 10);
@@ -1503,9 +1671,17 @@ function JobListingContent() {
                               </div>
 
                               <div className="space-y-2 mb-4">
-                                <div className="flex items-center gap-2 text-gray-500">
-                                  <MapPin className="w-4 h-4 text-gray-400" />
-                                  <span className="text-sm font-semibold">{job.location || 'India'}</span>
+                                <div className="flex items-center gap-2 text-gray-500 min-w-0">
+                                  <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                                  <span className="text-sm font-semibold truncate" title={job.location || 'India'}>
+                                    {(() => {
+                                      const cities = extractCityNames(job.location);
+                                      if (cities.length > 0) {
+                                        return cities.length > 3 ? `${cities.slice(0, 3).join(', ')} (+${cities.length - 3})` : cities.join(', ');
+                                      }
+                                      return job.location || 'India';
+                                    })()}
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-500">
                                   <Banknote className="w-4 h-4 text-gray-400" />
