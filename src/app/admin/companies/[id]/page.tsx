@@ -131,6 +131,36 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
   const approvedCount = jobs.filter(j => j.is_approved).length;
   const pendingCount = jobs.length - approvedCount;
 
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  const getPaginationItems = (): (number | string)[] => {
+    if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+    
+    if (totalPages <= 9) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, 6, '...-end', totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, '...-start', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [
+      1,
+      '...-start',
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+      '...-end',
+      totalPages
+    ];
+  };
+
   return (
     <div className="space-y-8 p-6 bg-gray-50/30 min-h-screen">
       {/* Header Section */}
@@ -356,7 +386,7 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
           {!loading && filteredJobs.length > 0 && (
             <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                Showing {jobs.length} of {totalCount} records
+                Showing {totalCount === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} records
               </p>
               <div className="flex items-center gap-2">
                 <Button 
@@ -364,30 +394,44 @@ export default function CompanyJobsPage({ params }: { params: Promise<{ id: stri
                   size="sm" 
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1 || loading}
-                  className="h-9 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
+                  className="h-10 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" /> Previous
                 </Button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.ceil(totalCount / itemsPerPage) }).map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={cn(
-                        "h-9 w-9 rounded-xl text-xs font-black transition-all",
-                        currentPage === i + 1 ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-white text-gray-400 hover:bg-gray-50"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  )).slice(Math.max(0, currentPage - 3), Math.min(Math.ceil(totalCount / itemsPerPage), currentPage + 2))}
+                  {getPaginationItems().map((item, idx) => {
+                    if (typeof item === 'string') {
+                      return (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="h-10 w-8 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return (
+                      <button
+                        key={item}
+                        onClick={() => setCurrentPage(item)}
+                        className={cn(
+                          "h-10 w-10 rounded-xl text-xs font-black transition-all",
+                          currentPage === item
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                            : "bg-white text-gray-400 hover:bg-gray-50"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCount / itemsPerPage), prev + 1))}
-                  disabled={currentPage === Math.ceil(totalCount / itemsPerPage) || loading}
-                  className="h-9 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage >= totalPages || loading}
+                  className="h-10 px-4 rounded-xl border-gray-200 bg-white font-bold text-xs"
                 >
                   Next <ChevronRight className="h-4 w-4 ml-2" />
                 </Button>

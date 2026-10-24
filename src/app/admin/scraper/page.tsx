@@ -236,6 +236,37 @@ export default function ScraperManager() {
     return filteredCompanies.slice(from, to);
   }, [filteredCompanies, companiesPage]);
 
+  const totalCompaniesPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+  const totalLogsPages = Math.ceil(filteredLogs.length / itemsPerPage);
+
+  const getPaginationItems = (currentPage: number, totalPages: number): (number | string)[] => {
+    if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+    
+    if (totalPages <= 9) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, 6, '...-end', totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [1, '...-start', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [
+      1,
+      '...-start',
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+      '...-end',
+      totalPages
+    ];
+  };
+
   const exportToCSV = () => {
     const headers = ['Run ID', 'Source / URL', 'Started At', 'Time', 'Jobs Found', 'Duration (s)', 'Status', 'Error Message'];
     const rows = filteredLogs.map(log => [
@@ -555,17 +586,46 @@ export default function ScraperManager() {
                     variant="outline" 
                     size="sm" 
                     disabled={companiesPage === 1}
-                    onClick={() => setCompaniesPage(prev => prev - 1)}
+                    onClick={() => setCompaniesPage(prev => Math.max(1, prev - 1))}
                     className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
                   >
                     <ChevronLeft className="w-4 h-4" /> Previous
                   </Button>
                   
+                  <div className="flex items-center gap-1">
+                    {getPaginationItems(companiesPage, totalCompaniesPages).map((item, idx) => {
+                      if (typeof item === 'string') {
+                        return (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="h-10 w-8 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={item}
+                          onClick={() => setCompaniesPage(item)}
+                          className={cn(
+                            "h-10 w-10 rounded-xl text-xs font-black transition-all",
+                            companiesPage === item
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                              : "bg-white text-gray-400 hover:bg-gray-50"
+                          )}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    disabled={companiesPage >= Math.ceil(filteredCompanies.length / itemsPerPage)}
-                    onClick={() => setCompaniesPage(prev => prev + 1)}
+                    disabled={companiesPage >= totalCompaniesPages}
+                    onClick={() => setCompaniesPage(prev => Math.min(totalCompaniesPages, prev + 1))}
                     className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
                   >
                     Next <ChevronRight className="w-4 h-4" />
@@ -858,17 +918,46 @@ export default function ScraperManager() {
                     variant="outline" 
                     size="sm" 
                     disabled={logsPage === 1}
-                    onClick={() => setLogsPage(prev => prev - 1)}
+                    onClick={() => setLogsPage(prev => Math.max(1, prev - 1))}
                     className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
                   >
                     <ChevronLeft className="w-4 h-4" /> Previous
                   </Button>
                   
+                  <div className="flex items-center gap-1">
+                    {getPaginationItems(logsPage, totalLogsPages).map((item, idx) => {
+                      if (typeof item === 'string') {
+                        return (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="h-10 w-8 flex items-center justify-center text-xs font-black text-gray-400 select-none"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={item}
+                          onClick={() => setLogsPage(item)}
+                          className={cn(
+                            "h-10 w-10 rounded-xl text-xs font-black transition-all",
+                            logsPage === item
+                              ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                              : "bg-white text-gray-400 hover:bg-gray-50"
+                          )}
+                        >
+                          {item}
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    disabled={logsPage >= Math.ceil(filteredLogs.length / itemsPerPage)}
-                    onClick={() => setLogsPage(prev => prev + 1)}
+                    disabled={logsPage >= totalLogsPages}
+                    onClick={() => setLogsPage(prev => Math.min(totalLogsPages, prev + 1))}
                     className="h-10 px-4 rounded-xl border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold text-xs gap-2"
                   >
                     Next <ChevronRight className="w-4 h-4" />

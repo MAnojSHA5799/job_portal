@@ -252,16 +252,26 @@ export default function CompaniesManagement() {
 
   const getPaginationItems = (): (number | string)[] => {
     if (totalPages <= 1) return totalPages === 1 ? [1] : [];
-    if (totalPages <= 7) {
+    if (totalPages <= 9) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
     if (currentPage <= 4) {
-      return [1, 2, 3, 4, 5, '...', totalPages];
+      return [1, 2, 3, 4, 5, 6, '...-end', totalPages];
     }
     if (currentPage >= totalPages - 3) {
-      return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      return [1, '...-start', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
     }
-    return [1, '...-start', currentPage - 1, currentPage, currentPage + 1, '...-end', totalPages];
+    return [
+      1,
+      '...-start',
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+      '...-end',
+      totalPages
+    ];
   };
 
   return (

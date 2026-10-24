@@ -105,36 +105,62 @@ const FRESHNESS_OPTIONS = [
 
 const checkExperienceMatch = (job: any, selectedExp: string): boolean => {
   if (!selectedExp) return true;
-  const expStr = (job.experience_level || job.experience || '').toLowerCase();
-  if (expStr === selectedExp.toLowerCase()) return true;
+  const rawExp = job.experience_level || job.experience || '';
+  const expStr = rawExp.toLowerCase().trim();
+  if (!expStr || expStr === 'not available' || expStr === 'not found') return false;
 
-  if (selectedExp === 'Fresher') {
-    return expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern') || expStr === '0' || expStr.includes('0 year');
-  }
+  const selLower = selectedExp.toLowerCase();
 
-  const selectedNum = parseInt(selectedExp, 10);
-  if (!isNaN(selectedNum)) {
-    const nums = expStr.match(/\d+/g);
-    if (nums && nums.length > 0) {
-      const parsedNums = nums.map((n: string) => parseInt(n, 10));
-      if (selectedExp.includes('+')) {
-        return Math.max(...parsedNums) >= selectedNum;
-      }
-      if (parsedNums.length === 1) {
-        return parsedNums[0] === selectedNum;
-      }
-      const min = Math.min(...parsedNums);
-      const max = Math.max(...parsedNums);
-      return selectedNum >= min && selectedNum <= max;
+  // 1. Fresher Matching
+  if (selLower === 'fresher') {
+    if (expStr.includes('fresher') || expStr.includes('entry') || expStr.includes('intern') || expStr.includes('trainee')) {
+      return true;
     }
-    return expStr.includes(`${selectedNum}`);
+    // Only match standalone 0, e.g. "0-1 years", "0 to 2", "0 yr"
+    if (/\b0\s*(?:-|to)\s*\d+/.test(expStr) || /\b0\s*(?:yr|year)/.test(expStr) || expStr === '0') {
+      return true;
+    }
+    return false;
   }
 
-  if (selectedExp === '1-3 Years') return expStr.includes('junior') || expStr.includes('associate');
-  if (selectedExp === '3-5 Years') return expStr.includes('mid');
-  if (selectedExp === '5+ Years') return expStr.includes('senior') || expStr.includes('lead');
+  // Normalize en-dash/em-dash to hyphen
+  const normalized = expStr.replace(/[–—]/g, '-');
 
-  return expStr.includes(selectedExp.toLowerCase());
+  // Match numbers, properly handling decimals like "5.00" as "5"
+  const numberMatches = normalized.match(/\d+(?:\.\d+)?/g);
+  if (!numberMatches || numberMatches.length === 0) {
+    if (selLower.includes('senior') && expStr.includes('senior')) return true;
+    if (selLower.includes('lead') && expStr.includes('lead')) return true;
+    return false;
+  }
+
+  // Parse as rounded integers so 5.00 -> 5, 10.00 -> 10
+  const parsedNums = numberMatches.map((n: string) => Math.round(parseFloat(n)));
+  const selectedNum = parseInt(selectedExp, 10);
+  if (isNaN(selectedNum)) return false;
+
+  const isPlus = selectedExp.includes('+');
+
+  // If user selected "15+ yrs"
+  if (isPlus) {
+    const max = Math.max(...parsedNums);
+    return max >= selectedNum || (expStr.includes('+') && parsedNums.some((n: number) => n >= selectedNum));
+  }
+
+  // If the job specified a single number, e.g. "4 years" or "4+ years"
+  if (parsedNums.length === 1) {
+    const jobNum = parsedNums[0];
+    if (expStr.includes('+')) {
+      // e.g. "4+ years" matches 4 yrs up to 4 + 2 yrs (e.g. 4, 5, 6)
+      return selectedNum >= jobNum && selectedNum <= jobNum + 2;
+    }
+    return jobNum === selectedNum;
+  }
+
+  // If the job specified a range, e.g. "5 to 10 years", "1-3 years", "12-16 years"
+  const min = Math.min(...parsedNums);
+  const max = Math.max(...parsedNums);
+  return selectedNum >= min && selectedNum <= max;
 };
 
 const checkFreshnessMatch = (job: any, selectedFreshness: string): boolean => {
