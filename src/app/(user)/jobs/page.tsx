@@ -56,6 +56,7 @@ interface Job {
   job_type: string;
   category: string;
   created_at: string;
+  date_posted?: string;
   apply_link: string;
   experience_level?: string;
   featured?: boolean;
@@ -163,17 +164,84 @@ const checkExperienceMatch = (job: any, selectedExp: string): boolean => {
   return selectedNum >= min && selectedNum <= max;
 };
 
+const parseJobPostedDate = (job: any): number => {
+  const raw = job.date_posted ? String(job.date_posted).trim() : '';
+  const createdTime = job.created_at ? new Date(job.created_at).getTime() : Date.now();
+  const anchorTime = (!isNaN(createdTime) && createdTime > 0) ? createdTime : Date.now();
+
+  if (raw) {
+    // 1. Relative text: "Posted X days ago", "Posted X hours ago", "Posted X months ago"
+    const daysMatch = raw.match(/(\d+)\s+days?\s+ago/i);
+    if (daysMatch) {
+      const days = parseInt(daysMatch[1], 10);
+      return anchorTime - (days * 24 * 60 * 60 * 1000);
+    }
+
+    const hoursMatch = raw.match(/(\d+)\s+hours?\s+ago/i);
+    if (hoursMatch) {
+      const hours = parseInt(hoursMatch[1], 10);
+      return anchorTime - (hours * 60 * 60 * 1000);
+    }
+
+    const monthsMatch = raw.match(/(\d+)\s+months?\s+ago/i);
+    if (monthsMatch) {
+      const months = parseInt(monthsMatch[1], 10);
+      return anchorTime - (months * 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // 2. Date with DD-MM-YYYY format e.g. "29-09-2026"
+    const dmyMatch = raw.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (dmyMatch) {
+      const d = parseInt(dmyMatch[1], 10);
+      const m = parseInt(dmyMatch[2], 10) - 1;
+      const y = parseInt(dmyMatch[3], 10);
+      return new Date(y, m, d).getTime();
+    }
+
+    // 3. Date with slash format e.g. "06/11/2026" or "11/09/2026" or "09/29/2026"
+    const slashMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const p1 = parseInt(slashMatch[1], 10);
+      const p2 = parseInt(slashMatch[2], 10);
+      const y = parseInt(slashMatch[3], 10);
+      if (p1 > 12) return new Date(y, p2 - 1, p1).getTime();
+      if (p2 > 12) return new Date(y, p1 - 1, p2).getTime();
+      const dmy = new Date(y, p2 - 1, p1).getTime();
+      const mdy = new Date(y, p1 - 1, p2).getTime();
+      const now = Date.now();
+      if (dmy <= now && mdy > now) return dmy;
+      if (mdy <= now && dmy > now) return mdy;
+      return dmy;
+    }
+
+    // 4. Standard Date.parse for ISO ("2026-10-24", "2026-10-21T06:..."), text dates ("8 Oct 2026", "September 2, 2026")
+    const parsed = new Date(raw).getTime();
+    if (!isNaN(parsed) && parsed > 0) {
+      // If parsed date is mistakenly in the future, fallback to anchorTime
+      if (parsed > Date.now()) return anchorTime;
+      return parsed;
+    }
+  }
+
+  // Fallback to created_at if date_posted is missing
+  return anchorTime;
+};
+
 const checkFreshnessMatch = (job: any, selectedFreshness: string): boolean => {
   if (!selectedFreshness) return true;
-  if (!job.created_at) return false;
-  const jobTime = new Date(job.created_at).getTime();
-  if (isNaN(jobTime)) return false;
-  const now = new Date().getTime();
+  // Freshness applies to approved jobs
+  if (job.is_approved === false) return false;
+
+  const jobTime = parseJobPostedDate(job);
+  if (!jobTime) return false;
+
+  const now = Date.now();
   const diffDays = (now - jobTime) / (1000 * 60 * 60 * 24);
   const match = selectedFreshness.match(/\d+/);
   if (match) {
     const maxDays = parseInt(match[0], 10);
-    return diffDays <= maxDays;
+    // Allow up to maxDays calendar days (e.g. 24-36 hrs treated as within last 1 day)
+    return diffDays >= 0 && (diffDays <= maxDays || Math.floor(diffDays) <= maxDays);
   }
   return true;
 };
@@ -269,6 +337,7 @@ function JobListingContent() {
           )
         `)
         .eq('is_approved', true)
+        .or('is_deleted.is.null,is_deleted.eq.false')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -370,8 +439,15 @@ function JobListingContent() {
 
   const freshnessCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    // Only count approved, non-deleted jobs that have a valid date_posted
+    const approvedJobsWithDate = jobs.filter((job: any) =>
+      job.is_approved === true &&
+      job.is_deleted !== true &&
+      job.date_posted
+    );
+    counts['__total__'] = approvedJobsWithDate.length;
     FRESHNESS_OPTIONS.forEach(opt => {
-      counts[opt] = jobs.filter(job => checkFreshnessMatch(job, opt)).length;
+      counts[opt] = approvedJobsWithDate.filter(job => checkFreshnessMatch(job, opt)).length;
     });
     return counts;
   }, [jobs]);
@@ -505,7 +581,7 @@ function JobListingContent() {
   const sortedJobs = useMemo(() => {
     const jobsCopy = [...filteredJobs];
     if (sortBy === 'newest') {
-      return jobsCopy.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return jobsCopy.sort((a, b) => parseJobPostedDate(b) - parseJobPostedDate(a));
     } else if (sortBy === 'highest_salary') {
       return jobsCopy.sort((a, b) => parseSalary(b.salary_range) - parseSalary(a.salary_range));
     } else if (sortBy === 'relevant') {
@@ -886,6 +962,24 @@ function JobListingContent() {
           )}
         </div>
         <div className="space-y-1">
+          <button
+            onClick={() => {
+              setSelectedFreshness('');
+              handleDropdownChange('freshness', '');
+            }}
+            className={cn(
+              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between group",
+              !selectedFreshness
+                ? "bg-cyan-50 text-cyan-800 font-extrabold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <span>All Freshness</span>
+            <span className={cn(
+              "px-2 py-0.5 rounded-full text-[10px] font-black",
+              !selectedFreshness ? "bg-cyan-100 text-cyan-800" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"
+            )}>{freshnessCounts['__total__'] ?? jobs.length}</span>
+          </button>
           {FRESHNESS_OPTIONS.map((freshness) => {
             const isSelected = selectedFreshness === freshness;
             const count = freshnessCounts[freshness] || 0;
@@ -906,7 +1000,7 @@ function JobListingContent() {
               >
                 <div className="flex items-center gap-2.5">
                   <div className={cn(
-                    "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all",
+                    "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all",
                     isSelected ? "border-cyan-500 bg-cyan-500" : "border-gray-300 bg-white"
                   )}>
                     {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}

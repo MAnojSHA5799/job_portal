@@ -327,9 +327,14 @@ export default function JobsQueue() {
 
   const handleStatusUpdate = async (id: string, approved: boolean) => {
     try {
+      const updateData: any = { is_approved: approved };
+      if (approved) {
+        updateData.created_at = new Date().toISOString();
+        updateData.date_posted = new Date().toISOString().split('T')[0];
+      }
       const { error } = await supabase
         .from('jobs')
-        .update({ is_approved: approved })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -467,7 +472,9 @@ export default function JobsQueue() {
               .from('jobs')
               .update({
                 ...enhancedData,
-                is_approved: true
+                is_approved: true,
+                created_at: new Date().toISOString(),
+                date_posted: new Date().toISOString().split('T')[0]
               })
               .eq('id', job.id);
 
